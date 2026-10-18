@@ -169,6 +169,78 @@ WMO_CODES: dict[int, tuple[Condition, str]] = {
 
 SEVERE_CODES = {65, 67, 75, 82, 86, 95, 96, 99}
 
+# ---------- animation scenes -------------------------------------------------
+# The weather panel's background animation is chosen from the provider's own
+# weather code (never from temperature). Day/night comes from real sunrise and
+# sunset times at the home location.
+
+Scene = Literal[
+    "clear-day", "clear-night", "partly-cloudy-day", "partly-cloudy-night", "overcast",
+    "drizzle", "rain", "heavy-rain", "thunderstorm", "snow", "fog", "unknown",
+]
+
+_SCENE_BY_CODE: dict[int, str] = {
+    0: "clear", 1: "clear", 2: "partly-cloudy", 3: "overcast",
+    45: "fog", 48: "fog",
+    51: "drizzle", 53: "drizzle", 55: "drizzle", 56: "drizzle", 57: "drizzle",
+    61: "rain", 63: "rain", 66: "rain", 80: "rain", 81: "rain",
+    65: "heavy-rain", 67: "heavy-rain", 82: "heavy-rain",
+    71: "snow", 73: "snow", 75: "snow", 77: "snow", 85: "snow", 86: "snow",
+    95: "thunderstorm", 96: "thunderstorm", 99: "thunderstorm",
+}
+_SCENE_BY_CONDITION: dict[str, str] = {
+    "clear": "clear", "partly_cloudy": "partly-cloudy", "cloudy": "overcast", "fog": "fog",
+    "drizzle": "drizzle", "rain": "rain", "thunderstorm": "thunderstorm", "snow": "snow",
+}
+
+
+def scene_for(code: int | None, condition: "Condition | str | None", is_day: bool) -> str:
+    """Map a weather code (preferred) or condition to an animation scene."""
+    if code is not None:
+        base = _SCENE_BY_CODE.get(int(code), "unknown")
+    elif condition is not None:
+        base = _SCENE_BY_CONDITION.get(str(condition), "unknown")
+    else:
+        base = "unknown"
+    if base in ("clear", "partly-cloudy"):
+        return f"{base}-{'day' if is_day else 'night'}"
+    return base
+
+
+def is_daytime(now: datetime, sunrise: datetime | None, sunset: datetime | None, fallback: bool) -> bool:
+    """Day if local time is between sunrise and sunset (same-day times of day)."""
+    if sunrise is None or sunset is None:
+        return fallback
+    tz = now.tzinfo
+    rise = sunrise.astimezone(tz).time() if tz else sunrise.time()
+    set_ = sunset.astimezone(tz).time() if tz else sunset.time()
+    if rise >= set_:  # polar edge cases / bad data
+        return fallback
+    return rise <= now.time() < set_
+
+
+class WeatherVisual(BaseModel):
+    scene: str
+    is_day: bool
+    # "live": animate. "static": data is sample or out of date, so the panel
+    # must not suggest live conditions. "none": no data to show.
+    motion: Literal["live", "static", "none"]
+    reason: str | None = None
+
+
+def visual_for(response: "WeatherResponse", now: datetime | None = None) -> WeatherVisual:
+    snap = response.data
+    if snap is None:
+        return WeatherVisual(scene="unknown", is_day=True, motion="none", reason=response.status)
+    now = now or datetime.now(ZoneInfo(snap.timezone))
+    day = is_daytime(now, snap.sunrise, snap.sunset, snap.current.is_day)
+    scene = scene_for(snap.current.weather_code, snap.current.condition, day)
+    if snap.is_mock:
+        return WeatherVisual(scene=scene, is_day=day, motion="static", reason="sample")
+    if response.status == "stale":
+        return WeatherVisual(scene=scene, is_day=day, motion="static", reason="stale")
+    return WeatherVisual(scene=scene, is_day=day, motion="live")
+
 
 def describe_code(code: int | None) -> tuple[Condition, str]:
     if code is None:
@@ -316,7 +388,13 @@ class WeatherService:
         hour_start = now.replace(minute=0, second=0, microsecond=0)
         hourly = [h for h in snap.hourly if h.time >= hour_start][:24]
         daily = [d for d in snap.daily if d.date >= now.date()]
-        return snap.model_copy(update={"hourly": hourly, "daily": daily})
+        update: dict = {"hourly": hourly, "daily": daily}
+        if daily and daily[0].date == now.date():
+            # After midnight the snapshot's "today" fields would describe
+            # yesterday; take them from today's forecast entry instead.
+            today = daily[0]
+            update.update(high_c=today.high_c, low_c=today.low_c, sunrise=today.sunrise, sunset=today.sunset)
+        return snap.model_copy(update=update)
 
     def _ok(self, entry: CacheEntry) -> WeatherResponse:
         return WeatherResponse(status="ok", is_mock=entry.snapshot.is_mock, data=self._trim(entry.snapshot))

@@ -4,6 +4,7 @@ The home location is *not* configured here: it is detected or chosen in the
 dashboard and persisted in ``data/location.json`` (see ``app/location.py``).
 """
 
+from datetime import date, time
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Literal
@@ -70,6 +71,27 @@ class Settings(BaseSettings):
     # LAN IP and port, detected on every request.
     public_url: str = ""
 
+    # Weekday commute monitor (see app/commute.py). Coordinates and the API key
+    # stay on the server; the dashboard only ever sees the labels.
+    commute_enabled: bool = True
+    commute_provider: Literal["tomtom", "none"] = "tomtom"
+    tomtom_api_key: SecretStr | None = None
+    commute_home: str = ""      # "lat,lon"
+    commute_office: str = ""    # "lat,lon"
+    commute_home_label: str = Field(default="Home", max_length=30)
+    commute_office_label: str = Field(default="Office", max_length=30)
+    commute_timezone: str = "Asia/Kolkata"
+    commute_window_start: str = "07:00"
+    commute_window_end: str = "11:00"
+    commute_slot_minutes: int = Field(default=15, ge=5, le=60)
+    commute_days: Annotated[list[str], NoDecode] = ["mon", "tue", "wed", "thu", "fri"]
+    commute_holidays: Annotated[list[date], NoDecode] = []
+    commute_prefetch_minutes: int = Field(default=15, ge=0, le=120)
+    commute_live_refresh_minutes: int = Field(default=15, ge=5, le=60)
+    commute_forecast_refresh_minutes: int = Field(default=30, ge=10, le=240)
+    commute_max_requests_per_day: int = Field(default=200, ge=1, le=2000)
+    commute_history_days: int = Field(default=180, ge=7, le=3650)
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080
@@ -87,6 +109,46 @@ class Settings(BaseSettings):
     def _split_hosts(cls, value: object) -> object:
         if isinstance(value, str):
             return [h.strip().lower() for h in value.split(",") if h.strip()]
+        return value
+
+    @field_validator("commute_home", "commute_office")
+    @classmethod
+    def _coords(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            return value
+        try:
+            lat, lon = (float(x) for x in value.split(","))
+        except ValueError as exc:
+            raise ValueError("must be 'latitude,longitude', e.g. 12.97,77.59") from exc
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            raise ValueError("coordinates out of range")
+        return f"{lat},{lon}"
+
+    @field_validator("commute_window_start", "commute_window_end")
+    @classmethod
+    def _hhmm(cls, value: str) -> str:
+        try:
+            t = time.fromisoformat(value.strip())
+        except ValueError as exc:
+            raise ValueError("must be HH:MM") from exc
+        return t.strftime("%H:%M")
+
+    @field_validator("commute_days", mode="before")
+    @classmethod
+    def _days(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = [d.strip().lower()[:3] for d in value.split(",") if d.strip()]
+        valid = {"mon", "tue", "wed", "thu", "fri", "sat", "sun"}
+        if isinstance(value, list) and any(d not in valid for d in value):
+            raise ValueError("use mon,tue,wed,thu,fri,sat,sun")
+        return value
+
+    @field_validator("commute_holidays", mode="before")
+    @classmethod
+    def _holidays(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [d.strip() for d in value.split(",") if d.strip()]
         return value
 
     @field_validator("household_pin", mode="before")

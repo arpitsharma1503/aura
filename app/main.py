@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from . import __version__
 from .auth import COOKIE_NAME, AccessControl, LoginLocked
 from .config import PROJECT_ROOT, Settings, get_settings
+from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
     CATEGORIES,
@@ -43,7 +44,14 @@ from .network import mdns_url, share_url
 from .open_meteo import OpenMeteoProvider
 from .recommendations import Recommendation, build_recommendations
 from .security import LanOnlyMiddleware
-from .weather import MockWeatherProvider, WeatherProvider, WeatherResponse, WeatherService
+from .weather import (
+    MockWeatherProvider,
+    WeatherProvider,
+    WeatherResponse,
+    WeatherService,
+    WeatherVisual,
+    visual_for,
+)
 
 STATIC_DIR = PROJECT_ROOT / "static"
 USER_AGENT = f"AURA-home-dashboard/{__version__}"
@@ -51,6 +59,7 @@ USER_AGENT = f"AURA-home-dashboard/{__version__}"
 
 class WeatherPayload(WeatherResponse):
     recommendations: list[Recommendation] = []
+    visual: WeatherVisual | None = None
 
 
 class LocationChoice(BaseModel):
@@ -105,6 +114,29 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     broker = Broker()
     background: set[asyncio.Task] = set()
 
+    commute_cfg = CommuteConfig.from_settings(settings)
+    commute_key = settings.tomtom_api_key.get_secret_value() if settings.tomtom_api_key else ""
+    missing = []
+    if settings.commute_provider == "none":
+        missing.append("a traffic provider (AURA_COMMUTE_PROVIDER=tomtom)")
+    elif not commute_key:
+        missing.append("a free TomTom API key (AURA_TOMTOM_API_KEY)")
+    if commute_cfg.home is None:
+        missing.append("home coordinates (AURA_COMMUTE_HOME)")
+    if commute_cfg.office is None:
+        missing.append("office coordinates (AURA_COMMUTE_OFFICE)")
+    commute_provider = (
+        TomTomProvider(client, commute_key)
+        if settings.commute_provider == "tomtom" and commute_key else None
+    )
+    commute_store = CommuteStore(settings.data_dir / "aura.db")
+    commute = CommuteMonitor(
+        commute_cfg, commute_provider, commute_store,
+        lock_path=settings.data_dir / "commute.lock",
+        on_change=lambda: broker.publish("commute", {}),
+        missing=("Live traffic needs " + ", ".join(missing) + ". See README → Commute.") if missing else None,
+    )
+
     def timezone() -> str:
         loc = location.location
         return (loc.timezone if loc and loc.timezone else None) or settings.default_timezone
@@ -124,8 +156,11 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         task = asyncio.create_task(location.ensure_detected())
         background.add(task)
         task.add_done_callback(background.discard)
+        commute.start()
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
+        await commute.stop()
+        commute_store.close()
         for t in list(background):
             t.cancel()
         await client.aclose()
@@ -140,6 +175,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.groceries = groceries
     app.state.access = access
     app.state.broker = broker
+    app.state.commute = commute
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -309,7 +345,13 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                 window_hours=settings.travel_window_hours,
                 clock_format=settings.clock_format,
             )
-        return WeatherPayload(**result.model_dump(), recommendations=recs)
+        return WeatherPayload(**result.model_dump(), recommendations=recs, visual=visual_for(result))
+
+    # ----- commute -----
+
+    @app.get("/api/commute", response_model=CommuteStatus)
+    async def commute_status() -> CommuteStatus:
+        return commute.status()
 
     # ----- groceries -----
 
