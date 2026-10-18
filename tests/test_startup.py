@@ -92,3 +92,18 @@ def test_second_instance_exits_with_clear_message(tmp_path):
     finally:
         first.send_signal(signal.SIGINT)
         first.communicate(timeout=10)
+
+
+def test_existing_world_readable_db_files_are_made_private(tmp_path):
+    """Regression: WAL/SHM files created before the private umask stayed 644."""
+    from app.groceries import GroceryStore
+    db = tmp_path / "aura.db"
+    GroceryStore(db).close()
+    for suffix in ("", "-wal", "-shm"):
+        f = db.with_name(db.name + suffix)
+        f.touch()
+        f.chmod(0o644)
+    store = GroceryStore(db)
+    for suffix in ("", "-wal", "-shm"):
+        assert oct(db.with_name(db.name + suffix).stat().st_mode & 0o777) == "0o600"
+    store.close()

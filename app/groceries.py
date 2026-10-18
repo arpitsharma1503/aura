@@ -26,6 +26,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from .storage import make_private
+
 log = logging.getLogger(__name__)
 
 CATEGORIES: dict[str, str] = {
@@ -232,10 +234,7 @@ class GroceryStore:
         self._db.execute("PRAGMA synchronous=NORMAL")
         self._db.execute("PRAGMA busy_timeout=5000")
         self._db.executescript(SCHEMA)
-        try:
-            db_path.chmod(0o600)
-        except OSError:
-            pass
+        make_private(db_path)
         if legacy_json is not None:
             self._import_legacy(legacy_json)
 

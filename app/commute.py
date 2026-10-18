@@ -46,6 +46,8 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import BaseModel
 
+from .storage import make_private
+
 log = logging.getLogger(__name__)
 
 DAY_NAMES = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -324,6 +326,7 @@ class CommuteStore:
         self._db.execute("PRAGMA journal_mode=WAL")
         self._db.execute("PRAGMA busy_timeout=5000")
         self._db.executescript(SCHEMA)
+        make_private(db_path)
         self._lock = threading.Lock()
 
     def close(self) -> None:

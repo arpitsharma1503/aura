@@ -21,3 +21,18 @@ def write_json_atomic(path: Path, data: Any) -> None:
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
         raise
+
+
+def make_private(db_path: Path) -> None:
+    """chmod 600 a SQLite database and its WAL/SHM side files, if present.
+
+    SQLite keeps an existing file's mode, so files created before AURA set a
+    private umask would otherwise stay world-readable.
+    """
+    for suffix in ("", "-wal", "-shm"):
+        f = db_path.with_name(db_path.name + suffix)
+        try:
+            if f.exists():
+                f.chmod(0o600)
+        except OSError:
+            pass
