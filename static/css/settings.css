@@ -1,6 +1,6 @@
 /* AURA Settings Center. Builds on style.css tokens (dark, calm, legible). */
 
-html:has(.s-page) { font-size: clamp(15px, 0.35vw + 12px, 19px); }
+html:has(.s-page) { font-size: max(15px, min(0.35vw + 12px, 0.9vw, 1.6vh)); }
 .s-page { font-size: 1rem; }
 
 .s-app {

@@ -9,7 +9,11 @@ from fixtures import commute_payload, weather_payload
 VIEWPORTS = [
     (320, 568, True), (375, 812, True), (390, 844, True), (430, 932, True),
     (768, 1024, True), (1024, 768, True), (1280, 800, False), (1440, 900, False), (1920, 1080, False),
+    # Entrance-display targets, including the 4K TV's real canvas (3840x2160 at scale 1).
+    (1280, 720, False), (1366, 768, False), (1600, 900, False), (3840, 2160, False),
 ]
+# Landscape screens >= 1200px wide use the one-screen entrance layout: no scrolling allowed.
+ENTRANCE = {(1280, 720), (1280, 800), (1366, 768), (1440, 900), (1600, 900), (1920, 1080), (3840, 2160)}
 
 LOCATION = {"location": {
     "city": "Bengaluru", "region": "Karnataka", "country": "India", "country_code": "IN",
@@ -107,8 +111,20 @@ def test_dashboard_layout(chrome, seeded, artifacts, w, h, touch):
     assert page.js("""(() => { const c = document.getElementById('weather').getBoundingClientRect(),
         s = document.getElementById('wx-scene').getBoundingClientRect();
         return s.left >= c.left - 1 && s.right <= c.right + 1 && s.top >= c.top - 1 && s.bottom <= c.bottom + 1; })()""")
-    if (w, h) == (1920, 1080):
+    if (w, h) in ENTRANCE:
         assert result["vscroll"] <= 0, f"entrance display needs scrolling ({result['vscroll']}px)"
+        # Balanced use of space: both content rows get a real share of the screen,
+        # the bottom cards aren't squeezed into a strip, and no big empty band
+        # sits between the rows.
+        rows = page.js("""(() => { const t = document.getElementById('weather').getBoundingClientRect(),
+            b = document.getElementById('commute').getBoundingClientRect();
+            return {top: t.height / innerHeight, bottom: b.height / innerHeight, gap: (b.top - t.bottom) / innerHeight}; })()""")
+        assert 0.42 <= rows["top"] <= 0.62, rows
+        assert rows["bottom"] >= 0.3, rows
+        assert rows["gap"] <= 0.04, rows
+        # Scales with the screen: the clock keeps its share of the width (TV = 2x 1080p).
+        clock_share = page.js("document.getElementById('clock').getBoundingClientRect().width / innerWidth")
+        assert clock_share >= 0.25, clock_share
     # Location settings dialog fits on screen and is usable.
     page.click("#location-btn")
     page.wait_for("document.getElementById('location-dialog').open")

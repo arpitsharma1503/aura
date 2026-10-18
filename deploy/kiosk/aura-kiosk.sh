@@ -10,7 +10,7 @@
 #   * never runs twice at once.
 #
 # Options (environment variables):
-#   AURA_KIOSK_URL=http://127.0.0.1:8080/   page to show
+#   AURA_KIOSK_URL=http://127.0.0.1:8080/?kiosk=1   page to show (?kiosk=1 hides the pointer)
 #   AURA_KIOSK_REQUIRE_DISPLAY=0            launch even with no HDMI screen detected
 #   Disable completely: touch ~/.config/aura-kiosk/disabled
 #
@@ -18,8 +18,8 @@
 
 set -u
 
-URL="${AURA_KIOSK_URL:-http://127.0.0.1:8080/}"
-HEALTH="${URL%/}/api/health"
+URL="${AURA_KIOSK_URL:-http://127.0.0.1:8080/?kiosk=1}"
+HEALTH="${URL%%\?*}"; HEALTH="${HEALTH%/}/api/health"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/aura-kiosk"
 PROFILE="$CONF_DIR/chromium"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}"

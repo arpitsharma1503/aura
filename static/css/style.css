@@ -7,8 +7,8 @@
   --bg: #05070d;
   --ink: #f4f6fb;
   --ink-2: rgba(244, 246, 251, 0.72);
-  --ink-3: rgba(244, 246, 251, 0.48);
-  --ink-4: rgba(244, 246, 251, 0.28);
+  --ink-3: rgba(244, 246, 251, 0.62);
+  --ink-4: rgba(244, 246, 251, 0.42);
   --line: rgba(255, 255, 255, 0.075);
   --card: rgba(255, 255, 255, 0.032);
   --card-hi: rgba(255, 255, 255, 0.055);
@@ -141,18 +141,6 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 .commute { grid-area: commute; }
 .advice  { grid-area: advice; }
 .grocery { grid-area: grocery; }
-
-/* Large landscape displays (the entrance screen): one glanceable page. */
-@media (min-width: 1400px) and (orientation: landscape) {
-  .shell {
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    grid-template-rows: auto 1fr auto;
-    grid-template-areas:
-      "top    top    top    top     top     top     top     top     top     top"
-      "time   time   time   time    time    time    weather weather weather weather"
-      "advice advice advice commute commute commute commute grocery grocery grocery";
-  }
-}
 
 /* Phones and portrait screens: a single readable column. */
 @media (max-width: 960px), (orientation: portrait) {
@@ -1110,48 +1098,13 @@ body[data-phase="night"] .shell { opacity: 0.86; }
   .dtable th, .dtable td { padding: 0.5rem 0.45rem; }
 }
 
-/* ---------- Wide-screen tuning (must stay last: overrides base rules) ---------- */
-/* Wide entrance layout: tighten vertical rhythm so all three rows fit one screen. */
-@media (min-width: 1400px) and (orientation: landscape) {
-  :root { --pad: clamp(16px, 2.2vw, 44px); --gap: clamp(12px, 1.1vw, 22px); }
-  .card { padding: clamp(16px, 1.4vw, 28px); }
-  .card__title { margin-bottom: 0.7rem; }
-  .time__clock { font-size: clamp(5.5rem, 13vw, 16rem); }
-  .time__date { margin-top: 0.6rem; }
-  .daily { margin-top: clamp(12px, 2vh, 28px); }
-  .daily li { padding: 0.45rem 0.2rem; }
-  .weather__art { width: clamp(6rem, 8vw, 10rem); }
-  .weather__temp { font-size: clamp(4rem, 6.4vw, 8.5rem); }
-  .weather__desc { font-size: clamp(1.2rem, 1.6vw, 2rem); }
-  .weather__stats { margin-top: clamp(10px, 1.2vw, 20px); padding: clamp(8px, 0.8vw, 14px) 0; }
-  .weather__stats dd { font-size: 1.15rem; }
-  .hourly { margin-top: clamp(8px, 1vw, 16px); }
-  .hourly__icon { width: 2rem; height: 2rem; }
-  .weather__meta { margin-top: 0.6rem; }
-  .advice__list { grid-template-columns: minmax(0, 1fr); gap: 0.65rem; }
-  .advice__item:nth-child(n + 4) { display: none; }   /* top 3 tips at a glance */
-  .advice__detail { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
-  .commute__body { gap: 0.6rem; }
-  .commute__time { font-size: clamp(2rem, 2.6vw, 3rem); }
-  .slots { height: clamp(2.8rem, 4.5vh, 4rem); }
-  .place__note { max-width: none; margin-top: 0.35rem; }
-  .grocery__list { grid-template-columns: minmax(0, 1fr); }
-  .grocery__item button { padding: 0.35rem 0.2rem; }
-  .commute__meta { margin-top: 0.5rem; }
-}
-
-/* ---------- Performance on the Raspberry Pi ----------
-   Only the main weather illustration animates; the small hourly/daily icons
-   are still (a dozen animated SVGs cost far more than they add). The large
-   ambient orbs above move in 1-second steps, which is invisible over a
-   90-150 s drift but lets the browser skip most frames. */
-.hourly__icon *, .daily__icon * { animation: none !important; }
-
 /* ---------- Minimal tile CTA: a bare arrow, bottom-right ---------- */
-.card { position: relative; }
+/* The arrow sits in the card's own flow at the bottom-right, so it can never
+   cover text, whatever the content or screen size. */
+.card[data-open] { display: flex; flex-direction: column; }
 .card > .tile-arrow, .weather > .tile-arrow {
-  position: absolute; z-index: 2;
-  right: clamp(6px, 0.7vw, 12px); bottom: clamp(4px, 0.5vw, 10px);
+  position: relative; z-index: 2; flex: none;
+  align-self: flex-end; margin: auto -0.35rem -0.35rem 0;   /* margin-top:auto = pinned to the bottom */
 }
 .tile-arrow {
   all: unset; box-sizing: border-box; cursor: pointer;
@@ -1190,3 +1143,114 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
   animation: none !important; transition: none !important;
 }
+
+/* =====================================================================
+   Entrance layout - every large landscape screen (laptops, monitors, TVs).
+
+   Sizes come from one unit, --u: 1% of the screen's width, corrected so
+   wider-than-16:9 screens are limited by their height instead. The whole
+   page keeps the same proportions at 1280x720, 1920x1080 and the 4K TV
+   (3840x2160 at scale 1) - no capped pixel sizes that stop growing.
+   Must stay last in this file: it overrides the base rules above.
+   ===================================================================== */
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  :root {
+    --u: min(1vw, 1.7778vh);
+    font-size: max(14.5px, calc(var(--u) * 1.09));
+    --pad: calc(var(--u) * 2.3);
+    --gap: calc(var(--u) * 1.15);
+    --radius: calc(var(--u) * 1.05);
+  }
+
+  /* Spare height is shared by both content rows instead of only the top one. */
+  .shell {
+    /* A definite height makes the 1.3 : 1 split share only the *spare* space;
+       each row still grows to fit its content (min-content), and if content
+       ever exceeds the screen the page scrolls rather than clipping. */
+    height: 100vh;
+    height: 100dvh;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-rows: auto minmax(min-content, 1.3fr) minmax(min-content, 1fr);
+    grid-template-areas:
+      "top    top    top    top     top     top     top     top     top     top"
+      "time   time   time   time    time    time    weather weather weather weather"
+      "advice advice advice commute commute commute commute grocery grocery grocery";
+  }
+  .topbar { min-height: 0; }
+  .brand__name { font-size: 0.85rem; }
+
+  .card { padding: calc(var(--u) * 1.35); }
+  .card__title { margin-bottom: 0.55rem; font-size: 0.85rem; letter-spacing: 0.12em; color: var(--ink-2); }
+  /* The arrow row takes over most of the card's bottom padding instead of adding height. */
+  .card[data-open] { padding-bottom: calc(var(--u) * 0.55); }
+  .card > .tile-arrow, .weather > .tile-arrow { width: 1.6rem; height: 1.6rem; margin: auto -0.3rem 0 0; }
+
+  /* --- clock column: clock block centred, 5-day strip at the bottom --- */
+  .time { justify-content: flex-start; }
+  .tile-hit { margin-top: auto; }
+  .time__clock { font-size: calc(var(--u) * 11); }
+  .time__date { margin-top: calc(var(--u) * 0.5); font-size: calc(var(--u) * 2.35); color: var(--ink-2); }
+  .place { margin-top: calc(var(--u) * 0.6); font-size: calc(var(--u) * 1.4); }
+  .place__note { max-width: none; margin-top: 0.35rem; }
+  .daily {
+    margin-top: auto; padding-top: calc(var(--u) * 1);
+    grid-template-columns: repeat(5, minmax(0, calc(var(--u) * 8)));
+    gap: calc(var(--u) * 0.6);
+  }
+  .daily li { padding: calc(var(--u) * 0.4) 0.2rem; gap: 0.1rem; border-radius: calc(var(--u) * 0.75); }
+  .daily__day { font-size: 0.85rem; color: var(--ink-2); }
+  .daily__icon { width: 2.2rem; height: 2.2rem; }
+  .daily__temps { font-size: 1.05rem; }
+  .daily__rain { font-size: 0.78rem; }
+
+  /* --- weather card: headline at the top, hourly row at the bottom --- */
+  .weather { justify-content: flex-start; }
+  .weather__content { flex: 1; display: flex !important; flex-direction: column; }
+  .weather[data-state="loading"] .weather__content,
+  .weather[data-state="unavailable"] .weather__content,
+  .weather[data-state="error"] .weather__content { display: none !important; }
+  .weather__loading, .weather__message { margin-block: auto; }
+  .weather__now { gap: calc(var(--u) * 1.6); }
+  .weather__art { width: calc(var(--u) * 7.8); }
+  .weather__temp { font-size: calc(var(--u) * 6.2); }
+  .weather__desc { font-size: calc(var(--u) * 1.75); }
+  .weather__range { font-size: calc(var(--u) * 1.25); color: var(--ink-2); }
+  .weather__sun { font-size: calc(var(--u) * 1.05); color: var(--ink-2); }
+  .weather__stats { margin-top: auto; padding: calc(var(--u) * 0.8) 0; }
+  .weather__stats dt { font-size: 0.72rem; letter-spacing: 0.1em; color: var(--ink-2); }
+  .weather__stats dd { font-size: 1.25rem; }
+  .hourly { margin-top: calc(var(--u) * 0.9); }
+  .hourly__time { font-size: 0.85rem; color: var(--ink-2); }
+  .hourly__icon { width: 2.3rem; height: 2.3rem; }
+  .hourly__temp { font-size: 1.15rem; }
+  .hourly__rain { font-size: 0.8rem; }
+  .weather__meta { margin-top: calc(var(--u) * 0.5); font-size: 0.78rem; }
+
+  /* --- bottom cards: room for real content, natural wrapping --- */
+  .advice__list { grid-template-columns: minmax(0, 1fr); gap: calc(var(--u) * 0.5); }
+  .advice__item:nth-child(n + 4) { display: none; }          /* top 3 at a glance; all in the detail view */
+  .advice__icon { width: 2.3rem; height: 2.3rem; }
+  .advice__title { font-size: 1.12rem; }
+  .advice__detail {
+    font-size: 0.92rem; color: var(--ink-2);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .commute__body { gap: calc(var(--u) * 0.5); }
+  .commute__time { font-size: calc(var(--u) * 3.1); }
+  .commute__facts { font-size: 1rem; }
+  .commute__now { font-size: 0.9rem; color: var(--ink-2); }
+  .commute .state, .advice .state, .grocery .state { font-size: 1.05rem; }
+  .state small { font-size: 0.9rem; color: var(--ink-3); }
+  .slots { height: auto; min-height: calc(var(--u) * 2.6); flex: 1; max-height: calc(var(--u) * 7); }
+  .commute__body > div:last-child:has(.slots) { flex: 1; display: flex; flex-direction: column; }
+  .commute__meta { margin-top: calc(var(--u) * 0.5); font-size: 0.78rem; }
+  .grocery__list { grid-template-columns: minmax(0, 1fr); }
+  .grocery__item button { padding: 0.4rem 0.2rem; }
+  .grocery__name { font-size: 1.1rem; }
+  .grocery__qr img { width: calc(var(--u) * 8.5); }
+  .grocery__qr-label { font-size: 0.75rem; color: var(--ink-2); }
+  .tile-arrow svg { width: 1.35rem; height: 1.35rem; }
+}
+
+/* Kiosk (the Pi's own screen, opened with ?kiosk=1): no mouse pointer. */
+body.kiosk, body.kiosk * { cursor: none !important; }

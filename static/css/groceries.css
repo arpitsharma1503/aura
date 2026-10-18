@@ -4,7 +4,8 @@
   font-size: 16px;
   --composer-h: 9.5rem;
 }
-html:has(.g-page) { font-size: 16px; }
+/* 16px on phones; grows on big screens (e.g. the 4K entrance TV) so it stays readable. */
+html:has(.g-page) { font-size: max(16px, min(0.95vw, 1.7vh)); }
 
 .g-app {
   position: relative;

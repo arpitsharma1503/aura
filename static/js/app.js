@@ -568,7 +568,7 @@
 
     count.textContent = `${open.length} to buy`;
     // The wide entrance layout has room for a single column of 5.
-    const max = matchMedia("(min-width: 1400px) and (orientation: landscape)").matches ? 5 : MAX_GROCERIES;
+    const max = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches ? 5 : MAX_GROCERIES;
     const shown = open.slice(0, max);
     const canEdit = state.session?.can_edit;
     list.toggleAttribute("data-readonly", !canEdit);
@@ -879,6 +879,8 @@
 
   // ---------- boot ----------
 
+  // The Pi's own screen opens /?kiosk=1 (see deploy/kiosk): hide the mouse pointer there.
+  if (new URLSearchParams(location.search).has("kiosk")) document.body.classList.add("kiosk");
   startClock();
   wireDialog();
   Detail.init({

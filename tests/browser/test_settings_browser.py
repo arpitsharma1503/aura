@@ -111,8 +111,12 @@ def test_arrow_opens_exactly_once(chrome, srv):
     p.wait_for("location.pathname === '/groceries'")
 
 
-def test_arrow_does_not_overlap_tile_text(chrome, srv):
-    p = dashboard(chrome, srv)
+@pytest.mark.parametrize("w, h", [(1920, 1080), (1600, 900), (1366, 768), (1280, 720), (3840, 2160),
+                                  (1512, 860), (1024, 768), (390, 844)])
+def test_arrow_does_not_overlap_tile_text(chrome, srv, w, h):
+    for name in ("Basmati rice", "Tomatoes", "Coffee", "Dish soap", "Paneer", "Milk"):
+        srv.api("POST", "/api/groceries", {"name": name})
+    p = dashboard(chrome, srv, w, h, touch=w < 800)
     hits = p.js("""(() => { const out = [];
         for (const a of document.querySelectorAll('.card > .tile-arrow')) {
           const r = a.getBoundingClientRect(), card = a.parentElement;
