@@ -543,6 +543,16 @@
 
   function wire() {
     wireComposer();
+    // Back to the dashboard: use history when we came from it (keeps its state).
+    $("g-home").addEventListener("click", (e) => {
+      try {
+        const ref = document.referrer ? new URL(document.referrer) : null;
+        if (ref && ref.origin === location.origin && ref.pathname === "/" && history.length > 1) {
+          e.preventDefault();
+          history.back();
+        }
+      } catch { /* fall back to the plain link */ }
+    });
     $("g-banner-btn").addEventListener("click", openSignin);
     for (const b of document.querySelectorAll(".g-filter__btn")) {
       b.addEventListener("click", () => setFilter(b.dataset.filter));

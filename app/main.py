@@ -58,7 +58,9 @@ USER_AGENT = f"AURA-home-dashboard/{__version__}"
 
 
 class WeatherPayload(WeatherResponse):
-    recommendations: list[Recommendation] = []
+    recommendations: list[Recommendation] = []          # top 4, for the dashboard tile
+    recommendations_all: list[Recommendation] = []      # every applicable tip, for the detail view
+    travel_window_hours: int | None = None
     visual: WeatherVisual | None = None
 
 
@@ -344,8 +346,12 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                 now=datetime.now(ZoneInfo(result.data.timezone)),
                 window_hours=settings.travel_window_hours,
                 clock_format=settings.clock_format,
+                limit=50,
             )
-        return WeatherPayload(**result.model_dump(), recommendations=recs, visual=visual_for(result))
+        return WeatherPayload(
+            **result.model_dump(), recommendations=recs[:4], recommendations_all=recs,
+            travel_window_hours=settings.travel_window_hours, visual=visual_for(result),
+        )
 
     # ----- commute -----
 

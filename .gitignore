@@ -13,3 +13,4 @@ data/session.key
 data/groceries.json.migrated
 backups/
 tests/browser/artifacts/
+data/commute.lock

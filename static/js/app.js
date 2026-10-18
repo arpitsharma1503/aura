@@ -5,6 +5,7 @@
 (() => {
   const { weather: weatherArt, icon } = window.AuraIcons;
   const Scene = window.AuraWeatherScene;
+  const Detail = window.AuraDetail;
   const $ = (id) => document.getElementById(id);
 
   const REQUEST_TIMEOUT_MS = 12000;
@@ -21,6 +22,8 @@
     weatherReceivedAt: 0,
     clockTimer: null,
     session: null,          // { can_edit, method, pin_configured }
+    weatherPayload: null,   // last /api/weather response of any status (for detail views)
+    commute: null,          // last /api/commute response
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -462,6 +465,8 @@
   async function loadWeather() {
     try {
       const payload = await fetchJSON("/api/weather");
+      state.weatherPayload = payload;
+      Detail.refresh();
       if ((payload.status === "ok" || payload.status === "stale") && payload.data) {
         state.weather = payload;
         state.weatherReceivedAt = Date.now();
@@ -778,7 +783,9 @@
 
   async function loadCommute() {
     try {
-      renderCommute(await fetchJSON("/api/commute"));
+      state.commute = await fetchJSON("/api/commute");
+      renderCommute(state.commute);
+      Detail.refresh("commute");
     } catch {
       if ($("commute").dataset.state === "loading") {
         $("commute-body").replaceChildren(stateRow("alert", "Couldn't load commute", "Retrying automatically.", "state--error"));
@@ -825,6 +832,7 @@
       $("preview-pill").hidden = !cfg.dev_preview;
       renderLocation(cfg.location);
       renderClock();
+      Detail.refresh("clock");
       const key = locationKey(cfg.location);
       if (key !== state.locationKey) {
         const first = state.locationKey === null;
@@ -852,6 +860,28 @@
 
   startClock();
   wireDialog();
+  Detail.init({
+    config: () => state.config,
+    weather: () => state.weatherPayload,
+    commute: () => state.commute,
+    icon,
+    weatherArt,
+    temp: fmtTemp,
+    formatHour: fmtHour,
+    renderScene: (el, visual) => Scene.render(el, visual),
+    formatTime: (date, { seconds = false } = {}) => new Intl.DateTimeFormat("en-US", {
+      timeZone: tz(), hour: "numeric", minute: "2-digit", ...(seconds ? { second: "2-digit" } : {}), hour12: twelve(),
+    }).format(date),
+    formatTimeIn: (tzName, date) => new Intl.DateTimeFormat("en-US", {
+      timeZone: tzName, hour: "numeric", minute: "2-digit", hour12: twelve(),
+    }).format(date),
+    dayName: (isoDate) => {
+      const today = new Intl.DateTimeFormat("en-CA", { timeZone: tz() }).format(new Date());
+      if (isoDate === today) return "Today";
+      return new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" })
+        .format(new Date(`${isoDate}T12:00:00Z`));
+    },
+  });
   Scene.watch($("wx-scene"), () => state.weather?.visual || null);
   loadConfig().then(async () => {
     loadWeather();

@@ -439,6 +439,8 @@ class SlotView(BaseModel):
     duration_min: int | None = None
     traffic_level: TrafficLevel | None = None
     delay_min: int | None = None
+    no_traffic_min: int | None = None
+    length_km: float | None = None
     basis: Basis | None = None
     observed_at: datetime | None = None
     past: bool = False
@@ -452,6 +454,9 @@ class Recommendation(BaseModel):
     duration_min: int
     traffic_level: TrafficLevel | None
     delay_min: int | None
+    no_traffic_min: int | None = None
+    length_km: float | None = None
+    observed_at: datetime | None = None
     basis: Basis
     basis_label: str
     leave_now: bool = False
@@ -743,6 +748,8 @@ class CommuteMonitor:
             departure_at=o.departure_at, arrival_at=o.arrival_at, duration_min=round(o.duration_s / 60),
             traffic_level=traffic_level(o.duration_s, o.no_traffic_s), basis=o.basis,
             delay_min=round(max(0, o.duration_s - o.no_traffic_s) / 60) if o.no_traffic_s else None,
+            no_traffic_min=round(o.no_traffic_s / 60) if o.no_traffic_s else None,
+            length_km=round(o.length_m / 1000, 1) if o.length_m else None,
             observed_at=o.observed_at, past=past,
         )
 
@@ -777,5 +784,6 @@ class CommuteMonitor:
         return Recommendation(
             departure_at=v.departure_at, arrival_at=v.arrival_at or v.departure_at + timedelta(minutes=v.duration_min),
             duration_min=v.duration_min, traffic_level=v.traffic_level, delay_min=delay,
+            no_traffic_min=v.no_traffic_min, length_km=v.length_km, observed_at=v.observed_at,
             basis=v.basis, basis_label=label, leave_now=leave_now,
         )

@@ -37,8 +37,9 @@ def weather_payload(code: int, hour: int, status: str = "ok", is_mock: bool = Fa
     snap.fetched_at = datetime.now(TZ) - (timedelta(hours=2) if status == "stale" else timedelta(minutes=3))
     resp = WeatherResponse(status=status, is_mock=is_mock, data=snap,
                            message="Weather service unavailable" if status == "stale" else None)
-    payload = WeatherPayload(**resp.model_dump(), recommendations=build_recommendations(snap, now=now),
-                             visual=visual_for(resp, now))
+    recs = build_recommendations(snap, now=now, limit=50)
+    payload = WeatherPayload(**resp.model_dump(), recommendations=recs[:4], recommendations_all=recs,
+                             travel_window_hours=6, visual=visual_for(resp, now))
     return payload.model_dump(mode="json")
 
 

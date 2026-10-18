@@ -23,13 +23,17 @@ html:has(.g-page) { font-size: 16px; }
   padding: 0.5rem 0 1.1rem;
 }
 .g-home {
-  width: 2.5rem; height: 2.5rem; flex: none;
-  display: grid; place-items: center;
-  border-radius: 50%;
+  flex: none; box-sizing: border-box;
+  display: inline-flex; align-items: center; gap: 0.15rem;
+  min-height: 2.75rem; padding: 0 0.85rem 0 0.5rem;
+  border-radius: 999px; text-decoration: none;
+  font-size: 0.85rem; font-weight: 500; color: var(--ink-2);
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--line);
 }
-.g-home .brand__mark { width: 0.9rem; height: 0.9rem; }
+.g-home svg { width: 1.15rem; height: 1.15rem; }
+.g-home:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 440px) { .g-home span { display: none; } .g-home { width: 2.75rem; padding: 0; justify-content: center; } }
 .g-title { flex: 1; min-width: 0; }
 .g-title h1 { margin: 0; font-size: clamp(1.4rem, 7vw, 1.7rem); font-weight: 500; letter-spacing: -0.02em; }
 .g-sub { margin: 0.1rem 0 0; font-size: 0.85rem; color: var(--ink-3); }
