@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#05070d">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Groceries">
+  <title>Groceries · AURA</title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/groceries.css">
+  <script src="/static/js/icons.js" defer></script>
+  <script src="/static/js/groceries.js" defer></script>
+</head>
+<body class="g-page" data-phase="night" data-sky="clear">
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__orb ambient__orb--a"></div>
+    <div class="ambient__orb ambient__orb--b"></div>
+    <div class="ambient__vignette"></div>
+  </div>
+
+  <div class="g-app">
+    <header class="g-head">
+      <a class="g-home" href="/" aria-label="Back to dashboard"><span class="brand__mark"></span></a>
+      <div class="g-title">
+        <h1>Groceries</h1>
+        <p class="g-sub" id="g-sub">Loading…</p>
+      </div>
+      <span class="g-live" id="g-live" data-state="connecting" role="status">
+        <span class="g-live__dot"></span><span id="g-live-text">Connecting</span>
+      </span>
+    </header>
+
+    <div class="g-banner" id="g-banner" hidden>
+      <span id="g-banner-text">View only on this phone.</span>
+      <button type="button" class="btn btn--primary" id="g-banner-btn">Enter PIN</button>
+    </div>
+
+    <main id="g-main" aria-busy="true">
+      <div class="g-loading" id="g-loading">
+        <div class="skeleton skeleton--row"></div>
+        <div class="skeleton skeleton--row"></div>
+        <div class="skeleton skeleton--row"></div>
+        <div class="skeleton skeleton--row"></div>
+      </div>
+      <div class="g-state" id="g-state" hidden></div>
+      <div id="g-groups"></div>
+
+      <section class="g-done" id="g-done" hidden>
+        <div class="g-done__head">
+          <button type="button" class="g-done__toggle" id="g-done-toggle" aria-expanded="false" aria-controls="g-done-list">
+            <span>Purchased</span><span class="g-done__count" id="g-done-count"></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <button type="button" class="g-link g-link--danger" id="g-clear">Clear all</button>
+        </div>
+        <ul class="g-items g-items--done" id="g-done-list" hidden></ul>
+      </section>
+    </main>
+  </div>
+
+  <form class="g-composer" id="g-composer" autocomplete="off" novalidate>
+    <div class="g-chips" id="g-suggest" role="list" aria-label="Quick add"></div>
+    <div class="g-extra" id="g-extra" hidden>
+      <div class="g-qty" role="group" aria-label="Quantity">
+        <button type="button" class="g-step" data-step="-1" aria-label="Less">−</button>
+        <input id="g-qty" name="quantity" placeholder="Qty" maxlength="20" inputmode="text" aria-label="Quantity">
+        <button type="button" class="g-step" data-step="1" aria-label="More">+</button>
+      </div>
+      <select id="g-cat" name="category" aria-label="Category">
+        <option value="">Auto category</option>
+      </select>
+    </div>
+    <div class="g-row">
+      <input id="g-name" name="name" placeholder="Add an item" maxlength="60" enterkeyhint="done"
+             autocapitalize="sentences" aria-label="Item name">
+      <button type="submit" class="g-add" id="g-add" aria-label="Add item">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <p class="g-error" id="g-form-error" role="alert" hidden></p>
+  </form>
+
+  <div class="g-toast" id="g-toast" role="status" aria-live="polite" hidden>
+    <span id="g-toast-text"></span>
+    <button type="button" class="g-link" id="g-toast-action" hidden>Undo</button>
+  </div>
+
+  <!-- Edit item -->
+  <dialog class="sheet g-sheet" id="g-edit" aria-labelledby="g-edit-title">
+    <form class="sheet__inner" id="g-edit-form" method="dialog" novalidate>
+      <header class="sheet__head">
+        <h2 id="g-edit-title">Edit item</h2>
+        <button type="button" class="sheet__close" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <label class="g-field"><span class="sheet__label">Item</span>
+        <input class="sheet__input" id="e-name" maxlength="60" required></label>
+      <div class="g-field-row">
+        <label class="g-field"><span class="sheet__label">Quantity</span>
+          <input class="sheet__input" id="e-qty" maxlength="20" placeholder="e.g. 2, 1 kg"></label>
+        <label class="g-field"><span class="sheet__label">Category</span>
+          <select class="sheet__input" id="e-cat"></select></label>
+      </div>
+      <label class="g-field"><span class="sheet__label">Notes</span>
+        <textarea class="sheet__input" id="e-notes" maxlength="200" rows="2" placeholder="Brand, size, anything helpful"></textarea></label>
+      <p class="sheet__status" id="e-status" role="alert"></p>
+      <div class="g-sheet__actions">
+        <button type="button" class="btn g-btn-danger" id="e-delete">Delete</button>
+        <button type="submit" class="btn btn--primary" id="e-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm destructive actions -->
+  <dialog class="sheet g-sheet g-confirm" id="g-confirm" aria-labelledby="c-title">
+    <div class="sheet__inner">
+      <h2 id="c-title">Are you sure?</h2>
+      <p class="g-confirm__body" id="c-body"></p>
+      <div class="g-sheet__actions">
+        <button type="button" class="btn" id="c-cancel">Cancel</button>
+        <button type="button" class="btn g-btn-danger g-btn-danger--solid" id="c-ok">Delete</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- PIN sign-in -->
+  <dialog class="sheet g-sheet" id="g-signin" aria-labelledby="s-title">
+    <form class="sheet__inner" id="g-signin-form" novalidate>
+      <header class="sheet__head">
+        <h2 id="s-title">Household PIN</h2>
+        <button type="button" class="sheet__close" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <p class="sheet__fine g-fine">Enter the PIN once on this phone to add and change items. It stays signed in.</p>
+      <input class="sheet__input g-pin" id="s-pin" type="password" inputmode="numeric" autocomplete="current-password"
+             maxlength="64" placeholder="PIN" aria-label="Household PIN">
+      <p class="sheet__status" id="s-status" role="alert"></p>
+      <button type="submit" class="btn btn--primary g-wide" id="s-submit">Unlock editing</button>
+    </form>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+logs/*.log*
+data/groceries.json
+.env.*.bak
+data/location.json
+data/weather_cache.json
+data/aura.db*
+data/session.key
+data/groceries.json.migrated
+backups/

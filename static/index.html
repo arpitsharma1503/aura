@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#05070d">
+  <meta name="color-scheme" content="dark">
+  <title>AURA</title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/icons.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-phase="night" data-sky="clear">
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__orb ambient__orb--a"></div>
+    <div class="ambient__orb ambient__orb--b"></div>
+    <div class="ambient__orb ambient__orb--c"></div>
+    <div class="ambient__vignette"></div>
+  </div>
+
+  <main class="shell" id="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand__mark" aria-hidden="true"></span>
+        <span class="brand__name">AURA</span>
+      </div>
+      <div class="topbar__right">
+        <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
+        <span class="pill pill--offline" id="offline-pill" role="status" hidden>
+          <span class="dot"></span>Connection lost · retrying
+        </span>
+      </div>
+    </header>
+
+    <section class="time" aria-label="Current time">
+      <div class="time__clock" id="clock" aria-live="off">
+        <span id="clock-hm">--:--</span><span class="time__meridiem" id="clock-ampm"></span>
+      </div>
+      <div class="time__date" id="date">&nbsp;</div>
+      <div class="place" id="place" data-status="loading">
+        <svg class="time__pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>
+        <span class="place__city" id="city">&nbsp;</span>
+        <span class="place__region" id="region"></span>
+        <span class="badge" id="location-badge" hidden></span>
+        <button type="button" class="place__btn" id="location-btn" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+          <span id="location-btn-label">Location</span>
+        </button>
+      </div>
+      <p class="place__note" id="location-note" hidden></p>
+      <ol class="daily" id="daily" aria-label="Coming days"></ol>
+    </section>
+
+    <section class="card weather" id="weather" aria-label="Weather" data-state="loading">
+      <div class="weather__loading">
+        <div class="skeleton skeleton--icon"></div>
+        <div class="skeleton-stack">
+          <div class="skeleton skeleton--xl"></div>
+          <div class="skeleton skeleton--md"></div>
+        </div>
+      </div>
+
+      <div class="weather__message" id="weather-message">
+        <div class="weather__message-icon" id="weather-message-icon"></div>
+        <div>
+          <h2 class="weather__message-title" id="weather-message-title"></h2>
+          <p class="weather__message-body" id="weather-message-body"></p>
+        </div>
+      </div>
+
+      <div class="weather__content">
+        <div class="weather__now">
+          <div class="weather__art" id="weather-art"></div>
+          <div class="weather__reading">
+            <div class="weather__temp" id="weather-temp"></div>
+            <div class="weather__desc" id="weather-desc"></div>
+            <div class="weather__range" id="weather-range"></div>
+            <div class="weather__sun" id="weather-sun"></div>
+          </div>
+        </div>
+        <dl class="weather__stats" id="weather-stats"></dl>
+        <ol class="hourly" id="hourly" aria-label="Next hours"></ol>
+        <div class="weather__meta" id="weather-meta"></div>
+      </div>
+    </section>
+
+    <section class="card advice" aria-labelledby="advice-title">
+      <h2 class="card__title" id="advice-title">Before you go</h2>
+      <ul class="advice__list" id="advice-list" data-state="loading">
+        <li class="skeleton skeleton--row"></li>
+        <li class="skeleton skeleton--row"></li>
+      </ul>
+    </section>
+
+    <section class="card grocery" aria-labelledby="grocery-title">
+      <h2 class="card__title">
+        <span id="grocery-title">Groceries</span>
+        <span class="card__count" id="grocery-count"></span>
+      </h2>
+      <div class="grocery__body">
+        <ul class="grocery__list" id="grocery-list" data-state="loading">
+          <li class="skeleton skeleton--row"></li>
+          <li class="skeleton skeleton--row"></li>
+          <li class="skeleton skeleton--row"></li>
+        </ul>
+        <a class="grocery__qr" id="grocery-qr" href="/groceries" hidden>
+          <img id="grocery-qr-img" alt="QR code that opens the grocery list on your phone">
+          <span class="grocery__qr-label">Scan to edit</span>
+        </a>
+      </div>
+    </section>
+  </main>
+  <dialog class="sheet" id="location-dialog" aria-labelledby="loc-title">
+    <div class="sheet__inner">
+      <header class="sheet__head">
+        <h2 id="loc-title">Home location</h2>
+        <button type="button" class="sheet__close" id="loc-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+
+      <form class="sheet__section loc-unlock" id="loc-unlock" hidden novalidate>
+        <label class="sheet__label" for="loc-pin">Household PIN required to change location</label>
+        <div class="loc-unlock__row">
+          <input class="sheet__input" id="loc-pin" type="password" inputmode="numeric" maxlength="64"
+                 autocomplete="current-password" placeholder="PIN">
+          <button type="submit" class="btn btn--primary">Unlock</button>
+        </div>
+      </form>
+
+      <section class="sheet__section">
+        <div class="sheet__label">Current</div>
+        <div class="sheet__city" id="loc-current">Not configured</div>
+        <div class="sheet__meta" id="loc-meta"></div>
+        <p class="sheet__warn" id="loc-note" hidden></p>
+        <div class="sheet__actions">
+          <button type="button" class="btn btn--primary" id="loc-confirm" hidden>Yes, this is home</button>
+          <button type="button" class="btn" id="loc-detect">Detect from internet connection</button>
+        </div>
+      </section>
+
+      <section class="sheet__section">
+        <label class="sheet__label" for="loc-search">Choose your city</label>
+        <input class="sheet__input" id="loc-search" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Search for a city" maxlength="80">
+        <ul class="results" id="loc-results" aria-label="Search results"></ul>
+      </section>
+
+      <p class="sheet__status" id="loc-status" role="status" aria-live="polite"></p>
+
+      <p class="sheet__fine">
+        Automatic detection uses your home internet connection's IP address, not your phone or laptop.
+        It is approximate: it finds where your provider routes traffic, which can be a different city.
+        Choose your city to be sure. Your choice is saved on the Pi and won't change on its own.
+      </p>
+    </div>
+  </dialog>
+</body>
+</html>

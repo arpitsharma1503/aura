@@ -1,0 +1,8 @@
+{
+  "items": [
+    { "id": "milk", "name": "Milk", "quantity": "1 L", "checked": false },
+    { "id": "eggs", "name": "Eggs", "quantity": "12", "checked": false },
+    { "id": "bread", "name": "Whole-wheat bread", "checked": false },
+    { "id": "tomatoes", "name": "Tomatoes", "quantity": "500 g", "checked": true }
+  ]
+}
