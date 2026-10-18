@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AURA kiosk
+Comment=Show the AURA dashboard full-screen on the entrance display
+Exec=/home/arpit/aura/deploy/kiosk/aura-kiosk.sh
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

@@ -1,0 +1,47 @@
+# AURA backend as a *user* service (runs as arpit, never as root).
+#
+# Installed by deploy/install.sh to ~/.config/systemd/user/aura.service.
+# Starts at power-on without anyone logging in because "lingering" is
+# enabled for the user (loginctl show-user arpit -p Linger -> yes).
+#
+#   systemctl --user status aura          state, PID, recent log lines
+#   systemctl --user restart aura         restart
+#   journalctl --user-unit aura -f        follow the log (works with the default
+#                                         volatile journal; --user -u needs a
+#                                         persistent journal). The app also keeps
+#                                         logs/aura.log, which survives reboots.
+#
+# Settings and secrets (API keys, coordinates) are read by the app itself
+# from /home/arpit/aura/.env; nothing secret is written in this file.
+
+[Unit]
+Description=AURA smart-home dashboard (backend)
+Documentation=file:///home/arpit/aura/README.md
+# User services can't wait for the system's network-online.target. That's
+# fine: AURA starts without a network, serves the dashboard immediately and
+# fetches weather/location/traffic once the network is up (with retries).
+# Give up restarting if it crashes 5 times within 5 minutes.
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=exec
+WorkingDirectory=/home/arpit/aura
+ExecStart=/home/arpit/aura/.venv/bin/python -m app
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=5
+# The app stops in well under a second; don't wait forever.
+TimeoutStopSec=15
+# Private files by default (SQLite, caches, keys).
+UMask=0077
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+# Keep a runaway process from starving the entrance display.
+MemoryHigh=600M
+MemoryMax=900M
+
+[Install]
+WantedBy=default.target

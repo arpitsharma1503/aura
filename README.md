@@ -50,33 +50,138 @@ cd /home/arpit/aura
 cp -n .env.example .env       # -n: never overwrites an existing .env
 ```
 
-## Run
+## Run (automatic startup)
+
+AURA starts by itself when the Pi powers on. No login and no manual command are
+needed.
+
+| Part | How it starts | Runs as |
+|---|---|---|
+| Backend (`python -m app`) | systemd **user** service `aura.service` (`~/.config/systemd/user/`). Lingering is enabled for `arpit`, so it starts at boot without a login. | `arpit` (not root) |
+| Entrance display | XDG autostart entry `~/.config/autostart/aura-kiosk.desktop`, run by the desktop session that LightDM auto-logs in (labwc/Wayland). It runs `deploy/kiosk/aura-kiosk.sh`. | `arpit` |
+
+**Everyday commands** (over SSH or on the Pi):
 
 ```bash
-cd /home/arpit/aura
-.venv/bin/python -m app
+systemctl --user status aura          # running? PID, uptime, last log lines
+systemctl --user restart aura         # restart (≈0.2 s; open dashboards reconnect by themselves)
+systemctl --user stop aura            # stop
+systemctl --user start aura           # start
+journalctl --user-unit aura -f        # follow the backend log (this boot)
+tail -f ~/aura/logs/aura.log          # same log, kept across reboots
+tail -f ~/.local/state/aura-kiosk.log # entrance-display launcher log
 ```
 
-Then open **http://aura-pi.local:8080** (or **http://192.168.1.11:8080**) from any
-device on your home network. Stop the server with `Ctrl+C`. It only runs while that
-terminal is open. A system service and kiosk mode are not set up yet.
+The journal on this Pi is in-memory (volatile), so `journalctl` shows only the
+current boot. `logs/aura.log` keeps older entries (it rotates at 1 MB, keeping 3
+files). Use `journalctl --user-unit aura`, not `journalctl --user -u aura`. The
+latter needs a persistent journal and shows nothing here.
 
-To keep it running after you close the terminal or SSH session:
+**Service behaviour:**
+- **Crashes:** the service restarts 5 s after a crash. After 5 crashes in 5
+  minutes it stops trying, so `systemctl --user status aura` shows the error.
+- **Clean stops:** a normal stop doesn't trigger a restart.
+- **Network:** user services can't wait for the system's network. AURA doesn't
+  need to: it serves the dashboard at once and fetches weather and traffic when
+  the network is ready.
+- **Hardening:** a private umask, `NoNewPrivileges`, and memory limits
+  (`MemoryHigh=600M`, `MemoryMax=900M`).
+
+**Install, update or remove** (no `sudo`; existing files are backed up as
+`*.bak-<time>`):
 
 ```bash
-cd /home/arpit/aura && setsid nohup .venv/bin/python -m app > /dev/null 2>&1 < /dev/null &
+cd ~/aura && deploy/install.sh               # service + kiosk (use --takeover to replace a hand-started AURA)
+cd ~/aura && deploy/install.sh --no-kiosk    # service only
+cd ~/aura && deploy/uninstall.sh             # remove autostart (keeps all data)
 ```
 
-To stop it:
+**Running by hand** (for debugging) means stopping the service first:
+`systemctl --user stop aura && .venv/bin/python -m app`. If the port is already
+in use, a second copy exits with a clear message.
 
-```bash
-kill $(ss -ltnp | grep ':8080 ' | grep -o 'pid=[0-9]*' | cut -d= -f2)
-```
+### Entrance display (kiosk)
 
-Logs go to `logs/aura.log`. The background process does not survive a reboot.
-If AURA is already running, a second start exits with a clear message instead of
-an error. Ctrl+C or `kill` now stops it within about a second, even with
-dashboards connected.
+`deploy/kiosk/aura-kiosk.sh`:
+- **Waits for a screen:** it starts only once an HDMI (or DSI) screen is
+  connected, so the Pi doesn't spend CPU drawing to nothing.
+- **Waits for AURA:** it opens nothing until `http://127.0.0.1:8080/api/health`
+  answers.
+- **Shows the dashboard full-screen:** Chromium in `--kiosk` mode, with no tabs,
+  address bar or error dialogs, using its own profile
+  (`~/.config/aura-kiosk/chromium`). Swipe-back and pinch-zoom are disabled.
+  Because it uses `127.0.0.1`, the Pi's own screen counts as the trusted local
+  display.
+- **Recovers:**
+  - If Chromium closes or crashes, it's relaunched within about 3 s.
+  - If the screen is unplugged, Chromium is closed and comes back when it's
+    plugged in again.
+  - If the backend restarts, the page reconnects by itself.
+- **Only one launcher ever runs.** To turn the kiosk off without uninstalling:
+  `mkdir -p ~/.config/aura-kiosk && touch ~/.config/aura-kiosk/disabled`.
+  Delete that file to turn it back on.
+
+**Screen blanking:** none is configured. The desktop session starts no `swayidle`
+(the tool Raspberry Pi OS uses for *Screen Blanking*), so the screen stays on. If
+the setting is later enabled (Raspberry Pi Configuration → Display, or
+`raspi-config`), the display will sleep after the idle time. Some monitors also
+have their own power-saving setting, so check the monitor's menu.
+
+**SSH and remote access stay unchanged.** `sshd` and `rpi-connect` are untouched.
+
+### Testing a power cycle safely
+
+The service and kiosk have been checked in the running system: start, stop,
+restart, crash recovery, and the kiosk launching on the desktop session and
+loading the dashboard. **A real power-on hasn't been tested yet, and neither has
+a physical screen.** To test:
+
+1. Connect the screen to the Pi's HDMI port.
+2. Save your work, then restart cleanly: `sudo reboot`. Pulling the power is
+   safe-ish (SQLite and AURA's files survive), but a clean reboot is kinder to
+   the SD card.
+3. Within about a minute, the dashboard should fill the screen with no login
+   prompt and no browser bars.
+4. From the Mac, check:
+   ```bash
+   ssh arpit@aura-pi.local 'systemctl --user status aura --no-pager | head -5; tail -3 ~/.local/state/aura-kiosk.log'
+   ```
+   You should see `active (running)` and a `starting chromium (platform=wayland)`
+   line.
+5. If the screen stays on the desktop, check the kiosk log. Check that
+   `~/.config/autostart/aura-kiosk.desktop` exists, and that LightDM still
+   auto-logs in (`autologin-user=arpit` in `/etc/lightdm/lightdm.conf`).
+
+### Network and security notes
+
+- **Binding:** unchanged. AURA listens on all IPv4 addresses on port 8080 and is
+  reachable from your home Wi-Fi at http://192.168.1.11:8080. It's not reachable
+  from the internet, since there's no port forwarding.
+- **Firewall:** none is active on this Pi (`nftables` is installed but unused).
+  The protection is AURA's own home-network-only check (see *Security*). Don't
+  forward port 8080 on the router.
+- **Access:** `AURA_EDIT_ACCESS=lan` means any device on the Wi-Fi can edit
+  groceries and settings. The kiosk browser is local and doesn't change this.
+
+## Interactive tiles
+
+Every information tile on the dashboard opens a detail view. Tap or click
+anywhere on the tile, use its **Details** button, or press Enter on it with a
+keyboard. Close with **Back**, Esc, a click outside, or the browser's Back button.
+Each view has its own address, so `/#/commute` opens straight to it.
+
+| Tile | Opens |
+|---|---|
+| Clock and date | Live time with seconds, full date, timezone and UTC offset, the device's time if it differs, sunrise, sunset and daylight. *Events and birthdays: no calendar is connected yet, so it says so.* |
+| Weather (also the hourly row, 5-day row and metrics) | Current conditions with the animated scene; feels-like, humidity, wind and gusts, UV (now and today's maximum), rain chance, precipitation, air quality (US AQI, PM2.5), sunrise and sunset; 24-hour table; 7-day forecast; every *Before you go* tip; provider, update time, stale or sample labels |
+| Before you go | Every applicable tip with its explanation and priority, the forecast window used, and the data source |
+| Commute | Best departure, journey and arrival, traffic and delay, free-flow time, distance; leave-now (live); a table of every departure slot (journey, arrival, traffic, source, when checked); schedule, provider, requests used, last problem; what *Live*, *Forecast*, *Your history* and *No data* mean |
+| Groceries | The full grocery page (add, edit, delete, purchase, undo, filters), with a **Dashboard** button to return |
+
+- **Controls inside tiles keep their own action:** the Location button, ticking a
+  grocery item, and the QR code don't open the tile.
+- **Not built yet:** news and daily-quote tiles. They'd need a data source first.
+- **Reduced motion:** the panels respect it.
 
 ## Weekday commute
 
