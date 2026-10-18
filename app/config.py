@@ -92,6 +92,11 @@ class Settings(BaseSettings):
     commute_max_requests_per_day: int = Field(default=200, ge=1, le=2000)
     commute_history_days: int = Field(default=180, ge=7, le=3650)
 
+    # Calendars: "Label|https://...ics" entries, comma-separated (secret URLs).
+    calendar_feeds: SecretStr | None = None
+    calendar_refresh_minutes: int = Field(default=30, ge=5, le=1440)
+    calendar_days_ahead: int = Field(default=30, ge=1, le=90)
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080

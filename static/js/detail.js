@@ -164,11 +164,44 @@ window.AuraDetail = (() => {
       rows.push(metric("Daylight", `${Math.floor(len / 60)} h ${Math.round(len % 60)} min`));
     }
     out.push(section("time", "Details", h("dl", { class: "dmetrics" }, rows)));
-    out.push(section("calendar", "Events & birthdays",
-      h("div", { class: "dempty" }, h("span", { html: ctx.icon("info") }),
-        h("div", {}, h("strong", {}, "No calendar connected"),
-          h("p", {}, "Upcoming events and birthdays will appear here once a calendar is set up. AURA doesn't show any events until then.")))));
+    out.push(section("calendar", "Events, birthdays & holidays", calendarList()));
     return out;
+  }
+
+  // ----- calendar (inside the clock view) -----
+  const CAL_ICON = { birthday: "cake", event: "calendar", holiday: "star", observance: "dot" };
+  const CAL_KIND = { birthday: "Birthday", event: "Event", holiday: "Public holiday", observance: "Observance" };
+
+  function calendarList() {
+    const cal = ctx.calendar();
+    if (!cal) return note("Loading calendars…");
+    if (cal.status === "unconfigured") {
+      return h("div", { class: "dempty" }, h("span", { html: ctx.icon("info") }),
+        h("div", {}, h("strong", {}, "No calendar connected"),
+          h("p", {}, "Add calendar addresses to AURA_CALENDAR_FEEDS in .env on the Pi (see README → Calendars).")));
+    }
+    const parts = [];
+    if (!cal.days.length) {
+      parts.push(note(cal.status === "error" ? "Calendars couldn't be reached right now." :
+        `Nothing in the next ${cal.days_ahead || 30} days.`));
+    }
+    const fmtRange = (it) => {
+      if (it.first_day === it.last_day) return null;
+      const end = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+        .format(new Date(`${it.last_day}T12:00:00Z`));
+      return `until ${end}`;
+    };
+    parts.push(h("ol", { class: "dcal" }, cal.days.map((d) => h("li", { class: "dcal__day" },
+      h("h4", {}, ctx.calendarDay(d.date, cal.today)),
+      h("ul", { class: "dcal__items" }, d.items.map((it) => h("li", { class: "dcal__item", "data-kind": it.kind },
+        h("span", { html: ctx.icon(CAL_ICON[it.kind]) }),
+        h("span", { class: "dcal__title" }, it.title),
+        h("span", { class: "dcal__when" }, it.all_day ? "All day" : ctx.calendarTime(it, cal.timezone)),
+        h("span", { class: "dcal__sub" }, [CAL_KIND[it.kind], fmtRange(it), it.calendars.join(" · ")].filter(Boolean).join(" · ")))))))));
+    const feeds = (cal.feeds || []).map((f) => `${f.label}: ${f.ok ? "up to date" : (f.error || "not loaded")}`).join(" · ");
+    if (cal.message) parts.push(note(cal.message, "dnote--warn"));
+    if (feeds) parts.push(note(`Calendars — ${feeds}`, "dnote--muted"));
+    return parts;
   }
 
   // ----- weather -----

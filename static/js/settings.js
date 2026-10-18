@@ -313,6 +313,10 @@
       row("Dashboard", "Entrance display", "the only layout"),
       row("Screen sleep", d.screen_blanking, d.screen_blanking_help),
     );
+    const cals = i.calendar || [];
+    $("cal-info").replaceChildren(...(cals.length ? cals.map((f) => row(f.label,
+      f.ok ? "Up to date" : (f.error ? `Problem: ${f.error}` : "Not loaded yet"),
+      f.last_success ? `updated ${fmtTime(f.last_success)}` : null)) : [row("Calendars", "None connected")]));
     const g = i.groceries;
     $("groceries-info").replaceChildren(
       row("Shared list", `${g.items} item${g.items === 1 ? "" : "s"}`, `${g.open} to buy`),

@@ -23,6 +23,7 @@ from . import __version__
 from .auth import COOKIE_NAME, AccessControl, LoginLocked
 from .config import PROJECT_ROOT, Settings, get_settings
 from . import sysinfo
+from .agenda import AgendaResponse, AgendaService, parse_feeds
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -181,6 +182,14 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     )
     weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
 
+    agenda = AgendaService(
+        parse_feeds(settings.calendar_feeds.get_secret_value() if settings.calendar_feeds else ""),
+        settings.data_dir / "calendar_cache.json", client,
+        timezone=settings.default_timezone,
+        refresh_minutes=settings.calendar_refresh_minutes, days_ahead=settings.calendar_days_ahead,
+    )
+    agenda.on_change = lambda: broker.publish("calendar", {})
+
     def weather_location():
         """Where weather is fetched for: the city (location dialog), or the exact
         Home coordinates when Settings → Weather says so."""
@@ -247,12 +256,15 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         background.add(task)
         task.add_done_callback(background.discard)
         commute.start()
+        agenda.tz_name = timezone()       # home timezone, once the location is known
+        agenda.start()
         hk = asyncio.create_task(housekeeping())
         background.add(hk)
         hk.add_done_callback(background.discard)
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
+        await agenda.stop()
         commute_store.close()
         for t in list(background):
             t.cancel()
@@ -271,6 +283,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.broker = broker
     app.state.commute = commute
     app.state.prefs = prefs
+    app.state.agenda = agenda
     app.state.network = network
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
@@ -451,6 +464,13 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             travel_window_hours=prefs.weather.travel_window_hours, visual=visual_for(result),
         )
 
+    # ----- calendar -----
+
+    @app.get("/api/calendar", response_model=AgendaResponse)
+    async def calendar(days: int = Query(default=0, ge=0, le=90)) -> AgendaResponse:
+        agenda.tz_name = timezone()
+        return agenda.agenda(days or None)
+
     # ----- commute -----
 
     @app.get("/api/commute", response_model=CommuteStatus)
@@ -485,6 +505,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             },
             "groceries": {"items": len(lst.items), "open": lst.remaining, "revision": lst.revision,
                           "connections": broker.count},
+            "calendar": [f.model_dump(mode="json") for f in agenda.agenda().feeds],
         }
 
     @app.get("/api/settings", dependencies=[Depends(editor)])

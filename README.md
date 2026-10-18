@@ -585,6 +585,37 @@ Each tip says why.
 The bike/car advice is **weather-only** and says so. AURA does not know about traffic.
 Up to 4 tips are shown, most important first.
 
+## Calendars
+
+Events, birthdays and holidays come from iCalendar (ICS) feeds — for example Google
+Calendar's *Secret address in iCal format* (Settings → your calendar → Integrate
+calendar) or a public holiday calendar. Add them to `.env` on the Pi, as
+comma-separated `Label|URL` entries, then `systemctl --user restart aura`:
+
+```
+AURA_CALENDAR_FEEDS=Personal|https://calendar.google.com/calendar/ical/.../basic.ics,Holidays|https://calendar.google.com/calendar/ical/en.indian%23holiday/public/basic.ics
+AURA_CALENDAR_REFRESH_MINUTES=30
+AURA_CALENDAR_DAYS_AHEAD=30
+```
+
+- **Dashboard:** under the location, today's items (or the next day that has any) —
+  at most three rows, with "+N more". Tap it for the full list in *Time & date*.
+- **No repeats:** an item with the same title on the same day is shown once, even if
+  it is in several calendars or entered twice (its calendars are listed together).
+  A multi-day event is shown once, on its first day, with "until …".
+- Repeating events (RRULE, including skipped and moved occurrences) are expanded and
+  shown in the home time zone. Cancelled events are hidden.
+- **Kinds:** items from a holiday calendar are *Public holiday* or *Observance* (from
+  Google's description). Other items are *Birthday* when the title contains
+  "birthday", "bday" or "anniversary", otherwise *Event*.
+- **Privacy:** secret addresses are treated like passwords. They stay in `.env`
+  (mode 600, git-ignored); the API, Settings page, logs and the cache
+  (`data/calendar_cache.json`) only ever show the label, host and a short fingerprint.
+  Anyone with a secret address can read that calendar — if one was shared, use
+  *Reset* next to it in Google Calendar and update `.env`.
+- **Failures:** if a feed can't be fetched, its last saved copy keeps being shown and
+  Settings → Calendars says so. Nothing is invented when no feed is reachable.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after

@@ -71,6 +71,7 @@ class AuraServer:
             "AURA_WEATHER_PROVIDER": "none",
             "AURA_LOCATION_DETECTION": "off",
             "AURA_COMMUTE_ENABLED": "false",
+            "AURA_CALENDAR_FEEDS": "",          # never fetch the household's real calendars in tests
             "AURA_EDIT_ACCESS": "lan",
             "AURA_PUBLIC_URL": f"http://127.0.0.1:{self.port}",
             **(env or {}),

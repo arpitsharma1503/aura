@@ -76,3 +76,33 @@ def commute_payload(kind: str) -> dict:
     status = m.status().model_dump(mode="json")
     m.store.close()
     return status
+
+
+def calendar_payload(today_items: bool = True) -> dict:
+    """An /api/calendar response built from the app's own models: today has a birthday,
+    a public holiday, a timed event and a multi-day trip; tomorrow has an observance."""
+    from app.agenda import AgendaResponse, DayAgenda, FeedStatus, Occurrence
+
+    now = datetime.now(TZ)
+    today = now.date()
+    d1 = today + timedelta(days=1)
+
+    def allday(title, kind, cals, first=today, last=None):
+        return Occurrence(title=title, first_day=first, last_day=last or first, all_day=True, kind=kind, calendars=cals)
+
+    def timed(title, hour, cals):
+        start = now.replace(hour=hour, minute=30, second=0, microsecond=0)
+        return Occurrence(title=title, start=start, end=start + timedelta(hours=1), first_day=today, last_day=today,
+                          all_day=False, kind="event", calendars=cals)
+
+    days = [DayAgenda(date=d1, items=[allday("Halloween", "observance", ["Holidays"], first=d1)])]
+    if today_items:
+        days.insert(0, DayAgenda(date=today, items=[
+            allday("Rohan's birthday", "birthday", ["Family", "Personal"]),
+            allday("Diwali", "holiday", ["Holidays"]),
+            allday("Trip to Goa", "event", ["Personal"], last=today + timedelta(days=2)),
+            timed("Dentist", 18, ["Personal"]),
+        ]))
+    feeds = [FeedStatus(label=l, ok=True, events=3, last_success=now) for l in ("Personal", "Family", "Holidays")]
+    return AgendaResponse(status="ok", timezone="Asia/Kolkata", today=today, days=days, feeds=feeds,
+                          updated_at=now).model_dump(mode="json")

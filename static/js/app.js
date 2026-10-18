@@ -24,6 +24,7 @@
     session: null,          // { can_edit, method, pin_configured }
     weatherPayload: null,   // last /api/weather response of any status (for detail views)
     commute: null,          // last /api/commute response
+    calendar: null,         // last /api/calendar response
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -799,6 +800,59 @@
     }
   }
 
+  // ---------- calendar ----------
+
+  const KIND_ICON = { birthday: "cake", event: "calendar", holiday: "star", observance: "dot" };
+
+  function dayLabel(isoDate, today) {
+    if (isoDate === today) return "Today";
+    const t = new Date(`${today}T12:00:00Z`), d = new Date(`${isoDate}T12:00:00Z`);
+    if ((d - t) / 86400000 === 1) return "Tomorrow";
+    return new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(d);
+  }
+
+  function calTime(item, tzName) {
+    if (item.all_day) return "";
+    return new Intl.DateTimeFormat("en-US", { timeZone: tzName, hour: "numeric", minute: "2-digit", hour12: twelve() })
+      .format(new Date(item.start));
+  }
+
+  function renderAgenda(cal) {
+    const list = $("agenda");
+    const days = cal?.days || [];
+    // Today's items; if there are none, the next day that has something.
+    const day = days.find((d) => d.date === cal.today) || days[0];
+    if (!day || !["ok", "partial"].includes(cal.status)) { list.hidden = true; list.replaceChildren(); return; }
+    // At most three rows: three items, or two plus "+N more" (keeps the clock column within the screen).
+    const shown = day.items.length > 3 ? day.items.slice(0, 2) : day.items;
+    const label = dayLabel(day.date, cal.today);
+    list.replaceChildren(...shown.map((it, i) => {
+      const li = document.createElement("li");
+      li.className = "agenda__item";
+      li.dataset.kind = it.kind;
+      li.innerHTML = `<span class="agenda__when"></span><span class="agenda__icon">${icon(KIND_ICON[it.kind])}</span><span class="agenda__title"></span><span class="agenda__time"></span>`;
+      li.querySelector(".agenda__when").textContent = i === 0 ? label : "";
+      li.querySelector(".agenda__title").textContent = it.title;
+      li.querySelector(".agenda__time").textContent = calTime(it, cal.timezone);
+      return li;
+    }));
+    if (day.items.length > shown.length) {
+      const more = document.createElement("li");
+      more.className = "agenda__more";
+      more.textContent = `+ ${day.items.length - shown.length} more`;
+      list.append(more);
+    }
+    list.hidden = false;
+  }
+
+  async function loadCalendar() {
+    try {
+      state.calendar = await fetchJSON("/api/calendar");
+      renderAgenda(state.calendar);
+      Detail.refresh("clock");
+    } catch { /* keep what's shown */ }
+  }
+
   // ---------- live updates (Server-Sent Events) ----------
 
   function connectEvents() {
@@ -820,6 +874,7 @@
     });
     es.addEventListener("location", () => { loadConfig(); });
     es.addEventListener("commute", () => { loadCommute(); });
+    es.addEventListener("calendar", () => { loadCalendar(); });
     state.events = es;
   }
 
@@ -887,6 +942,9 @@
     config: () => state.config,
     weather: () => state.weatherPayload,
     commute: () => state.commute,
+    calendar: () => state.calendar,
+    calendarTime: (item, tzName) => calTime(item, tzName),
+    calendarDay: (isoDate, today) => dayLabel(isoDate, today),
     icon,
     weatherArt,
     temp: fmtTemp,
@@ -913,11 +971,13 @@
     await loadSession();
     loadGroceries();
     loadCommute();
+    loadCalendar();
     refreshQr();
     connectEvents();
   });
   // Re-evaluate every minute: past slots and window changes depend on the clock.
   setInterval(loadCommute, 60_000);
+  setInterval(loadCalendar, 10 * 60_000);    // also rolls "Today" over after midnight
   setInterval(loadWeather, WEATHER_POLL_MS);
   // Fallback only: live updates normally arrive via Server-Sent Events.
   setInterval(() => {

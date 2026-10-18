@@ -1144,6 +1144,43 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
   animation: none !important; transition: none !important;
 }
 
+
+/* ---------- Calendar: today's agenda under the location ---------- */
+.agenda {
+  list-style: none; margin: 0.9rem 0 0; padding: 0;
+  display: flex; flex-direction: column; gap: 0.35rem;
+  font-size: 1.05rem;
+}
+.agenda__item { display: flex; align-items: center; gap: 0.6rem; min-width: 0; color: var(--ink-2); }
+.agenda__when {
+  flex: none; min-width: 4.6em; font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.agenda__icon { flex: none; width: 1.15em; height: 1.15em; color: var(--ink-3); }
+.agenda__icon svg { width: 100%; height: 100%; }
+.agenda__title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.agenda__time { flex: none; font-size: 0.85em; color: var(--ink-3); }
+.agenda__item[data-kind="birthday"] .agenda__icon { color: #ff9fc0; }
+.agenda__item[data-kind="holiday"] .agenda__icon { color: var(--accent); }
+.agenda__item[data-kind="event"] .agenda__icon { color: #9cc4ff; }
+.agenda__item[data-kind="observance"] { color: var(--ink-3); }
+.agenda__more { font-size: 0.8em; color: var(--ink-3); padding-left: calc(4.6em + 1.75em); }
+
+/* calendar list in the clock detail view */
+.dcal { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.9rem; }
+.dcal__day h4 { margin: 0 0 0.4rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+.dcal__items { list-style: none; margin: 0; padding: 0; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
+.dcal__item { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto; align-items: center; gap: 0.3rem 0.8rem; padding: 0.6rem 0.9rem; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.dcal__item:first-child { border-top: 0; }
+.dcal__item svg { width: 1.3rem; height: 1.3rem; color: var(--ink-3); }
+.dcal__item[data-kind="birthday"] svg { color: #ff9fc0; }
+.dcal__item[data-kind="holiday"] svg { color: var(--accent); }
+.dcal__item[data-kind="event"] svg { color: #9cc4ff; }
+.dcal__title { font-size: 1rem; overflow-wrap: anywhere; }
+.dcal__item[data-kind="observance"] .dcal__title { color: var(--ink-2); }
+.dcal__sub { grid-column: 2 / -1; font-size: 0.8rem; color: var(--ink-3); }
+.dcal__when { font-size: 0.85rem; color: var(--ink-2); white-space: nowrap; }
+
 /* =====================================================================
    Entrance layout - every large landscape screen (laptops, monitors, TVs).
 
@@ -1192,6 +1229,7 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
   .time__date { margin-top: calc(var(--u) * 0.5); font-size: calc(var(--u) * 2.35); color: var(--ink-2); }
   .place { margin-top: calc(var(--u) * 0.6); font-size: calc(var(--u) * 1.4); }
   .place__note { max-width: none; margin-top: 0.35rem; }
+  .agenda { margin-top: calc(var(--u) * 0.9); font-size: calc(var(--u) * 1.15); gap: calc(var(--u) * 0.3); }
   .daily {
     margin-top: auto; padding-top: calc(var(--u) * 1);
     grid-template-columns: repeat(5, minmax(0, calc(var(--u) * 8)));
