@@ -115,11 +115,16 @@ def build_recommendations(
     now: datetime | None = None,
     window_hours: int = 6,
     clock_format: str = "12h",
+    temperature_unit: str = "celsius",
     limit: int = 4,
 ) -> list[Recommendation]:
     now = now or snapshot.fetched_at
     w = _Window(_window(snapshot, now, window_hours), _time_formatter(clock_format))
     fmt = w.fmt
+
+    def deg(c: float) -> str:
+        """Temperature in the display unit (thresholds stay in Celsius)."""
+        return f"{round(c * 9 / 5 + 32) if temperature_unit == 'fahrenheit' else round(c)}°"
     cur = snapshot.current
     span = f"the next {window_hours} h"
     recs: list[Recommendation] = []
@@ -185,20 +190,20 @@ def build_recommendations(
         swing = hi[0] - lo[0]
         if lo[0] <= COLD_FEELS_C:
             add("coat", "coat", "high", "Wear a warm coat",
-                f"Feels as cold as {round(lo[0])}° around {fmt(lo[1].time)}.")
+                f"Feels as cold as {deg(lo[0])} around {fmt(lo[1].time)}.")
         elif swing >= LAYERS_SWING_C and lo[0] <= 20:
             add("layers", "jacket", "medium", "Dress in layers",
-                f"Feels from {round(lo[0])}° to {round(hi[0])}° over {span}.")
+                f"Feels from {deg(lo[0])} to {deg(hi[0])} over {span}.")
         elif lo[0] <= COOL_FEELS_C:
             add("jacket", "jacket", "medium", "Bring a light jacket",
-                f"Feels like {round(lo[0])}° around {fmt(lo[1].time)}.")
+                f"Feels like {deg(lo[0])} around {fmt(lo[1].time)}.")
         elif hi[0] >= WARM_FEELS_C:
             add("light-clothes", "shirt", "low", "Dress light",
-                f"Feels up to {round(hi[0])}°. Breathable clothing recommended.")
+                f"Feels up to {deg(hi[0])}. Breathable clothing recommended.")
 
         if hi[0] >= WATER_FEELS_C:
             add("water", "water", "high" if hi[0] >= HOT_FEELS_C + 3 else "medium", "Carry a water bottle",
-                f"Feels up to {round(hi[0])}° around {fmt(hi[1].time)}. Stay hydrated.")
+                f"Feels up to {deg(hi[0])} around {fmt(hi[1].time)}. Stay hydrated.")
         elif hi[0] >= WARM_FEELS_C - 1 and cur.humidity_pct >= 75:
             add("water", "water", "low", "Carry a water bottle",
                 f"Warm and humid ({cur.humidity_pct}%). You'll lose more water than you notice.")
@@ -243,9 +248,9 @@ def build_recommendations(
         if near_gust >= BIKE_MAX_GUST_KPH:
             reasons.append(f"gusts {round(near_gust)} km/h")
         if max(near_feels) > BIKE_MAX_FEELS_C:
-            reasons.append(f"heat (feels {round(max(near_feels))}°)")
+            reasons.append(f"heat (feels {deg(max(near_feels))})")
         if min(near_feels) < BIKE_MIN_FEELS_C:
-            reasons.append(f"cold (feels {round(min(near_feels))}°)")
+            reasons.append(f"cold (feels {deg(min(near_feels))})")
         if aqi_val is not None and aqi_val >= AQI_SENSITIVE:
             reasons.append(f"air quality (AQI {aqi_val})")
         if reasons:
@@ -253,7 +258,7 @@ def build_recommendations(
                 f"Next {len(near)} h: {', '.join(reasons)}. {NO_TRAFFIC}")
         else:
             add("bike", "bike", "medium", "Good conditions to cycle",
-                f"Dry and calm for the next {len(near)} h, feels {round(max(near_feels))}°. {NO_TRAFFIC}")
+                f"Dry and calm for the next {len(near)} h, feels {deg(max(near_feels))}. {NO_TRAFFIC}")
 
     if not [r for r in recs if r.id not in {"bike", "car"}]:
         add("pleasant", "check", "low", "Pleasant conditions",

@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#05070d">
+  <meta name="color-scheme" content="dark">
+  <title>Settings · AURA</title>
+  <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/settings.css">
+  <script src="/static/js/icons.js" defer></script>
+  <script src="/static/js/settings.js" defer></script>
+</head>
+<body class="s-page" data-phase="night" data-sky="clear">
+  <div class="ambient" aria-hidden="true">
+    <div class="ambient__orb ambient__orb--a"></div>
+    <div class="ambient__orb ambient__orb--b"></div>
+    <div class="ambient__vignette"></div>
+  </div>
+
+  <div class="s-app">
+    <header class="s-head">
+      <a class="s-back" href="/" id="s-back" aria-label="Back to dashboard">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <h1>Settings</h1>
+    </header>
+
+    <nav class="s-nav" aria-label="Settings sections">
+      <a href="#network">Network</a>
+      <a href="#locations">Locations</a>
+      <a href="#weather">Weather</a>
+      <a href="#commute">Commute</a>
+      <a href="#display">Display</a>
+      <a href="#groceries">Groceries</a>
+      <a href="#system">System</a>
+    </nav>
+
+    <div class="s-banner" id="s-locked" hidden role="status">
+      <span id="s-locked-text">Enter the household PIN to change settings.</span>
+      <form class="s-inline" id="s-pin-form" novalidate>
+        <input class="sheet__input" id="s-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="Household PIN">
+        <button class="btn btn--primary" type="submit">Unlock</button>
+      </form>
+    </div>
+    <p class="s-load" id="s-load" role="status">Loading settings…</p>
+
+    <main class="s-main" id="s-main" hidden>
+
+      <!-- Network ---------------------------------------------------------- -->
+      <section class="s-card" id="network" aria-labelledby="network-h">
+        <header class="s-card__head">
+          <h2 id="network-h">Network &amp; Wi-Fi</h2>
+          <button type="button" class="btn s-small" id="net-refresh">Refresh</button>
+        </header>
+        <dl class="s-grid" id="net-status"></dl>
+        <p class="s-msg" id="net-msg" role="status" aria-live="polite"></p>
+
+        <div class="s-sub" id="wifi-panel">
+          <h3>Wi-Fi</h3>
+          <p class="s-help" id="wifi-help"></p>
+          <button type="button" class="btn" id="wifi-scan">Find Wi-Fi networks</button>
+          <ul class="s-nets" id="wifi-list" aria-label="Wi-Fi networks"></ul>
+          <form class="s-connect" id="wifi-form" hidden novalidate>
+            <p class="s-connect__to">Connect to <strong id="wifi-target"></strong></p>
+            <label class="s-field" id="wifi-pass-row">
+              <span>Password</span>
+              <span class="s-pass">
+                <input class="sheet__input" id="wifi-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" aria-describedby="wifi-pass-err">
+                <button type="button" class="btn s-small" id="wifi-show" aria-pressed="false">Show</button>
+              </span>
+              <small class="s-err" id="wifi-pass-err"></small>
+            </label>
+            <div class="s-actions">
+              <button type="button" class="btn" id="wifi-cancel">Cancel</button>
+              <button type="submit" class="btn btn--primary" id="wifi-connect">Connect</button>
+            </div>
+          </form>
+          <details class="s-details">
+            <summary>Other ways to change Wi-Fi</summary>
+            <ul>
+              <li><strong>On the Pi's screen:</strong> exit the dashboard with <kbd>Alt</kbd>+<kbd>F4</kbd> (or connect a keyboard), then use the network icon in the top-right of the Raspberry Pi desktop.</li>
+              <li><strong>Over SSH (Ethernet):</strong> <code>nmcli device wifi list</code>, then <code>nmcli --ask device wifi connect "Network name"</code> (it asks for the password).</li>
+              <li><strong>Text menu:</strong> run <code>sudo nmtui</code> → <em>Activate a connection</em>.</li>
+              <li><strong>If you lose access:</strong> plug in an Ethernet cable (the Pi keeps that connection) or use a keyboard and screen; saved networks reconnect automatically.</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
+      <!-- Locations -------------------------------------------------------- -->
+      <form class="s-card" id="locations" data-section="locations" aria-labelledby="locations-h" novalidate>
+        <header class="s-card__head"><h2 id="locations-h">Home &amp; office</h2></header>
+        <p class="s-help">Home and Office are used for the <strong>commute</strong>. Weather uses the city under the clock,
+          or these Home coordinates if you turn that on under Weather. Coordinates stay on the Pi; the dashboard only shows the names.</p>
+        <div class="s-places">
+          <fieldset class="s-place">
+            <legend>Home</legend>
+            <label class="s-field"><span>Name</span><input class="sheet__input" data-field="home.name" maxlength="30" required></label>
+            <div class="s-row">
+              <label class="s-field"><span>Latitude</span><input class="sheet__input" data-field="home.latitude" inputmode="decimal" required></label>
+              <label class="s-field"><span>Longitude</span><input class="sheet__input" data-field="home.longitude" inputmode="decimal" required></label>
+            </div>
+            <label class="s-field"><span>Or search for a place</span>
+              <input class="sheet__input s-place-search" data-target="home" type="search" placeholder="Search a place" autocomplete="off"></label>
+            <ul class="results s-place-results" data-target="home"></ul>
+          </fieldset>
+          <fieldset class="s-place">
+            <legend>Office</legend>
+            <label class="s-field"><span>Name</span><input class="sheet__input" data-field="office.name" maxlength="30" required></label>
+            <div class="s-row">
+              <label class="s-field"><span>Latitude</span><input class="sheet__input" data-field="office.latitude" inputmode="decimal" required></label>
+              <label class="s-field"><span>Longitude</span><input class="sheet__input" data-field="office.longitude" inputmode="decimal" required></label>
+            </div>
+            <label class="s-field"><span>Or search for a place</span>
+              <input class="sheet__input s-place-search" data-target="office" type="search" placeholder="Search a place" autocomplete="off"></label>
+            <ul class="results s-place-results" data-target="office"></ul>
+          </fieldset>
+        </div>
+      </form>
+
+      <!-- Weather ---------------------------------------------------------- -->
+      <form class="s-card" id="weather" data-section="weather" aria-labelledby="weather-h" novalidate>
+        <header class="s-card__head"><h2 id="weather-h">Weather</h2></header>
+        <dl class="s-grid" id="weather-info"></dl>
+        <div class="s-inline-actions">
+          <a class="btn s-small" href="/#location">Change city…</a>
+          <button type="button" class="btn s-small" id="loc-detect">Detect from internet connection</button>
+        </div>
+        <label class="s-switch"><input type="checkbox" data-field="use_home_coordinates">
+          <span>Use the exact Home coordinates for weather <small>Otherwise the city above is used</small></span></label>
+        <div class="s-row">
+          <label class="s-field"><span>Check for new weather every</span>
+            <select class="sheet__input" data-field="refresh_minutes" data-type="int">
+              <option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option>
+              <option value="30">30 minutes</option><option value="60">1 hour</option></select></label>
+          <label class="s-field"><span>"Before you go" looks ahead</span>
+            <select class="sheet__input" data-field="travel_window_hours" data-type="int">
+              <option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option>
+              <option value="6">6 hours</option><option value="8">8 hours</option><option value="12">12 hours</option></select></label>
+        </div>
+        <p class="s-help">Temperature units and animations are under <a href="#display">Display</a>.</p>
+      </form>
+
+      <!-- Commute ---------------------------------------------------------- -->
+      <form class="s-card" id="commute" data-section="commute" aria-labelledby="commute-h" novalidate>
+        <header class="s-card__head"><h2 id="commute-h">Commute</h2></header>
+        <dl class="s-grid" id="commute-info"></dl>
+        <label class="s-switch"><input type="checkbox" data-field="enabled">
+          <span>Monitor weekday traffic <small>Home → Office from Locations</small></span></label>
+        <fieldset class="s-days" data-field="days" data-type="days">
+          <legend>Days</legend>
+          <label><input type="checkbox" value="mon">Mon</label><label><input type="checkbox" value="tue">Tue</label>
+          <label><input type="checkbox" value="wed">Wed</label><label><input type="checkbox" value="thu">Thu</label>
+          <label><input type="checkbox" value="fri">Fri</label><label><input type="checkbox" value="sat">Sat</label>
+          <label><input type="checkbox" value="sun">Sun</label>
+        </fieldset>
+        <div class="s-row">
+          <label class="s-field"><span>Watch from</span><input class="sheet__input" type="time" data-field="window_start" step="300"></label>
+          <label class="s-field"><span>Until</span><input class="sheet__input" type="time" data-field="window_end" step="300"></label>
+        </div>
+        <div class="s-row">
+          <label class="s-field"><span>Compare departures every</span>
+            <select class="sheet__input" data-field="slot_minutes" data-type="int">
+              <option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option>
+              <option value="20">20 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select></label>
+          <label class="s-field"><span>Arrive at the office by <small>(optional)</small></span>
+            <input class="sheet__input" type="time" data-field="preferred_arrival" step="300"></label>
+        </div>
+        <label class="s-field"><span>Timezone</span>
+          <input class="sheet__input" data-field="timezone" list="tz-list" autocomplete="off" spellcheck="false">
+          <datalist id="tz-list"></datalist></label>
+        <details class="s-details">
+          <summary>Request schedule and limits</summary>
+          <div class="s-row">
+            <label class="s-field"><span>Live "leave now" check every</span>
+              <select class="sheet__input" data-field="live_refresh_minutes" data-type="int">
+                <option value="5">5 minutes</option><option value="10">10 minutes</option><option value="15">15 minutes</option>
+                <option value="30">30 minutes</option><option value="60">1 hour</option></select></label>
+            <label class="s-field"><span>Refresh departure forecasts every</span>
+              <select class="sheet__input" data-field="forecast_refresh_minutes" data-type="int">
+                <option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option>
+                <option value="120">2 hours</option></select></label>
+          </div>
+          <label class="s-field"><span>Most TomTom requests per day</span>
+            <input class="sheet__input" type="number" data-field="max_requests_per_day" data-type="int" min="1" max="650" step="1"></label>
+          <p class="s-help">TomTom's free plan allows about 650 requests a day (20,000 a month). AURA never goes over this limit.</p>
+        </details>
+      </form>
+
+      <!-- Display ---------------------------------------------------------- -->
+      <form class="s-card" id="display" data-section="display" aria-labelledby="display-h" novalidate>
+        <header class="s-card__head"><h2 id="display-h">Display</h2></header>
+        <fieldset class="s-choice" data-field="clock_format">
+          <legend>Clock</legend>
+          <label><input type="radio" name="clock_format" value="12h">12-hour <small>9:41 PM</small></label>
+          <label><input type="radio" name="clock_format" value="24h">24-hour <small>21:41</small></label>
+        </fieldset>
+        <fieldset class="s-choice" data-field="temperature_unit">
+          <legend>Temperature</legend>
+          <label><input type="radio" name="temperature_unit" value="celsius">Celsius <small>°C</small></label>
+          <label><input type="radio" name="temperature_unit" value="fahrenheit">Fahrenheit <small>°F</small></label>
+        </fieldset>
+        <label class="s-switch"><input type="checkbox" data-field="weather_animations">
+          <span>Animated weather <small>Rain, clouds, sun and stars in the weather card</small></span></label>
+        <fieldset class="s-choice" data-field="reduced_motion">
+          <legend>Motion</legend>
+          <label><input type="radio" name="reduced_motion" value="system">Follow each device <small>Respects “Reduce motion”</small></label>
+          <label><input type="radio" name="reduced_motion" value="reduce">Always minimal <small>No movement on any screen</small></label>
+        </fieldset>
+        <dl class="s-grid" id="display-info"></dl>
+      </form>
+
+      <!-- Groceries -------------------------------------------------------- -->
+      <form class="s-card" id="groceries" data-section="groceries" aria-labelledby="groceries-h" novalidate>
+        <header class="s-card__head"><h2 id="groceries-h">Groceries</h2></header>
+        <dl class="s-grid" id="groceries-info"></dl>
+        <div class="s-field">
+          <span id="qa-label">Quick-add suggestions</span>
+          <ul class="s-chips" id="qa-list" aria-labelledby="qa-label" data-field="quick_add" data-type="list"></ul>
+          <div class="s-inline">
+            <input class="sheet__input" id="qa-new" maxlength="60" placeholder="Add a suggestion" aria-label="New quick-add suggestion">
+            <button type="button" class="btn" id="qa-add">Add</button>
+          </div>
+          <small class="s-help">Items you add often are suggested first anyway; these fill the rest.</small>
+        </div>
+        <div class="s-row">
+          <label class="s-field"><span>Phones open on</span>
+            <select class="sheet__input" data-field="default_filter">
+              <option value="needed">To buy</option><option value="purchased">Purchased</option><option value="all">All</option></select></label>
+          <label class="s-field"><span>Remove purchased items</span>
+            <select class="sheet__input" data-field="auto_clear_purchased_days" data-type="int">
+              <option value="0">Never (clear by hand)</option><option value="1">After 1 day</option><option value="3">After 3 days</option>
+              <option value="7">After a week</option><option value="30">After a month</option></select></label>
+        </div>
+      </form>
+
+      <!-- System ----------------------------------------------------------- -->
+      <section class="s-card" id="system" aria-labelledby="system-h">
+        <header class="s-card__head">
+          <h2 id="system-h">System</h2>
+          <button type="button" class="btn s-small" id="sys-refresh">Refresh</button>
+        </header>
+        <dl class="s-grid" id="sys-info"></dl>
+      </section>
+    </main>
+  </div>
+
+  <dialog class="sheet g-confirm s-dialog" id="s-confirm" aria-labelledby="sc-title">
+    <div class="sheet__inner">
+      <h2 id="sc-title">Are you sure?</h2>
+      <p class="g-confirm__body" id="sc-body"></p>
+      <div class="g-sheet__actions">
+        <button type="button" class="btn" id="sc-cancel">Cancel</button>
+        <button type="button" class="btn btn--primary" id="sc-ok">Continue</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

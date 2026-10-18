@@ -28,6 +28,9 @@
         <span class="brand__name">AURA</span>
       </div>
       <div class="topbar__right">
+        <a class="topbar__settings" href="/settings" id="settings-link" aria-label="Settings" title="Settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </a>
         <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
         <span class="pill pill--offline" id="offline-pill" role="status" hidden>
           <span class="dot"></span>Connection lost · retrying
@@ -41,7 +44,7 @@
         <span class="time__clock" id="clock" aria-live="off">
           <span id="clock-hm">--:--</span><span class="time__meridiem" id="clock-ampm"></span>
         </span>
-        <span class="time__date" id="date">&nbsp;</span>
+        <span class="time__date-row"><span class="time__date" id="date">&nbsp;</span><span class="tile-arrow tile-arrow--inline" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
       </button>
       <div class="place" id="place" data-status="loading">
         <svg class="time__pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>
@@ -59,7 +62,7 @@
 
     <section class="card weather" id="weather" aria-label="Weather" data-state="loading" data-open="weather">
       <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
-      <button type="button" class="tile-more" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><span>Details</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      
       <div class="weather__loading">
         <div class="skeleton skeleton--icon"></div>
         <div class="skeleton-stack">
@@ -90,32 +93,35 @@
         <ol class="hourly" id="hourly" aria-label="Next hours" data-open="weather#hourly"></ol>
         <div class="weather__meta" id="weather-meta"></div>
       </div>
+      <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
     </section>
 
     <section class="card commute" id="commute" aria-labelledby="commute-title" data-state="loading" data-open="commute">
       <h2 class="card__title">
         <span id="commute-title">Commute</span>
-        <span class="card__end"><span class="card__count" id="commute-route"></span><button type="button" class="tile-more" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><span>Details</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button></span>
+        <span class="card__end"><span class="card__count" id="commute-route"></span></span>
       </h2>
       <div class="commute__body" id="commute-body">
         <div class="skeleton skeleton--row"></div>
         <div class="skeleton skeleton--row"></div>
       </div>
       <div class="commute__meta" id="commute-meta"></div>
+      <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
     </section>
 
     <section class="card advice" aria-labelledby="advice-title" data-open="advice">
-      <h2 class="card__title"><span id="advice-title">Before you go</span><button type="button" class="tile-more" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><span>Details</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button></h2>
+      <h2 class="card__title"><span id="advice-title">Before you go</span></h2>
       <ul class="advice__list" id="advice-list" data-state="loading">
         <li class="skeleton skeleton--row"></li>
         <li class="skeleton skeleton--row"></li>
       </ul>
+      <button type="button" class="tile-arrow" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
     </section>
 
     <section class="card grocery" aria-labelledby="grocery-title" data-open="groceries">
       <h2 class="card__title">
         <span id="grocery-title">Groceries</span>
-        <span class="card__end"><span class="card__count" id="grocery-count"></span><a class="tile-more" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><span>List</span><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></a></span>
+        <span class="card__end"><span class="card__count" id="grocery-count"></span></span>
       </h2>
       <div class="grocery__body">
         <ul class="grocery__list" id="grocery-list" data-state="loading">
@@ -128,6 +134,7 @@
           <span class="grocery__qr-label">Scan to edit</span>
         </a>
       </div>
+      <a class="tile-arrow" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
     </section>
   </main>
 

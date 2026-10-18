@@ -23,11 +23,11 @@
     newIds: new Set(),
   };
 
-  function readFilter() {
+  function readFilter(fallback = "needed") {
     try {
       const f = localStorage.getItem("aura.groceries.filter");
-      return ["needed", "purchased", "all"].includes(f) ? f : "needed";
-    } catch { return "needed"; }
+      return ["needed", "purchased", "all"].includes(f) ? f : fallback;
+    } catch { return fallback; }
   }
 
   function setFilter(f) {
@@ -593,6 +593,12 @@
     fillCategories($("g-cat"), true);
     fillCategories($("e-cat"), false);
     await loadSession();
+    try {
+      // Settings → Groceries → "Phones open on" applies until this phone picks a tab itself.
+      const cfg = await api("/api/config");
+      state.filter = readFilter(cfg.groceries?.default_filter || "needed");
+      document.body.classList.toggle("force-reduce", cfg.display?.reduced_motion === "reduce");
+    } catch { /* keep default */ }
     await load(true);
     loadSuggestions();
     wireLive();

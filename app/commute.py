@@ -94,6 +94,7 @@ class CommuteConfig:
     max_requests_per_day: int = 200
     history_days: int = 180
     enabled: bool = True
+    preferred_arrival: time | None = None   # optional "arrive by" time at the office
 
     @property
     def tz(self) -> ZoneInfo:
@@ -485,6 +486,8 @@ class CommuteStatus(BaseModel):
     requests_today: int = 0
     request_cap: int = 0
     monitor_running: bool = False
+    preferred_arrival: str | None = None
+    arrival_note: str | None = None
 
 
 BASIS_LABELS = {
@@ -520,7 +523,8 @@ class CommuteMonitor:
         self.store = store
         self.lock_path = lock_path
         self.on_change = on_change or (lambda: None)
-        self.clock = clock or (lambda: datetime.now(cfg.tz))
+        self._own_clock = clock is None
+        self.clock = clock or (lambda: datetime.now(self.cfg.tz))
         self.missing = missing          # why the monitor can't run (shown to the user)
         self._run_lock = asyncio.Lock()
         self._task: asyncio.Task | None = None
@@ -550,6 +554,26 @@ class CommuteMonitor:
             return False
         self._lock_file = f
         return True
+
+    def reconfigure(self, cfg: CommuteConfig, provider=None, missing: str | None = None) -> None:
+        """Apply new settings to the running monitor (called after Settings are saved)."""
+        old = self.cfg
+        self.cfg = cfg
+        if provider is not None:
+            self.provider = provider
+        self.missing = missing
+        self._backoff_until = None
+        schedule_changed = (old.window_start, old.window_end, old.slot_minutes, old.days, old.timezone,
+                            old.home, old.office) != (cfg.window_start, cfg.window_end, cfg.slot_minutes,
+                                                      cfg.days, cfg.timezone, cfg.home, cfg.office)
+        if schedule_changed:
+            # Today's slots/route changed: fetch fresh forecasts at the next tick.
+            today = self.clock().date().isoformat()
+            self.store.set_meta(f"forecast:{today}", None)
+            self.store.set_meta(f"live:{today}", None)
+        log.info("Commute settings applied: %s %s-%s %s, every %d min%s",
+                 ",".join(cfg.days), cfg.window_start.strftime("%H:%M"), cfg.window_end.strftime("%H:%M"),
+                 cfg.timezone, cfg.slot_minutes, "" if cfg.enabled else " (monitoring off)")
 
     def start(self) -> bool:
         if not self.cfg.enabled:
@@ -685,6 +709,7 @@ class CommuteMonitor:
             timezone=cfg.timezone, home_label=cfg.home_label, office_label=cfg.office_label,
             days=list(cfg.days), slot_minutes=cfg.slot_minutes, request_cap=cfg.max_requests_per_day,
             monitor_running=self.running,
+            preferred_arrival=cfg.preferred_arrival.strftime("%H:%M") if cfg.preferred_arrival else None,
         )
         if not cfg.enabled:
             return CommuteStatus(state="disabled", message="Commute monitoring is turned off.", **base)
@@ -725,9 +750,20 @@ class CommuteMonitor:
         if live is not None:
             candidates.append(live)
         rec = None
+        arrival_note = None
         if candidates:
+            pool = candidates
+            if cfg.preferred_arrival:
+                deadline = datetime.combine(st.service_date, cfg.preferred_arrival, cfg.tz)
+                on_time = [v for v in candidates if v.arrival_at and v.arrival_at <= deadline]
+                by = deadline.strftime("%-I:%M %p")
+                if on_time:
+                    pool = on_time
+                    arrival_note = f"Fastest option that arrives by {by}."
+                else:
+                    arrival_note = f"No remaining departure arrives by {by}; this is the fastest."
             # Shortest journey wins; ties go to the earliest departure.
-            best = min(candidates, key=lambda v: (v.duration_min, v.departure_at))
+            best = min(pool, key=lambda v: (v.duration_min, v.departure_at))
             best.best = True
             rec = self._recommendation(best, live is best, st)
 
@@ -741,7 +777,8 @@ class CommuteMonitor:
             msg = "Fetching traffic for today's departure options…"
         else:
             msg = f"Watching traffic {start_txt}–{end_txt}."
-        return CommuteStatus(state=st.status, message=msg, recommendation=rec, live=live, slots=views, **base)
+        return CommuteStatus(state=st.status, message=msg, recommendation=rec, live=live, slots=views,
+                             arrival_note=arrival_note, **base)
 
     def _view(self, o: Observation, now: datetime, past: bool) -> SlotView:
         return SlotView(

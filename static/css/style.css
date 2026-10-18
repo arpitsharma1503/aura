@@ -1146,3 +1146,47 @@ body[data-phase="night"] .shell { opacity: 0.86; }
    ambient orbs above move in 1-second steps, which is invisible over a
    90-150 s drift but lets the browser skip most frames. */
 .hourly__icon *, .daily__icon * { animation: none !important; }
+
+/* ---------- Minimal tile CTA: a bare arrow, bottom-right ---------- */
+.card { position: relative; }
+.card > .tile-arrow, .weather > .tile-arrow {
+  position: absolute; z-index: 2;
+  right: clamp(6px, 0.7vw, 12px); bottom: clamp(4px, 0.5vw, 10px);
+}
+.tile-arrow {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: inline-grid; place-items: center;
+  width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  color: var(--ink-4);
+  transition: color 0.2s ease, transform 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.tile-arrow svg { width: 1.25rem; height: 1.25rem; }
+.card[data-open]:hover > .tile-arrow, .tile-arrow:hover, .tile-arrow:focus-visible { color: var(--ink); transform: translateX(2px); }
+.tile-arrow:active { transform: translateX(2px) scale(0.92); }
+.tile-arrow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.time__date-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.tile-arrow--inline { width: auto; height: auto; color: var(--ink-4); }
+.tile-arrow--inline svg { width: 0.75em; height: 0.75em; }
+.tile-hit:hover .tile-arrow--inline, .tile-hit:focus-visible .tile-arrow--inline { color: var(--ink); transform: translateX(2px); }
+@media (pointer: coarse) { .tile-arrow:not(.tile-arrow--inline) { width: 2.75rem; height: 2.75rem; } }
+
+/* ---------- Settings gear (top-right) ---------- */
+.topbar__right { align-items: center; }
+.topbar__settings {
+  order: 99; flex: none; box-sizing: border-box;
+  display: inline-grid; place-items: center;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  margin-block: -0.5rem;          /* full touch target without making the top bar taller */
+  color: var(--ink-3); text-decoration: none;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.3s ease;
+}
+.topbar__settings svg { width: 1.35rem; height: 1.35rem; }
+.topbar__settings:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.topbar__settings:active { transform: rotate(30deg); }
+.topbar__settings:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: var(--ink); }
+
+/* ---------- Display settings applied on any device ---------- */
+body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
+  animation: none !important; transition: none !important;
+}

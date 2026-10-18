@@ -20,7 +20,7 @@ import logging
 import re
 import sqlite3
 import threading
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -312,7 +312,17 @@ class GroceryStore:
             return GroceryList(status="empty", message="Your grocery list is empty", revision=rev)
         return GroceryList(status="ok", items=items, remaining=remaining, revision=rev)
 
-    def suggestions(self, limit: int = 12) -> list[Suggestion]:
+    def clear_purchased_older_than(self, days: int) -> int:
+        """Remove items purchased more than ``days`` days ago (Settings: auto-clear)."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat(timespec="seconds")
+        with self._lock, self._tx() as db:
+            n = db.execute("DELETE FROM items WHERE purchased = 1 AND purchased_at IS NOT NULL AND purchased_at < ?",
+                           (cutoff,)).rowcount
+            if n:
+                self._bump(db)
+            return n
+
+    def suggestions(self, limit: int = 12, defaults: list[str] | None = None) -> list[Suggestion]:
         with self._lock:
             on_list = {r[0] for r in self._db.execute("SELECT name_key FROM items WHERE purchased = 0")}
             frequent = self._db.execute(
@@ -320,7 +330,8 @@ class GroceryStore:
             ).fetchall()
         out: list[Suggestion] = []
         seen: set[str] = set()
-        for name, cat in [(r["name"], r["category"]) for r in frequent] + COMMON_ITEMS:
+        base = COMMON_ITEMS if defaults is None else [(n, _COMMON_BY_KEY.get(name_key(n), "other")) for n in defaults]
+        for name, cat in [(r["name"], r["category"]) for r in frequent] + list(base):
             key = name_key(name)
             if key in on_list or key in seen:
                 continue

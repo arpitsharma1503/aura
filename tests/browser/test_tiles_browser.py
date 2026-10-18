@@ -57,15 +57,15 @@ TILES = [
     ("#clock-hm", "clock", "Time & date", None),
     ("#date", "clock", "Time & date", None),
     ("#weather-desc", "weather", "Weather", None),
-    (".weather > .tile-more", "weather", "Weather", None),
+    (".weather > .tile-arrow", "weather", "Weather", None),
     ("#hourly li", "weather", "Weather", "hourly"),
     ("#daily li", "weather", "Weather", "daily"),
     ("#weather-stats dd", "weather", "Weather", "metrics"),
     (".advice__title", "advice", "Before you go", None),
-    (".advice .tile-more", "advice", "Before you go", None),
+    (".advice .tile-arrow", "advice", "Before you go", None),
     (".commute__time", "commute", "Commute", None),
     ("#commute .slots", "commute", "Commute", None),
-    (".commute .tile-more", "commute", "Commute", None),
+    (".commute .tile-arrow", "commute", "Commute", None),
 ]
 
 
@@ -120,13 +120,13 @@ def test_keyboard_open_and_focus_return(chrome, srv):
     key(p, "Escape", vk=27)
     p.wait_for(f"!{IS_OPEN}")
     assert p.js("document.activeElement.classList.contains('tile-hit')")   # focus restored
-    p.js("document.querySelector('.commute .tile-more').focus()")
+    p.js("document.querySelector('.commute .tile-arrow').focus()")
     key(p, " ", code="Space", vk=32)
     p.wait_for(f"{IS_OPEN} && {VIEW} === 'commute'")
     # Visible focus ring for keyboard users.
     assert p.js("getComputedStyle(document.getElementById('detail-back'), ':focus-visible') !== null")
     assert p.js("document.querySelector('.tile-hit').getAttribute('aria-label')") == "Time and date details"
-    assert p.js("document.querySelector('.commute .tile-more').getAttribute('aria-haspopup')") == "dialog"
+    assert p.js("document.querySelector('.commute .tile-arrow').getAttribute('aria-haspopup')") == "dialog"
 
 
 def test_touch_tap_opens_tile(chrome, srv):
@@ -171,7 +171,7 @@ def test_grocery_tile_opens_full_list_with_back(chrome, srv):
     click(p, "#g-home")
     p.wait_for("location.pathname === '/' && document.getElementById('grocery-list').textContent.includes('Bread')")
     # The "List" control in the tile is a real link to the same page.
-    assert p.js("document.querySelector('.grocery .tile-more').getAttribute('href')") == "/groceries?from=dashboard"
+    assert p.js("document.querySelector('.grocery .tile-arrow').getAttribute('href')") == "/groceries?from=dashboard"
 
 
 def test_deep_link_opens_view_and_back_stays_on_dashboard(chrome, srv):

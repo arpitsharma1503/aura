@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import dataclasses
 import io
+import logging
 from contextlib import asynccontextmanager
 from datetime import datetime
+from datetime import time as dtime
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -18,7 +22,8 @@ from pydantic import BaseModel, Field
 from . import __version__
 from .auth import COOKIE_NAME, AccessControl, LoginLocked
 from .config import PROJECT_ROOT, Settings, get_settings
-from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, TomTomProvider
+from . import sysinfo
+from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
     CATEGORIES,
@@ -40,10 +45,12 @@ from .location import (
     PublicCityResult,
     PublicLocation,
 )
+from .netinfo import ConnectResult, NetworkService, NetworkStatus, WifiNetwork
 from .network import mdns_url, share_url
 from .open_meteo import OpenMeteoProvider
 from .recommendations import Recommendation, build_recommendations
 from .security import LanOnlyMiddleware
+from .settings_store import SECTIONS, SettingsError, SettingsStore
 from .weather import (
     MockWeatherProvider,
     WeatherProvider,
@@ -66,6 +73,13 @@ class WeatherPayload(WeatherResponse):
 
 class LocationChoice(BaseModel):
     id: int
+
+
+class WifiConnect(BaseModel):
+    ssid: str = Field(min_length=1, max_length=32)
+    password: str = Field(default="", max_length=64)
+    confirm: bool = False
+    allow_disconnect: bool = False
 
 
 class PinLogin(BaseModel):
@@ -115,18 +129,45 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     )
     broker = Broker()
     background: set[asyncio.Task] = set()
+    prefs = SettingsStore(settings.data_dir / "aura.db", settings)
+    network = NetworkService()
+    started_at = sysinfo.now_utc()
 
-    commute_cfg = CommuteConfig.from_settings(settings)
     commute_key = settings.tomtom_api_key.get_secret_value() if settings.tomtom_api_key else ""
-    missing = []
-    if settings.commute_provider == "none":
-        missing.append("a traffic provider (AURA_COMMUTE_PROVIDER=tomtom)")
-    elif not commute_key:
-        missing.append("a free TomTom API key (AURA_TOMTOM_API_KEY)")
-    if commute_cfg.home is None:
-        missing.append("home coordinates (AURA_COMMUTE_HOME)")
-    if commute_cfg.office is None:
-        missing.append("office coordinates (AURA_COMMUTE_OFFICE)")
+
+    def commute_config() -> tuple[CommuteConfig, str | None]:
+        """Commute config = .env base + saved Settings (schedule, locations)."""
+        c, locs = prefs.commute, prefs.locations
+        cfg = dataclasses.replace(
+            CommuteConfig.from_settings(settings),
+            enabled=c.enabled,
+            home=Point(locs.home.latitude, locs.home.longitude) if locs.home else None,
+            office=Point(locs.office.latitude, locs.office.longitude) if locs.office else None,
+            home_label=locs.home.name if locs.home else "Home",
+            office_label=locs.office.name if locs.office else "Office",
+            timezone=c.timezone,
+            window_start=dtime.fromisoformat(c.window_start),
+            window_end=dtime.fromisoformat(c.window_end),
+            slot_minutes=c.slot_minutes,
+            days=tuple(c.days),
+            live_refresh_minutes=c.live_refresh_minutes,
+            forecast_refresh_minutes=c.forecast_refresh_minutes,
+            max_requests_per_day=c.max_requests_per_day,
+            preferred_arrival=dtime.fromisoformat(c.preferred_arrival) if c.preferred_arrival else None,
+        )
+        missing = []
+        if settings.commute_provider == "none":
+            missing.append("a traffic provider (AURA_COMMUTE_PROVIDER=tomtom)")
+        elif not commute_key:
+            missing.append("a free TomTom API key (AURA_TOMTOM_API_KEY)")
+        if cfg.home is None:
+            missing.append("home coordinates (Settings → Home & office)")
+        if cfg.office is None:
+            missing.append("office coordinates (Settings → Home & office)")
+        note = ("Live traffic needs " + ", ".join(missing) + ". See README → Commute.") if missing else None
+        return cfg, note
+
+    commute_cfg, missing_note = commute_config()
     commute_provider = (
         TomTomProvider(client, commute_key)
         if settings.commute_provider == "tomtom" and commute_key else None
@@ -136,8 +177,55 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         commute_cfg, commute_provider, commute_store,
         lock_path=settings.data_dir / "commute.lock",
         on_change=lambda: broker.publish("commute", {}),
-        missing=("Live traffic needs " + ", ".join(missing) + ". See README → Commute.") if missing else None,
+        missing=missing_note,
     )
+    weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
+
+    def weather_location():
+        """Where weather is fetched for: the city (location dialog), or the exact
+        Home coordinates when Settings → Weather says so."""
+        loc = location.location
+        home = prefs.locations.home
+        if prefs.weather.use_home_coordinates and home:
+            return SimpleNamespace(
+                city=loc.city if loc else home.name, latitude=home.latitude, longitude=home.longitude,
+                timezone=(loc.timezone if loc and loc.timezone else None) or prefs.commute.timezone)
+        return loc
+
+    async def apply_settings(section: str) -> str:
+        """Push saved settings into the running services. Returns a short note."""
+        if section in ("commute", "locations"):
+            cfg, note = commute_config()
+            commute.reconfigure(cfg, missing=note)
+            if cfg.enabled and commute.configured:
+                commute.start()
+            else:
+                await commute.stop()
+            broker.publish("commute", {})
+        if section in ("weather", "locations"):
+            weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
+        if section in ("display", "weather", "locations", "groceries"):
+            broker.publish("location", {})        # dashboards re-read /api/config and refresh
+        if section == "groceries":
+            await auto_clear()
+        return {"commute": "The commute monitor uses the new schedule now.",
+                "locations": "Commute (and weather, if set) use the new places now.",
+                "weather": "Weather uses the new settings from the next update.",
+                "display": "Open dashboards update within a few seconds.",
+                "groceries": "Phones and the dashboard use the new settings now."}.get(section, "")
+
+    async def auto_clear() -> None:
+        days = prefs.groceries.auto_clear_purchased_days
+        if days and groceries.clear_purchased_older_than(days):
+            groceries_changed()
+
+    async def housekeeping() -> None:
+        while True:
+            try:
+                await auto_clear()
+            except Exception:  # never let housekeeping die
+                logging.getLogger("aura").exception("Housekeeping failed")
+            await asyncio.sleep(3600)
 
     def timezone() -> str:
         loc = location.location
@@ -159,6 +247,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         background.add(task)
         task.add_done_callback(background.discard)
         commute.start()
+        hk = asyncio.create_task(housekeeping())
+        background.add(hk)
+        hk.add_done_callback(background.discard)
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
@@ -167,6 +258,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             t.cancel()
         await client.aclose()
         groceries.close()
+        prefs.close()
 
     app = FastAPI(
         title="AURA", version=__version__, lifespan=lifespan,
@@ -178,6 +270,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.access = access
     app.state.broker = broker
     app.state.commute = commute
+    app.state.prefs = prefs
+    app.state.network = network
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -203,9 +297,12 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     async def config() -> dict:
         return {
             "timezone": timezone(),
-            "clock_format": settings.clock_format,
+            "build": started_at.isoformat(),      # changes when the server restarts (dashboards reload)
+            "clock_format": prefs.display.clock_format,
+            "display": prefs.display.model_dump(),
+            "groceries": {"default_filter": prefs.groceries.default_filter},
             "weather_provider": settings.weather_provider,
-            "weather_refresh_seconds": settings.weather_refresh_seconds,
+            "weather_refresh_seconds": prefs.weather.refresh_minutes * 60,
             "dev_preview": provider is not None and provider.is_mock,
             "location": location.public().model_dump(mode="json"),
         }
@@ -338,19 +435,20 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @app.get("/api/weather", response_model=WeatherPayload)
     async def weather() -> WeatherPayload:
-        result = await weather_service.get(location.location, timezone())
+        result = await weather_service.get(weather_location(), timezone())
         recs: list[Recommendation] = []
         if result.data:
             recs = build_recommendations(
                 result.data,
                 now=datetime.now(ZoneInfo(result.data.timezone)),
-                window_hours=settings.travel_window_hours,
-                clock_format=settings.clock_format,
+                window_hours=prefs.weather.travel_window_hours,
+                clock_format=prefs.display.clock_format,
+                temperature_unit=prefs.display.temperature_unit,
                 limit=50,
             )
         return WeatherPayload(
             **result.model_dump(), recommendations=recs[:4], recommendations_all=recs,
-            travel_window_hours=settings.travel_window_hours, visual=visual_for(result),
+            travel_window_hours=prefs.weather.travel_window_hours, visual=visual_for(result),
         )
 
     # ----- commute -----
@@ -358,6 +456,95 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/api/commute", response_model=CommuteStatus)
     async def commute_status() -> CommuteStatus:
         return commute.status()
+
+    # ----- settings center -----
+
+    def admin(request: Request) -> None:
+        access.require_admin(request)
+
+    def settings_info() -> dict:
+        cs = commute.status()
+        lst = groceries.load()
+        loc = location.public().model_dump(mode="json")
+        entry = weather_service._entry
+        return {
+            "weather": {
+                "location": loc,
+                "using_home_coordinates": bool(prefs.weather.use_home_coordinates and prefs.locations.home),
+                "provider": "Open-Meteo" if settings.weather_provider == "open_meteo" else settings.weather_provider,
+                "last_update": entry.snapshot.fetched_at.isoformat() if entry else None,
+            },
+            "commute": {
+                "provider": cs.provider, "key_configured": bool(commute_key), "running": cs.monitor_running,
+                "state": cs.state, "last_success_at": cs.last_success_at, "requests_today": cs.requests_today,
+                "request_cap": cs.request_cap, "message": cs.message,
+            },
+            "display": {
+                "screen_blanking": "Off (screen stays on)",
+                "screen_blanking_help": "Change in Raspberry Pi Configuration → Display → Screen Blanking.",
+            },
+            "groceries": {"items": len(lst.items), "open": lst.remaining, "revision": lst.revision,
+                          "connections": broker.count},
+        }
+
+    @app.get("/api/settings", dependencies=[Depends(editor)])
+    async def get_settings_center(request: Request) -> dict:
+        return {
+            "values": {name: prefs.get(name).model_dump(mode="json") for name in SECTIONS},
+            "defaults": {name: prefs.defaults(name).model_dump(mode="json") for name in SECTIONS},
+            "customized": {name: prefs.customized(name) for name in SECTIONS},
+            "can_edit": access.can_edit(request),
+            "can_admin": access.can_admin(request),
+            "info": settings_info(),
+        }
+
+    @app.patch("/api/settings/{section}", dependencies=[Depends(editor)])
+    async def update_settings(section: str, request: Request):
+        try:
+            changes = await request.json()
+        except ValueError:
+            return JSONResponse(status_code=422, content={"detail": {"message": "Body must be JSON.", "errors": []}})
+        try:
+            new, diff = prefs.update(section, changes)
+        except SettingsError as exc:
+            status = 404 if exc.errors and exc.errors[0]["message"] == "unknown settings section" else 422
+            return JSONResponse(status_code=status,
+                                content={"detail": {"message": "Please check the highlighted fields.", "errors": exc.errors}})
+        note = await apply_settings(section) if diff else "Nothing changed."
+        return {"values": new.model_dump(mode="json"), "changed": sorted(diff), "applied": note}
+
+    @app.post("/api/settings/{section}/reset", dependencies=[Depends(editor)])
+    async def reset_settings(section: str):
+        if section not in SECTIONS:
+            raise HTTPException(status_code=404, detail="Unknown settings section")
+        new = prefs.reset(section)
+        await apply_settings(section)
+        return {"values": new.model_dump(mode="json")}
+
+    @app.get("/api/settings/place/{result_id}", dependencies=[Depends(editor)])
+    async def place_from_search(result_id: int) -> dict:
+        r = location._results_by_id.get(result_id)
+        if r is None:
+            raise HTTPException(status_code=404, detail="That search result has expired. Search again.")
+        return {"name": r.name, "latitude": round(r.latitude, 6), "longitude": round(r.longitude, 6)}
+
+    @app.get("/api/system/info")
+    async def system_info() -> sysinfo.SystemInfo:
+        return sysinfo.collect(settings.data_dir, started_at)
+
+    @app.get("/api/system/network", response_model=NetworkStatus)
+    async def network_status() -> NetworkStatus:
+        return await network.status()
+
+    @app.post("/api/system/wifi/scan", response_model=list[WifiNetwork], dependencies=[Depends(admin)])
+    async def wifi_scan() -> list[WifiNetwork]:
+        return await network.scan()
+
+    @app.post("/api/system/wifi/connect", response_model=ConnectResult, dependencies=[Depends(admin)])
+    async def wifi_connect(body: WifiConnect) -> ConnectResult:
+        if not body.confirm:
+            raise HTTPException(status_code=422, detail="Confirm the change first.")
+        return await network.connect(body.ssid, body.password, allow_disconnect=body.allow_disconnect)
 
     # ----- groceries -----
 
@@ -378,7 +565,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @app.get("/api/groceries/suggestions", response_model=list[Suggestion])
     async def grocery_suggestions() -> list[Suggestion]:
-        return groceries.suggestions()
+        return groceries.suggestions(defaults=prefs.groceries.quick_add)
 
     @app.post("/api/groceries", status_code=201, response_model=Item, dependencies=[Depends(editor)])
     async def add_grocery(body: ItemIn):
@@ -427,6 +614,10 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/", include_in_schema=False)
     async def index() -> FileResponse:
         return FileResponse(STATIC_DIR / "index.html")
+
+    @app.get("/settings", include_in_schema=False)
+    async def settings_page() -> FileResponse:
+        return FileResponse(STATIC_DIR / "settings.html")
 
     @app.get("/groceries", include_in_schema=False)
     async def groceries_page() -> FileResponse:

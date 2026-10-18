@@ -134,6 +134,22 @@ class AccessControl:
         # In "lan" mode the middleware has already limited clients to the home network.
         return self.open_lan or self.is_local(request) or self.verify(request.cookies.get(COOKIE_NAME))
 
+    def can_admin(self, request: Request) -> bool:
+        """Privileged system changes (Wi-Fi). Stricter than editing: even in
+        "lan" mode only the Pi's own screen, or a phone that unlocked with the
+        household PIN, may do this."""
+        return self.is_local(request) or (self.pin_configured and self.verify(request.cookies.get(COOKIE_NAME)))
+
+    def require_admin(self, request: Request) -> None:
+        if not self.can_admin(request):
+            raise HTTPException(
+                status_code=403,
+                detail=("Wi-Fi can only be changed on the entrance display itself"
+                        + ("" if self.pin_configured else ", or after setting a household PIN (AURA_HOUSEHOLD_PIN)")
+                        + ("" if not self.pin_configured else ", or after unlocking with the household PIN")
+                        + "."),
+            )
+
     def method(self, request: Request) -> str | None:
         if self.open_lan:
             return "lan"

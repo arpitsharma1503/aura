@@ -82,7 +82,8 @@
     }).format(new Date(iso));
   }
 
-  const fmtTemp = (c) => `${Math.round(c)}°`;
+  // Temperatures arrive in Celsius; Settings → Display can show Fahrenheit.
+  const fmtTemp = (c) => `${Math.round(state.config?.display?.temperature_unit === "fahrenheit" ? c * 9 / 5 + 32 : c)}°`;
 
   // ---------- clock & ambient phase ----------
 
@@ -349,6 +350,10 @@
 
   function renderScene(visual) {
     const root = $("wx-scene");
+    // Settings → Display → "Animated weather" off: show the scene, but still.
+    if (visual && state.config?.display && !state.config.display.weather_animations && visual.motion === "live") {
+      visual = { ...visual, motion: "static", reason: "off" };
+    }
     Scene.render(root, visual);
     $("weather").dataset.motion = root.dataset.motion;
     $("weather").dataset.scene = root.dataset.scene;
@@ -800,6 +805,7 @@
     if (!("EventSource" in window)) return;
     const es = new EventSource("/api/events");
     es.addEventListener("hello", (e) => {
+      if (state.config) loadConfig();      // after a reconnect: catch server restarts quickly
       // (Re)connected: re-sync everything we might have missed.
       try {
         const { groceries } = JSON.parse(e.data);
@@ -828,7 +834,22 @@
     let next = CONFIG_POLL_MS;
     try {
       const cfg = await fetchJSON("/api/config");
+      // The server was restarted (possibly updated): reload once so this screen
+      // - especially the always-on entrance display - runs the current version.
+      if (state.config?.build && cfg.build && cfg.build !== state.config.build) {
+        location.reload();
+        return;
+      }
+      const displayChanged = JSON.stringify(cfg.display) !== JSON.stringify(state.config?.display)
+        || cfg.clock_format !== state.config?.clock_format;
       state.config = cfg;
+      document.body.classList.toggle("force-reduce", cfg.display?.reduced_motion === "reduce");
+      if (displayChanged && state.weatherPayload) {
+        // Units, clock or animation settings changed: redraw with the new ones.
+        $("wx-scene").dataset.key = "";
+        loadWeather();
+        Detail.refresh();
+      }
       $("preview-pill").hidden = !cfg.dev_preview;
       renderLocation(cfg.location);
       renderClock();
@@ -868,7 +889,9 @@
     weatherArt,
     temp: fmtTemp,
     formatHour: fmtHour,
-    renderScene: (el, visual) => Scene.render(el, visual),
+    renderScene: (el, visual) => Scene.render(el,
+      visual && state.config?.display && !state.config.display.weather_animations && visual.motion === "live"
+        ? { ...visual, motion: "static", reason: "off" } : visual),
     formatTime: (date, { seconds = false } = {}) => new Intl.DateTimeFormat("en-US", {
       timeZone: tz(), hour: "numeric", minute: "2-digit", ...(seconds ? { second: "2-digit" } : {}), hour12: twelve(),
     }).format(date),

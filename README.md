@@ -24,11 +24,15 @@ aura/
 │   ├── auth.py              household PIN, signed sessions, rate limiting
 │   ├── events.py            Server-Sent Events for live updates
 │   ├── network.py           the Pi's current LAN address (for the QR code)
+│   ├── netinfo.py           network status + Wi-Fi via NetworkManager (fixed nmcli operations)
+│   ├── settings_store.py    Settings Center: schemas, validation, overrides in aura.db
+│   ├── sysinfo.py           read-only system information
 │   ├── storage.py           crash-safe JSON writes
 │   └── security.py          home-network-only middleware + security headers
 ├── static/                  frontend (plain HTML/CSS/JS, no build step)
 │   ├── index.html           entrance dashboard
 │   ├── groceries.html       phone grocery page (/groceries)
+│   ├── settings.html        Settings Center (/settings)
 │   └── js/weather-scene.js  animated weather backdrop (CSS, no libraries)
 ├── data/                    aura.db (groceries + commute history), location.json, weather_cache.json, session.key
 ├── logs/                    aura.log (rotating, 1 MB × 3)
@@ -163,11 +167,93 @@ a physical screen.** To test:
 - **Access:** `AURA_EDIT_ACCESS=lan` means any device on the Wi-Fi can edit
   groceries and settings. The kiosk browser is local and doesn't change this.
 
+## Settings
+
+Open **Settings** with the gear icon in the top-right corner of the dashboard, or go
+to `http://<pi>:8080/settings`. **Dashboard** at the top returns you to the
+dashboard. Each section has its own **Save**, **Cancel** and **Reset to defaults**.
+Nothing changes until you press Save. While a section has unsaved changes, its
+buttons stay pinned to the bottom of the screen, and leaving the page asks first.
+
+| Section | What you can change | What it really affects |
+|---|---|---|
+| **Network & Wi-Fi** | View status: internet, Wi-Fi network and signal, Ethernet, hostname, address. Scan for and join a Wi-Fi network. | NetworkManager on the Pi (see below) |
+| **Home & office** | Name and latitude/longitude for each (or search a place to fill them in) | The commute route; also weather, if *Use exact Home coordinates* is on |
+| **Weather** | Use the exact Home coordinates or the city under the clock; refresh interval; how far ahead *Before you go* looks. Shows the location source, detection status and last update. | Weather fetching and recommendations, from the next update |
+| **Commute** | On/off, days, start and end times, timezone, comparison interval, optional "arrive by" time, request schedule and daily limit. Shows provider and key status, last update, and requests used. | The running scheduler: new slots are fetched at the next tick; the recommendation prefers departures that arrive on time |
+| **Display** | 12/24-hour clock, °C/°F, animated weather on/off, motion (follow each device / always minimal). Shows theme, layout and screen-sleep status. | Every open dashboard, within seconds, with no reload |
+| **Groceries** | Quick-add suggestions, which tab phones open on, automatic removal of purchased items | Suggestions, the phone page, and an hourly clean-up |
+| **System** | Read-only: backend health, version and start time, device, OS, Python, uptime, storage, memory, CPU temperature, how AURA is running | — |
+
+**How settings are stored:**
+- **Defaults** come from `.env`. Your home (13.0087307, 77.7381464) and office
+  (12.9927608, 77.6995722) are the defaults there.
+- **Your changes** are stored separately in `data/aura.db` (table `settings`).
+  *Reset to defaults* removes them for that section only.
+- **Secrets** (TomTom key, PIN) stay in `.env` and never appear in Settings.
+
+**Validation and logging:**
+- Every value is checked on the server: coordinate ranges, time formats, the end
+  after the start, real timezone names, allowed intervals, at least one weekday.
+  Errors appear next to the field.
+- Every change is logged (`grep settings: logs/aura.log`). Coordinates are logged
+  only as "changed".
+
+**Who can change settings:**
+- **Settings:** the same people who can edit groceries (`AURA_EDIT_ACCESS`; today,
+  anyone on your Wi-Fi).
+- **Wi-Fi changes are stricter:** only on the **entrance display itself**
+  (`127.0.0.1`), or from a phone unlocked with the household PIN if you set one.
+  Phones on the Wi-Fi can view the network status but not change it.
+
+### Wi-Fi management
+
+This Pi uses **NetworkManager**. AURA can join a Wi-Fi network for you without
+`sudo`, because Raspberry Pi OS lets a user in the `netdev`/`sudo` group with an
+active local desktop session (the automatic login) manage networks. If that
+session isn't active, Settings says so and the scan button is disabled.
+
+How it works, and what it never does:
+- **Fixed operations only:** status, an on-demand scan, and connecting to a network
+  from that scan. Nothing typed in the browser is ever run as a command.
+- **Confirmation:** joining needs a confirmation. If Wi-Fi is the Pi's *only*
+  connection, a second warning appears, because a failed switch could cut remote
+  access until the Pi reconnects.
+- **The password is never put on a command line, in a log or in a response.**
+  It's written to a private, temporary file (mode 600) that `nmcli` reads, and the
+  file is deleted immediately. NetworkManager then stores it in its own root-only
+  connection file, as for any Wi-Fi network.
+- **Failures:** a wrong password, a timeout or a lost network gives a clear message.
+  The half-created profile is removed, so the Pi returns to its previous network.
+- **Ethernet** (how this Pi is connected today, and how SSH reaches it) is never
+  touched.
+
+**To change Wi-Fi another way:**
+- **On the Pi's screen:** use the network icon on the Raspberry Pi desktop
+  (Alt+F4 leaves the kiosk).
+- **Over SSH:**
+  ```bash
+  nmcli device wifi list
+  nmcli --ask device wifi connect "Network name"
+  ```
+- **Text menu:** `sudo nmtui`.
+
+**If you lose access:** plug in Ethernet (the Pi keeps that link), or use a
+keyboard and screen. Saved networks reconnect automatically.
+
+**Not verified on this Pi:** actually joining a network through Settings. The
+scan, status and permission checks work on this Pi. Joining needs your Wi-Fi
+password, and it changes the Pi's network, so it has only been tested against a
+simulated `nmcli`. To try it:
+1. Open Settings on the entrance display (only that screen may change Wi-Fi).
+2. Tap **Find Wi-Fi networks**, pick yours, enter the password, and confirm.
+3. Check with `nmcli -t -f DEVICE,STATE,CONNECTION device`.
+
 ## Interactive tiles
 
 Every information tile on the dashboard opens a detail view. Tap or click
-anywhere on the tile, use its **Details** button, or press Enter on it with a
-keyboard. Close with **Back**, Esc, a click outside, or the browser's Back button.
+anywhere on the tile. The small **→** in its bottom-right corner marks it as
+clickable, and with a keyboard you can Tab to that arrow and press Enter. Close with **Back**, Esc, a click outside, or the browser's Back button.
 Each view has its own address, so `/#/commute` opens straight to it.
 
 | Tile | Opens |

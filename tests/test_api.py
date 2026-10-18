@@ -93,3 +93,10 @@ def test_unknown_host_header_rejected(client):
 def test_private_ip_host_header_allowed(client):
     res = client.get("/api/health", headers={"host": "192.168.1.11:8080"})
     assert res.status_code == 200
+
+
+
+def test_config_has_build_id_that_changes_on_restart(tmp_path):
+    first = make_client(tmp_path).get("/api/config").json()["build"]
+    second = make_client(tmp_path).get("/api/config").json()["build"]
+    assert first and second and first != second

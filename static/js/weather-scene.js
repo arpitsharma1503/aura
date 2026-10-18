@@ -123,7 +123,7 @@ window.AuraWeatherScene = (() => {
   /** Render a scene into `root`. Re-renders only when something changed. */
   function render(root, visual) {
     const scene = visual?.scene || "unknown";
-    const reduced = !!reduceQuery?.matches;
+    const reduced = !!reduceQuery?.matches || document.body.classList.contains("force-reduce");
     const motion = !visual || visual.motion === "none" ? "none" : (reduced ? "reduced" : visual.motion);
     const key = `${scene}|${motion}`;
     if (root.dataset.key === key) return;
