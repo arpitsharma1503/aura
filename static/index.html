@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/style.css">
   <script src="/static/js/icons.js" defer></script>
+  <script src="/static/js/weather-scene.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
 <body data-phase="night" data-sky="clear">
@@ -53,6 +54,7 @@
     </section>
 
     <section class="card weather" id="weather" aria-label="Weather" data-state="loading">
+      <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
       <div class="weather__loading">
         <div class="skeleton skeleton--icon"></div>
         <div class="skeleton-stack">
@@ -83,6 +85,18 @@
         <ol class="hourly" id="hourly" aria-label="Next hours"></ol>
         <div class="weather__meta" id="weather-meta"></div>
       </div>
+    </section>
+
+    <section class="card commute" id="commute" aria-labelledby="commute-title" data-state="loading">
+      <h2 class="card__title">
+        <span id="commute-title">Commute</span>
+        <span class="card__count" id="commute-route"></span>
+      </h2>
+      <div class="commute__body" id="commute-body">
+        <div class="skeleton skeleton--row"></div>
+        <div class="skeleton skeleton--row"></div>
+      </div>
+      <div class="commute__meta" id="commute-meta"></div>
     </section>
 
     <section class="card advice" aria-labelledby="advice-title">

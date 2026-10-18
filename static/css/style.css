@@ -84,19 +84,19 @@ body[data-sky="storm"]  .ambient { filter: saturate(0.4) brightness(0.65); }
 .ambient__orb--a {
   top: -30vmax; left: -20vmax;
   background: radial-gradient(circle at center, var(--orb-a) 0%, transparent 65%);
-  animation: drift-a 90s ease-in-out infinite alternate;
+  animation: drift-a 90s steps(90) infinite alternate;
 }
 .ambient__orb--b {
   bottom: -40vmax; right: -25vmax;
   background: radial-gradient(circle at center, var(--orb-b) 0%, transparent 65%);
-  animation: drift-b 120s ease-in-out infinite alternate;
+  animation: drift-b 120s steps(120) infinite alternate;
 }
 .ambient__orb--c {
   top: 20vh; left: 35vw;
   width: 55vmax; height: 55vmax;
   opacity: 0.45;
   background: radial-gradient(circle at center, var(--orb-c) 0%, transparent 65%);
-  animation: drift-c 150s ease-in-out infinite alternate;
+  animation: drift-c 150s steps(150) infinite alternate;
 }
 
 .ambient__vignette {
@@ -122,12 +122,14 @@ body[data-sky="storm"]  .ambient { filter: saturate(0.4) brightness(0.65); }
   padding-top: max(var(--pad), env(safe-area-inset-top));
   display: grid;
   gap: var(--gap);
+  /* Medium screens (laptops, landscape tablets): commute gets a full-width row. */
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr auto auto;
   grid-template-areas:
-    "top    top"
-    "time   weather"
-    "advice grocery";
+    "top     top"
+    "time    weather"
+    "commute commute"
+    "advice  grocery";
   transition: transform 2s ease, opacity 2s ease;
 }
 
@@ -136,14 +138,28 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 .topbar  { grid-area: top; }
 .time    { grid-area: time; }
 .weather { grid-area: weather; }
+.commute { grid-area: commute; }
 .advice  { grid-area: advice; }
 .grocery { grid-area: grocery; }
 
+/* Large landscape displays (the entrance screen): one glanceable page. */
+@media (min-width: 1400px) and (orientation: landscape) {
+  .shell {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "top    top    top    top     top     top     top     top     top     top"
+      "time   time   time   time    time    time    weather weather weather weather"
+      "advice advice advice commute commute commute commute grocery grocery grocery";
+  }
+}
+
+/* Phones and portrait screens: a single readable column. */
 @media (max-width: 960px), (orientation: portrait) {
   .shell {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
-    grid-template-areas: "top" "time" "weather" "advice" "grocery";
+    grid-template-areas: "top" "time" "weather" "commute" "advice" "grocery";
     align-content: start;
   }
   .time { padding: 1.5rem 0 0.5rem; }
@@ -386,10 +402,10 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 .weather__sun svg { width: 1.15em; height: 1.15em; color: var(--accent); opacity: 0.8; }
 
 .weather__stats {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem 1.2rem;
   margin: clamp(14px, 1.6vw, 28px) 0 0;
   padding: clamp(10px, 1vw, 18px) 0;
   border-top: 1px solid var(--line);
@@ -400,7 +416,7 @@ body[data-phase="night"] .shell { opacity: 0.86; }
   white-space: nowrap;
   font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3);
 }
-.weather__stats dd { margin: 0.25rem 0 0; font-size: 1.3rem; font-weight: 500; }
+.weather__stats dd { margin: 0.25rem 0 0; font-size: 1.3rem; font-weight: 500; white-space: nowrap; }
 
 .hourly {
   list-style: none;
@@ -488,7 +504,8 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 }
 @media (max-width: 560px) {
   .grocery__list { grid-template-columns: minmax(0, 1fr); }
-  .weather__stats { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .weather__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .weather__stats dd { font-size: 1.1rem; }
 }
 
 .grocery__item button {
@@ -632,3 +649,295 @@ body[data-phase="night"] .shell { opacity: 0.86; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Weather scene (animated backdrop inside the weather card) ----------
+   Driven by the provider's weather code (server-side mapping). Contained in the
+   card, behind the content, transform/opacity-only animations. */
+
+.weather { overflow: hidden; isolation: isolate; }
+.weather > :not(.wx-scene) { position: relative; z-index: 1; }
+
+.wx-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  overflow: hidden;
+  contain: strict;
+  transition: opacity 1.2s ease;
+  --sky-top: rgba(255, 255, 255, 0.02);
+  --sky-bottom: rgba(255, 255, 255, 0);
+  background: linear-gradient(180deg, var(--sky-top), var(--sky-bottom) 75%);
+}
+/* Readability scrim: keeps text crisp over any scene. */
+.wx-scene::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(6, 8, 14, 0) 30%, rgba(6, 8, 14, 0.55) 100%),
+    radial-gradient(ellipse at 30% 35%, rgba(6, 8, 14, 0.35), transparent 70%);
+}
+.wxs-layer { position: absolute; inset: 0; }
+
+.wx-scene[data-scene="clear-day"]           { --sky-top: rgba(255, 186, 92, 0.16); --sky-bottom: rgba(70, 130, 255, 0.04); }
+.wx-scene[data-scene="partly-cloudy-day"]   { --sky-top: rgba(255, 196, 120, 0.10); --sky-bottom: rgba(90, 140, 220, 0.05); }
+.wx-scene[data-scene="clear-night"],
+.wx-scene[data-scene="partly-cloudy-night"] { --sky-top: rgba(80, 100, 220, 0.14); --sky-bottom: rgba(10, 14, 40, 0.0); }
+.wx-scene[data-scene="overcast"]            { --sky-top: rgba(150, 160, 185, 0.10); --sky-bottom: rgba(80, 90, 110, 0.03); }
+.wx-scene[data-scene="fog"]                 { --sky-top: rgba(190, 196, 210, 0.10); --sky-bottom: rgba(150, 160, 175, 0.06); }
+.wx-scene[data-scene="drizzle"],
+.wx-scene[data-scene="rain"]                { --sky-top: rgba(90, 130, 190, 0.14); --sky-bottom: rgba(40, 60, 90, 0.04); }
+.wx-scene[data-scene="heavy-rain"]          { --sky-top: rgba(70, 100, 160, 0.18); --sky-bottom: rgba(20, 30, 50, 0.06); }
+.wx-scene[data-scene="thunderstorm"]        { --sky-top: rgba(90, 80, 160, 0.18); --sky-bottom: rgba(15, 15, 35, 0.08); }
+.wx-scene[data-scene="snow"]                { --sky-top: rgba(200, 220, 255, 0.12); --sky-bottom: rgba(120, 140, 180, 0.04); }
+
+/* sun */
+.wxs-sun {
+  position: absolute; top: -18%; right: -10%;
+  width: 60%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 210, 120, 0.42) 0%, rgba(255, 170, 80, 0.14) 38%, transparent 68%);
+  animation: wxs-breathe 9s ease-in-out infinite alternate;
+}
+.wxs-sun--soft { opacity: 0.6; }
+.wxs-rays {
+  position: absolute; top: -40%; right: -32%;
+  width: 105%; aspect-ratio: 1; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 140, 0.07) 0deg 6deg, transparent 6deg 24deg);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 62%);
+  mask-image: radial-gradient(circle, #000 18%, transparent 62%);
+  animation: wxs-spin 140s linear infinite;
+}
+@keyframes wxs-breathe { to { transform: scale(1.08); opacity: 0.85; } }
+@keyframes wxs-spin { to { transform: rotate(360deg); } }
+
+/* moon & stars */
+.wxs-moonglow {
+  position: absolute; top: -20%; right: -8%;
+  width: 52%; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle, rgba(170, 190, 255, 0.22), transparent 65%);
+}
+.wxs-star {
+  position: absolute; left: var(--x); top: var(--y);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: #eef2ff;
+  opacity: 0.5;
+  animation: wxs-twinkle var(--dur) ease-in-out var(--delay) infinite alternate;
+}
+@keyframes wxs-twinkle { from { opacity: 0.15; } to { opacity: 0.8; } }
+
+/* clouds: soft blobs drifting across the panel */
+.wxs-cloud {
+  position: absolute; left: 0; top: var(--top);
+  width: var(--size); aspect-ratio: 2.6;
+  border-radius: 999px;
+  opacity: var(--alpha);
+  background: radial-gradient(ellipse at 50% 60%, var(--cloud) 0%, transparent 70%);
+  animation: wxs-drift var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+.wxs-cloud--light { --cloud: rgba(235, 240, 250, 0.38); }
+.wxs-cloud--dim   { --cloud: rgba(170, 180, 200, 0.34); }
+.wxs-cloud--dark  { --cloud: rgba(110, 120, 145, 0.42); }
+@keyframes wxs-drift { from { transform: translateX(-110%); } to { transform: translateX(260%); } }
+
+/* rain */
+.wxs-drop {
+  position: absolute; top: -12%; left: var(--x);
+  width: 1.5px; height: var(--len);
+  background: linear-gradient(180deg, rgba(160, 200, 255, 0), rgba(170, 210, 255, var(--alpha)));
+  transform: rotate(12deg);
+  animation: wxs-fall var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+.wxs-drop--heavy { width: 2px; }
+@keyframes wxs-fall {
+  from { transform: translate3d(0, 0, 0) rotate(12deg); }
+  to   { transform: translate3d(-60px, 125cqh, 0) rotate(12deg); }
+}
+.wx-scene { container-type: size; }
+
+/* lightning: rare, soft flash */
+.wxs-flash {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 70% 10%, rgba(220, 225, 255, 0.55), transparent 60%);
+  opacity: 0;
+  animation: wxs-flash 11s ease-out 2s infinite;
+}
+@keyframes wxs-flash {
+  0%, 90%, 100% { opacity: 0; }
+  91% { opacity: 0.9; }
+  92% { opacity: 0.1; }
+  93.5% { opacity: 0.6; }
+  96% { opacity: 0; }
+}
+
+/* snow */
+.wxs-flake {
+  position: absolute; top: -6%; left: var(--x);
+  width: var(--s); height: var(--s); border-radius: 50%;
+  background: rgba(245, 248, 255, 0.8);
+  animation: wxs-snow var(--dur) linear var(--delay) infinite;
+  will-change: transform;
+}
+@keyframes wxs-snow {
+  0%   { transform: translate3d(0, 0, 0); }
+  50%  { transform: translate3d(var(--sway), 60cqh, 0); }
+  100% { transform: translate3d(0, 115cqh, 0); }
+}
+
+/* fog */
+.wxs-mist {
+  position: absolute; left: -50%; top: var(--top);
+  width: 200%; height: 22%;
+  background: linear-gradient(90deg, transparent, rgba(210, 216, 228, 0.12) 30%, rgba(210, 216, 228, 0.18) 50%, rgba(210, 216, 228, 0.12) 70%, transparent);
+  filter: none;
+  animation: wxs-mist var(--dur) ease-in-out var(--delay) infinite alternate;
+}
+@keyframes wxs-mist { from { transform: translateX(-12%); } to { transform: translateX(12%); } }
+
+/* Sample or out-of-date data: freeze the scene and mute it, so it never
+   looks like live conditions. Same for reduced motion (no movement at all). */
+.wx-scene[data-motion="static"],
+.wx-scene[data-motion="reduced"] { opacity: 0.55; }
+.wx-scene[data-motion="static"] *,
+.wx-scene[data-motion="reduced"] * { animation-play-state: paused !important; }
+.wx-scene[data-motion="reduced"] .wxs-drop,
+.wx-scene[data-motion="reduced"] .wxs-flake,
+.wx-scene[data-motion="reduced"] .wxs-flash { display: none; }
+.weather[data-motion="static"] .weather__art *,
+.weather[data-motion="reduced"] .weather__art * { animation-play-state: paused !important; }
+.wx-scene[data-motion="none"] { opacity: 0.4; }
+
+/* Don't spend GPU on a hidden tab or when the card isn't showing data. */
+.weather:not([data-state="ok"]) .wx-scene .wxs-layer { display: none; }
+
+/* ---------- Commute ---------- */
+
+.commute { display: flex; flex-direction: column; min-width: 0; }
+.commute__body { flex: 1; display: flex; flex-direction: column; gap: 0.9rem; min-width: 0; }
+.commute__top { min-width: 0; }
+.commute__head { display: flex; gap: 0.4rem 0.8rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.commute__rec { min-width: 0; }
+.commute__label {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3);
+}
+.commute__time {
+  font-size: clamp(2.2rem, 3.2vw, 3.6rem); font-weight: 300; letter-spacing: -0.03em; line-height: 1.05;
+  color: var(--ink);
+}
+.commute__time small { font-size: 0.42em; color: var(--ink-3); letter-spacing: 0; margin-left: 0.25em; }
+.commute__facts { display: flex; flex-wrap: wrap; gap: 0.35rem 0.9rem; font-size: 0.95rem; color: var(--ink-2); margin-top: 0.25rem; }
+.commute__facts b { font-weight: 600; color: var(--ink); }
+
+.traffic {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  font-size: 0.82rem; font-weight: 600;
+}
+.traffic::before { content: ""; width: 0.55em; height: 0.55em; border-radius: 50%; background: currentColor; }
+.traffic--light    { color: #7fe0b0; }
+.traffic--moderate { color: #ffcf7a; }
+.traffic--heavy    { color: #ff9f5a; }
+.traffic--severe   { color: #ff7a7a; }
+
+.basis {
+  display: inline-flex; align-items: center;
+  padding: 0.25rem 0.65rem; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
+  border: 1px solid var(--line); color: var(--ink-2);
+  max-width: 100%;
+}
+.basis--live       { color: var(--ok); border-color: rgba(127, 224, 176, 0.35); }
+.basis--forecast   { color: #9cc4ff; border-color: rgba(156, 196, 255, 0.35); }
+.basis--historical { color: var(--preview); border-color: rgba(185, 166, 255, 0.35); }
+
+.commute__now { font-size: 0.85rem; color: var(--ink-3); }
+.commute__now b { color: var(--ink-2); font-weight: 600; }
+
+/* departure-slot comparison */
+.slots {
+  list-style: none; margin: 0; padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 17), minmax(0, 1fr));
+  align-items: end;
+  gap: 3px;
+  height: clamp(4.2rem, 7vh, 6.5rem);
+}
+.slot {
+  position: relative;
+  height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end;
+}
+.slot__bar {
+  display: block;
+  height: var(--h, 6%);
+  min-height: 4px;
+  border-radius: 4px 4px 2px 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+.slot[data-level="light"] .slot__bar    { background: rgba(127, 224, 176, 0.55); }
+.slot[data-level="moderate"] .slot__bar { background: rgba(255, 207, 122, 0.6); }
+.slot[data-level="heavy"] .slot__bar    { background: rgba(255, 159, 90, 0.65); }
+.slot[data-level="severe"] .slot__bar   { background: rgba(255, 122, 122, 0.7); }
+.slot[data-basis="historical"] .slot__bar { background: rgba(185, 166, 255, 0.4); }
+.slot[data-empty] .slot__bar { background: rgba(255, 255, 255, 0.06); height: 6%; }
+.slot[data-past] { opacity: 0.35; }
+.slot[data-best] .slot__bar { outline: 2px solid var(--ink); outline-offset: 1px; }
+.slots__axis {
+  display: grid; grid-template-columns: repeat(var(--n, 17), minmax(0, 1fr));
+  margin-top: 0.3rem; font-size: 0.68rem; color: var(--ink-4);
+}
+.slots__axis span { white-space: nowrap; overflow: visible; }
+
+.commute__meta {
+  margin-top: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem;
+  font-size: 0.72rem; color: var(--ink-4);
+}
+.commute__meta .is-error { color: var(--warn); }
+.commute .state { align-items: flex-start; }
+
+/* Comfortable touch targets on touch screens */
+@media (pointer: coarse) {
+  .place__btn { box-sizing: border-box; height: 40px; font-size: 0.8rem; padding: 0 0.95rem; }
+  .grocery__item button { min-height: 44px; }
+  .sheet__close { width: 2.75rem; height: 2.75rem; }
+  .results button { min-height: 44px; }
+}
+
+/* ---------- Wide-screen tuning (must stay last: overrides base rules) ---------- */
+/* Wide entrance layout: tighten vertical rhythm so all three rows fit one screen. */
+@media (min-width: 1400px) and (orientation: landscape) {
+  :root { --pad: clamp(16px, 2.2vw, 44px); --gap: clamp(12px, 1.1vw, 22px); }
+  .card { padding: clamp(16px, 1.4vw, 28px); }
+  .card__title { margin-bottom: 0.7rem; }
+  .time__clock { font-size: clamp(5.5rem, 13vw, 16rem); }
+  .time__date { margin-top: 0.6rem; }
+  .daily { margin-top: clamp(12px, 2vh, 28px); }
+  .daily li { padding: 0.45rem 0.2rem; }
+  .weather__art { width: clamp(6rem, 8vw, 10rem); }
+  .weather__temp { font-size: clamp(4rem, 6.4vw, 8.5rem); }
+  .weather__desc { font-size: clamp(1.2rem, 1.6vw, 2rem); }
+  .weather__stats { margin-top: clamp(10px, 1.2vw, 20px); padding: clamp(8px, 0.8vw, 14px) 0; }
+  .weather__stats dd { font-size: 1.15rem; }
+  .hourly { margin-top: clamp(8px, 1vw, 16px); }
+  .hourly__icon { width: 2rem; height: 2rem; }
+  .weather__meta { margin-top: 0.6rem; }
+  .advice__list { grid-template-columns: minmax(0, 1fr); gap: 0.65rem; }
+  .advice__item:nth-child(n + 4) { display: none; }   /* top 3 tips at a glance */
+  .advice__detail { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+  .commute__body { gap: 0.6rem; }
+  .commute__time { font-size: clamp(2rem, 2.6vw, 3rem); }
+  .slots { height: clamp(2.8rem, 4.5vh, 4rem); }
+  .place__note { max-width: none; margin-top: 0.35rem; }
+  .grocery__list { grid-template-columns: minmax(0, 1fr); }
+  .grocery__item button { padding: 0.35rem 0.2rem; }
+  .commute__meta { margin-top: 0.5rem; }
+}
+
+/* ---------- Performance on the Raspberry Pi ----------
+   Only the main weather illustration animates; the small hourly/daily icons
+   are still (a dozen animated SVGs cost far more than they add). The large
+   ambient orbs above move in 1-second steps, which is invisible over a
+   90-150 s drift but lets the browser skip most frames. */
+.hourly__icon *, .daily__icon * { animation: none !important; }

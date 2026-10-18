@@ -544,13 +544,21 @@ class CommuteMonitor:
         return True
 
     def start(self) -> bool:
-        if not self.cfg.enabled or not self.configured:
+        if not self.cfg.enabled:
+            log.info("Commute monitor disabled (AURA_COMMUTE_ENABLED=false)")
+            return False
+        if not self.configured:
+            log.info("Commute monitor not started: %s", self.missing or "not configured")
             return False
         if self.running:
             return True  # idempotent: never two loops in one process
         if self._lock_file is None and not self._acquire_process_lock():
             return False
         self._task = asyncio.create_task(self._loop(), name="aura-commute-monitor")
+        c = self.cfg
+        log.info("Commute monitor started: %s %s-%s %s, every %d min, max %d requests/day",
+                 ",".join(c.days), c.window_start.strftime("%H:%M"), c.window_end.strftime("%H:%M"),
+                 c.timezone, c.slot_minutes, c.max_requests_per_day)
         return True
 
     async def stop(self) -> None:
@@ -649,6 +657,8 @@ class CommuteMonitor:
                 self._backoff_until = now + timedelta(minutes=5)
             done.append(f"error:{exc.kind}")
         if done:
+            log.info("Commute check %s: %s (requests today %d/%d)", now.strftime("%a %H:%M"),
+                     ", ".join(done), self.store.requests(st.service_date), self.cfg.max_requests_per_day)
             self.on_change()
         return done
 

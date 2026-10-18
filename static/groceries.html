@@ -39,6 +39,14 @@
       <button type="button" class="btn btn--primary" id="g-banner-btn">Enter PIN</button>
     </div>
 
+    <div class="g-filter" role="tablist" aria-label="Show items">
+      <button type="button" role="tab" class="g-filter__btn" data-filter="needed" aria-selected="true">
+        To buy <span class="g-filter__n" id="f-needed"></span></button>
+      <button type="button" role="tab" class="g-filter__btn" data-filter="purchased" aria-selected="false">
+        Purchased <span class="g-filter__n" id="f-purchased"></span></button>
+      <button type="button" role="tab" class="g-filter__btn" data-filter="all" aria-selected="false">All</button>
+    </div>
+
     <main id="g-main" aria-busy="true">
       <div class="g-loading" id="g-loading">
         <div class="skeleton skeleton--row"></div>
@@ -51,13 +59,10 @@
 
       <section class="g-done" id="g-done" hidden>
         <div class="g-done__head">
-          <button type="button" class="g-done__toggle" id="g-done-toggle" aria-expanded="false" aria-controls="g-done-list">
-            <span>Purchased</span><span class="g-done__count" id="g-done-count"></span>
-            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
+          <h2 class="g-group__title g-done__title">Purchased <span class="g-done__count" id="g-done-count"></span></h2>
           <button type="button" class="g-link g-link--danger" id="g-clear">Clear all</button>
         </div>
-        <ul class="g-items g-items--done" id="g-done-list" hidden></ul>
+        <ul class="g-items g-items--done" id="g-done-list"></ul>
       </section>
     </main>
   </div>

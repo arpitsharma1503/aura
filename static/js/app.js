@@ -4,6 +4,7 @@
 
 (() => {
   const { weather: weatherArt, icon } = window.AuraIcons;
+  const Scene = window.AuraWeatherScene;
   const $ = (id) => document.getElementById(id);
 
   const REQUEST_TIMEOUT_MS = 12000;
@@ -343,6 +344,13 @@
 
   function setWeatherState(name) { $("weather").dataset.state = name; }
 
+  function renderScene(visual) {
+    const root = $("wx-scene");
+    Scene.render(root, visual);
+    $("weather").dataset.motion = root.dataset.motion;
+    $("weather").dataset.scene = root.dataset.scene;
+  }
+
   function showWeatherMessage(kind, title, body, iconName) {
     setWeatherState(kind);
     $("weather-message-icon").innerHTML = icon(iconName || (kind === "error" ? "alert" : "cloudOff"), 1.4);
@@ -350,6 +358,7 @@
     $("weather-message-body").textContent = body;
     document.body.dataset.sky = "clear";
     $("daily").replaceChildren();
+    renderScene(null);
   }
 
   function stat(label, value) {
@@ -366,7 +375,9 @@
     const stale = payload.status === "stale";
     setWeatherState("ok");
 
-    $("weather-art").innerHTML = weatherArt(c.condition, c.is_day);
+    const isDay = payload.visual ? payload.visual.is_day : c.is_day;
+    $("weather-art").innerHTML = weatherArt(c.condition, isDay);
+    renderScene(stale && payload.visual ? { ...payload.visual, motion: "static" } : payload.visual);
     $("weather-temp").textContent = fmtTemp(c.temperature_c);
     $("weather-desc").textContent = c.description;
     $("weather-range").textContent = `H ${fmtTemp(w.high_c)}  ·  L ${fmtTemp(w.low_c)}`;
@@ -546,7 +557,9 @@
     }
 
     count.textContent = `${open.length} to buy`;
-    const shown = open.slice(0, MAX_GROCERIES);
+    // The wide entrance layout has room for a single column of 5.
+    const max = matchMedia("(min-width: 1400px) and (orientation: landscape)").matches ? 5 : MAX_GROCERIES;
+    const shown = open.slice(0, max);
     const canEdit = state.session?.can_edit;
     list.toggleAttribute("data-readonly", !canEdit);
     const rows = shown.map((item) => {
@@ -619,6 +632,161 @@
     img.src = `/api/share/qr.svg?t=${Date.now()}`;
   }
 
+  // ---------- commute ----------
+
+  const TRAFFIC_TEXT = { light: "Light traffic", moderate: "Moderate traffic", heavy: "Heavy traffic", severe: "Severe traffic" };
+
+  function fmtIn(tzName, date, opts) {
+    return new Intl.DateTimeFormat("en-US", { timeZone: tzName, ...opts }).format(date);
+  }
+
+  function renderCommute(c) {
+    const card = $("commute");
+    const body = $("commute-body");
+    const meta = $("commute-meta");
+    const tzName = c.timezone;
+    const t = (iso) => fmtIn(tzName, new Date(iso), { hour: "numeric", minute: "2-digit", hour12: twelve() });
+    card.dataset.state = c.state;
+    $("commute-route").textContent = `${c.home_label} → ${c.office_label}`;
+    meta.replaceChildren();
+    const addMeta = (text, cls) => {
+      const span = document.createElement("span");
+      span.textContent = text;
+      if (cls) span.className = cls;
+      meta.append(span);
+    };
+
+    if (c.state === "unconfigured" || c.state === "disabled") {
+      body.replaceChildren(stateRow("car",
+        c.state === "disabled" ? "Commute monitoring is off" : "Traffic isn't connected yet",
+        c.message));
+      return;
+    }
+
+    const nodes = [];
+    const rec = c.recommendation;
+    if (rec) {
+      const top = document.createElement("div");
+      top.className = "commute__top";
+      const box = document.createElement("div");
+      box.className = "commute__rec";
+      const label = document.createElement("div");
+      label.className = "commute__label";
+      label.textContent = rec.basis === "historical" ? "Usually best to leave" : "Best time to leave";
+      const time = document.createElement("div");
+      time.className = "commute__time";
+      time.textContent = rec.leave_now ? "Now" : t(rec.departure_at);
+      const facts = document.createElement("div");
+      facts.className = "commute__facts";
+      const dur = document.createElement("span");
+      dur.innerHTML = "<b></b> min";
+      dur.querySelector("b").textContent = rec.duration_min;
+      const arr = document.createElement("span");
+      arr.textContent = `arrive ${t(rec.arrival_at)}`;
+      facts.append(dur, arr);
+      if (rec.traffic_level) {
+        const tl = document.createElement("span");
+        tl.className = `traffic traffic--${rec.traffic_level}`;
+        tl.textContent = TRAFFIC_TEXT[rec.traffic_level] + (rec.delay_min ? ` · +${rec.delay_min} min` : "");
+        facts.append(tl);
+      }
+      const basis = document.createElement("span");
+      basis.className = `basis basis--${rec.basis}`;
+      basis.textContent = rec.basis_label;
+      const head = document.createElement("div");
+      head.className = "commute__head";
+      head.append(label, basis);
+      box.append(head, time, facts);
+      top.append(box);
+      nodes.push(top);
+      if (c.live && !rec.leave_now) {
+        const now = document.createElement("div");
+        now.className = "commute__now";
+        now.innerHTML = "Leaving now: <b></b>";
+        now.querySelector("b").textContent = `${c.live.duration_min} min (live traffic), arrive ${t(c.live.arrival_at)}`;
+        nodes.push(now);
+      }
+    } else {
+      nodes.push(stateRow(c.state === "off_day" || c.state === "after_window" ? "info" : "car",
+        c.state === "off_day" ? "No commute today" : c.state === "after_window" ? "Commute window over" : "Commute",
+        c.message));
+    }
+
+    const withData = c.slots.filter((x) => x.duration_min != null);
+    if (withData.length) {
+      if (c.state === "after_window") {
+        const cap = document.createElement("div");
+        cap.className = "commute__label";
+        cap.textContent = "Earlier today";
+        nodes.push(cap);
+      }
+      nodes.push(slotChart(c.slots, t, tzName));
+    }
+    body.replaceChildren(...nodes);
+
+    if (c.provider) {
+      addMeta(c.last_success_at ? `${c.provider} · updated ${t(c.last_success_at)}` : `${c.provider} · no data yet`);
+    }
+    if (rec && c.state !== "active" && c.state !== "prefetch") addMeta(c.message);
+    if (c.last_error && c.state !== "unconfigured") addMeta(c.last_error, "is-error");
+  }
+
+  function slotChart(slots, t, tzName) {
+    const wrap = document.createElement("div");
+    const durations = slots.map((x) => x.duration_min).filter((x) => x != null);
+    const max = Math.max(...durations), min = Math.min(...durations);
+    const ul = document.createElement("ul");
+    ul.className = "slots";
+    ul.style.setProperty("--n", String(slots.length));
+    ul.setAttribute("aria-label", "Journey time by departure time");
+    for (const sl of slots) {
+      const li = document.createElement("li");
+      li.className = "slot";
+      const bar = document.createElement("span");
+      bar.className = "slot__bar";
+      if (sl.duration_min == null) {
+        li.dataset.empty = "";
+        li.title = `${t(sl.departure_at)}: no data`;
+      } else {
+        // Scale between 35% and 100% so differences are visible but not exaggerated.
+        const frac = max === min ? 0.7 : 0.35 + 0.65 * (sl.duration_min - min) / (max - min);
+        bar.style.setProperty("--h", `${Math.round(frac * 100)}%`);
+        li.title = `${t(sl.departure_at)}: ${sl.duration_min} min` + (sl.traffic_level ? ` · ${sl.traffic_level}` : "");
+        if (sl.traffic_level) li.dataset.level = sl.traffic_level;
+        if (sl.basis) li.dataset.basis = sl.basis;
+      }
+      if (sl.past) li.dataset.past = "";
+      if (sl.best) li.dataset.best = "";
+      li.setAttribute("aria-label", li.title);
+      li.append(bar);
+      ul.append(li);
+    }
+    const axis = document.createElement("div");
+    axis.className = "slots__axis";
+    axis.style.setProperty("--n", String(slots.length));
+    axis.setAttribute("aria-hidden", "true");
+    for (const sl of slots) {
+      const span = document.createElement("span");
+      const d = new Date(sl.departure_at);
+      const mins = Number(fmtIn(tzName, d, { minute: "numeric" }));
+      span.textContent = mins === 0 ? fmtIn(tzName, d, { hour: "numeric", hour12: twelve() }).replace(" ", "") : "";
+      axis.append(span);
+    }
+    wrap.append(ul, axis);
+    return wrap;
+  }
+
+  async function loadCommute() {
+    try {
+      renderCommute(await fetchJSON("/api/commute"));
+    } catch {
+      if ($("commute").dataset.state === "loading") {
+        $("commute-body").replaceChildren(stateRow("alert", "Couldn't load commute", "Retrying automatically.", "state--error"));
+        $("commute").dataset.state = "error";
+      }
+    }
+  }
+
   // ---------- live updates (Server-Sent Events) ----------
 
   function connectEvents() {
@@ -638,6 +806,7 @@
       } catch { loadGroceries(); }
     });
     es.addEventListener("location", () => { loadConfig(); });
+    es.addEventListener("commute", () => { loadCommute(); });
     state.events = es;
   }
 
@@ -683,13 +852,17 @@
 
   startClock();
   wireDialog();
+  Scene.watch($("wx-scene"), () => state.weather?.visual || null);
   loadConfig().then(async () => {
     loadWeather();
     await loadSession();
     loadGroceries();
+    loadCommute();
     refreshQr();
     connectEvents();
   });
+  // Re-evaluate every minute: past slots and window changes depend on the clock.
+  setInterval(loadCommute, 60_000);
   setInterval(loadWeather, WEATHER_POLL_MS);
   // Fallback only: live updates normally arrive via Server-Sent Events.
   setInterval(() => {

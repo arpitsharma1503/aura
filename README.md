@@ -2,8 +2,9 @@
 
 An ambient smart-home dashboard for a display by the front door. It shows a large
 clock and date, your home city, live weather with a 5-day outlook, advice for
-heading out, and a shared grocery list, over a slowly shifting background.
-The grocery list can be managed from both of your phones and updates live on the
+heading out, a weekday commute planner, and a shared grocery list, over a slowly
+shifting background. The weather panel animates to match the real conditions. The
+grocery list can be managed from both of your phones and updates live on the
 entrance display.
 
 ## Project layout
@@ -18,6 +19,7 @@ aura/
 │   ├── weather.py           weather models, mock provider, caching service
 │   ├── open_meteo.py        Open-Meteo provider (live weather + air quality)
 │   ├── recommendations.py   "Before you go" rules (pure functions)
+│   ├── commute.py           weekday commute monitor (TomTom), schedule, history
 │   ├── groceries.py         shared grocery list (SQLite), validation, conflicts
 │   ├── auth.py              household PIN, signed sessions, rate limiting
 │   ├── events.py            Server-Sent Events for live updates
@@ -26,10 +28,13 @@ aura/
 │   └── security.py          home-network-only middleware + security headers
 ├── static/                  frontend (plain HTML/CSS/JS, no build step)
 │   ├── index.html           entrance dashboard
-│   └── groceries.html       phone grocery page (/groceries)
-├── data/                    aura.db (groceries), location.json, weather_cache.json, session.key
+│   ├── groceries.html       phone grocery page (/groceries)
+│   └── js/weather-scene.js  animated weather backdrop (CSS, no libraries)
+├── data/                    aura.db (groceries + commute history), location.json, weather_cache.json, session.key
 ├── logs/                    aura.log (rotating, 1 MB × 3)
 ├── tests/                   pytest suite (no real network access)
+│   └── browser/             real-Chromium tests (layout, sync, animations)
+├── backups/                 snapshots taken before big changes (git-ignored)
 ├── requirements.txt         runtime deps
 ├── requirements-dev.txt     + test deps
 └── .env.example             all settings, documented
@@ -69,6 +74,124 @@ kill $(ss -ltnp | grep ':8080 ' | grep -o 'pid=[0-9]*' | cut -d= -f2)
 ```
 
 Logs go to `logs/aura.log`. The background process does not survive a reboot.
+If AURA is already running, a second start exits with a clear message instead of
+an error. Ctrl+C or `kill` now stops it within about a second, even with
+dashboards connected.
+
+## Weekday commute
+
+The **Commute** card helps you decide when to leave home for the office.
+
+- **When:** Monday to Friday, 7:00–11:00 AM IST (`Asia/Kolkata`), with departure
+  options every 15 minutes (17 slots). Holidays in `AURA_COMMUTE_HOLIDAYS` are
+  skipped.
+- **What it shows:**
+  - the **best time to leave** (shortest journey; ties go to the earlier slot)
+  - the journey time, arrival time and traffic level (light / moderate / heavy /
+    severe), computed from the provider's delay compared with free-flowing traffic
+  - a bar chart comparing every slot, with the best one outlined and past slots dimmed
+  - "Leaving now" based on live traffic
+  - the provider and the last successful update
+- **Where the numbers come from** is always labelled:
+  - **Live traffic:** TomTom's current conditions, used for "leave now".
+  - **Forecast · TomTom historical traffic patterns:** TomTom's prediction for a
+    future departure time.
+  - **Typical for Mondays · from N of your past trips:** the median of AURA's own
+    stored live checks for that weekday and time. It's shown only when at least 3
+    exist, for example before the window opens or when TomTom is unreachable.
+  - AURA never invents durations. With no data, it says so.
+- **Outside the window** (after 11:00 AM, weekends, holidays) the card says that
+  monitoring is off and when the next check is. Earlier results are shown as
+  "Earlier today", never as a current recommendation.
+
+**Schedule and requests:**
+- **6:45 AM** (15 minutes before the window): a forecast for all 17 slots.
+- **During the window:**
+  - a live "leave now" check every 15 minutes
+  - a refresh of the remaining slots every 30 minutes
+- **Outside the window:** nothing is requested.
+- **Daily volume:** about 100 requests per weekday, with a hard cap of
+  `AURA_COMMUTE_MAX_REQUESTS_PER_DAY` (200).
+- **History:** every result is kept in `data/aura.db` (table
+  `commute_observations`, 180 days) for later pattern analysis.
+
+**Reliability:**
+- **Start-up:** if AURA starts mid-window, it catches up immediately. A restart
+  doesn't repeat fetches that are still fresh.
+- **Duplicates:** only one monitor ever runs. A lock file stops a second AURA
+  process from starting another, and runs never overlap.
+- **Rate limits:** AURA backs off for 30 minutes, or for TomTom's `Retry-After`
+  time.
+- **Timeouts:** it waits 5 minutes before trying again.
+- **Rejected API key:** it stops for the day and shows the error.
+
+### Turning on live traffic (needs a free TomTom key)
+
+Traffic-aware routing can't be done without a provider account. TomTom's free plan
+fits AURA: 20,000 routing requests a month, **no credit card**, and
+departure-time forecasts.
+
+1. Create a free account at https://developer.tomtom.com and copy the API key it
+   gives you (*Dashboard → Keys*).
+2. On the Pi, put it in `.env` (never in source code):
+   ```
+   AURA_TOMTOM_API_KEY=your-key-here
+   ```
+   Home and office coordinates are already set in `.env`
+   (`AURA_COMMUTE_HOME`, `AURA_COMMUTE_OFFICE`).
+3. Restart AURA (see *Run*).
+
+Without a key, the card says **"Traffic isn't connected yet"** and shows no numbers.
+
+Google Routes needs a billing account, and HERE now asks for a credit card, so
+neither is used without your approval.
+
+### Is the commute monitor running?
+
+- **Log:** at startup, `logs/aura.log` says `Commute monitor started: mon,tue,wed,thu,fri
+  07:00-11:00 Asia/Kolkata, every 15 min, max 200 requests/day`. If it can't start,
+  the log says why. During the window, every check is logged:
+  ```bash
+  grep -i commute /home/arpit/aura/logs/aura.log | tail
+  ```
+- **Status:** `curl -s http://192.168.1.11:8080/api/commute` shows `monitor_running`,
+  `state` (`prefetch` / `active` / `after_window` / `off_day` / `unconfigured`),
+  `requests_today`, `last_success_at` and `last_error`.
+- **Dashboard:** the card footer shows "TomTom · updated 8:00 AM" during the window.
+
+## Weather animations
+
+The weather card has a subtle animated backdrop that matches the **reported**
+conditions:
+
+| Scene | When |
+|---|---|
+| Sun with slow rays and glow / moon with stars | clear, by day / by night |
+| Sun or moon with drifting clouds | partly cloudy |
+| Layered slow clouds | overcast |
+| Light or steady rain, darker clouds | drizzle / rain |
+| Heavier rain | heavy rain and violent showers |
+| Rain with a rare, soft lightning flash | thunderstorm |
+| Gently falling flakes | snow |
+| Drifting mist bands | fog |
+| Neutral, still | unknown code or no weather |
+
+- **How the scene is chosen:** the server picks it from Open-Meteo's own weather
+  code (never from temperature). Day or night comes from the real sunrise and sunset
+  at your home location.
+- **Out-of-date or sample weather:** the scene is shown **still and muted**, next to
+  the "showing data from…" or "Sample data" label, so it never looks like live
+  conditions.
+- **Reduced motion:** if a device asks for it (iOS/macOS *Reduce Motion*, Android
+  *Remove animations*), nothing moves.
+- **Lightweight:**
+  - Animations are CSS only, at most about 60 small elements, all contained in the
+    card behind the text.
+  - Only the main weather illustration animates; the hourly and 5-day icons are still.
+  - The large background glow moves in one-second steps.
+  - Measured on this Pi in headless Chromium without GPU, the whole dashboard during
+    heavy rain uses about 45% of one CPU core (about 11% of the Pi's four cores).
+    A browser using the GPU should use less.
 
 ## Shared grocery list
 
@@ -87,7 +210,8 @@ turns it into an app-like icon.
 | Mark purchased | Tap the circle next to the item (one tap). **Undo** appears for 5 seconds. |
 | Edit | Tap the item name to change its name, quantity, category or notes. |
 | Delete | Tap the item, then **Delete**, then confirm. |
-| Clear purchased | **Purchased** section → **Clear all**, then confirm. |
+| Filter | **To buy** / **Purchased** / **All** tabs at the top. Each phone remembers its choice. |
+| Clear purchased | **Purchased** tab → **Clear all**, then confirm. |
 
 **Live sync:** every change appears on the other phone and the entrance display
 within about a second, without reloading. This uses Server-Sent Events: each open
@@ -211,6 +335,9 @@ correct it once.
     refresh interval, sending the rounded coordinates
 - **Tokens:** the optional `AURA_IPINFO_TOKEN` stays on the server and is never
   sent to the browser.
+- **Commute:** the exact home and office coordinates and the TomTom key live only in
+  `.env`. They're sent to TomTom for routing and are never in the dashboard, the API
+  or the logs.
 
 ## Weather
 
@@ -289,6 +416,12 @@ changing them. The full list with explanations is in `.env.example`.
 | `AURA_SESSION_DAYS` | `365` | How long a phone stays signed in |
 | `AURA_TRUST_LOCALHOST` | `true` | The Pi's own browser can edit without the PIN |
 | `AURA_PUBLIC_URL` | — | Fixed address for the QR code; empty = the current LAN IP |
+| `AURA_TOMTOM_API_KEY` | — | Free TomTom key; enables live commute traffic |
+| `AURA_COMMUTE_HOME` / `AURA_COMMUTE_OFFICE` | — | `lat,lon`; server-side only |
+| `AURA_COMMUTE_WINDOW_START` / `_END` | `07:00` / `11:00` | In `AURA_COMMUTE_TIMEZONE` (`Asia/Kolkata`) |
+| `AURA_COMMUTE_DAYS` | `mon,tue,wed,thu,fri` | |
+| `AURA_COMMUTE_HOLIDAYS` | — | `YYYY-MM-DD,YYYY-MM-DD` |
+| `AURA_COMMUTE_MAX_REQUESTS_PER_DAY` | `200` | Hard cap on TomTom requests |
 | `AURA_HOST` / `AURA_PORT` | `0.0.0.0` / `8080` | IPv4 only |
 | `AURA_ALLOWED_HOSTS` | `localhost,aura-pi,aura-pi.local` | Private IPs are always accepted |
 | `AURA_LAN_ONLY` | `true` | |
@@ -298,32 +431,61 @@ To reset the home location, stop the server and delete `data/location.json`.
 ## Tests
 
 ```bash
-.venv/bin/python -m pytest
+cd /home/arpit/aura
+.venv/bin/python -m pytest                       # everything (about 4–5 minutes)
+.venv/bin/python -m pytest -m "not browser"      # fast: unit/API tests only (about 10 s)
+.venv/bin/python -m pytest tests/browser         # real-browser tests only
 ```
 
-The suite never touches the real internet: all HTTP goes through
-`httpx.MockTransport`. It covers:
-- **Location:** detection success, disagreement and fallback, total failure (no
-  default city), cooldown, persistence across restarts, no re-detection when a city
-  is saved, manual search and choice, confirmation, coordinates never exposed, and the
-  token kept server-side.
-- **Weather:** Open-Meteo parsing, rounded coordinates, timeouts, 5xx and 429 errors,
-  optional air quality, caching, retry back-off, stale fallback, maximum staleness,
-  cache across restarts, location changes, and mock data never cached.
-- **Recommendations:** the travel window, rain timing, raincoat versus umbrella, UV,
-  temperature bands, layers, water, storms, wind, air quality, bike versus car, the
-  "no traffic claims" rule, and priority and limit.
-- **Groceries:** create, edit, delete, purchase and un-purchase, clear purchased,
-  duplicates, invalid input (empty, too long, control characters, bad category, wrong
-  types, bad JSON), version conflicts, concurrent adds and edits from several threads,
-  persistence across restarts, one-time legacy JSON import, suggestions and revisions.
-- **Access control:** view-only without the PIN, PIN sign-in and cookie flags,
-  logout, forged cookies, a PIN change signing devices out, sessions surviving a
-  restart, lockout, no-PIN mode, the localhost-trust switch, cross-site writes, and
-  the PIN never exposed.
-- **Live updates and QR:** the event stream (hello, change, keepalive, shutdown), the
-  connection limit, publishing on change, the share URL and the QR SVG.
-- **API and security:** health, config, LAN-only access and the Host-header check.
+- **Network:** the unit and API tests never touch the real internet; all HTTP goes
+  through `httpx.MockTransport`.
+- **Browser tests** (`tests/browser/`):
+  - **How they run:** they drive the system Chromium headlessly over the Chrome
+    DevTools protocol, using a small standard-library client
+    (`tests/browser/cdp.py`). There's no Playwright and nothing is downloaded or
+    installed system-wide. They're skipped if Chromium is missing.
+  - **Isolation:** each test runs a real AURA server on a free localhost port with
+    its own temporary data directory, so your list and settings are never touched.
+  - **Screenshots** go to `tests/browser/artifacts/` (git-ignored).
+
+Coverage:
+- **Weather and location:**
+  - Open-Meteo parsing, timeouts, 5xx and 429 errors, caching, stale fallback,
+    and the after-midnight refresh of today's values
+  - weather code → animation scene for every code, day/night from sunrise and
+    sunset, still scenes for stale or sample data
+  - location detection, fallback, persistence and manual override
+- **Commute:**
+  - the Mon–Fri window and its 6:45/7:00/11:00 boundaries
+  - holidays and timezone handling, the 17 slots
+  - choosing the best slot (ties, past slots, leave-now)
+  - TomTom request parameters and the exact home and office coordinates
+  - auth, rate-limit, timeout and bad-response handling, the daily cap,
+    missing credentials
+  - no fabricated numbers on failure, history-based patterns
+  - catching up after a restart, no duplicate jobs, no overlapping runs
+- **Groceries:** CRUD, purchase and un-purchase, duplicates, invalid input,
+  version conflicts, concurrent writers, persistence, migration, suggestions,
+  live-update events, PIN and LAN access modes, the QR code.
+- **Browser:**
+  - **Dashboard:** clock, date and city; the clock keeps running with the server
+    stopped; weather card and advice; all 12 weather scenes kept inside the card;
+    reduced motion; stale, sample and unavailable states; the commute card in
+    every state.
+  - **Groceries, in independent sessions:**
+    - add, edit (name, quantity, category, notes), quick add
+    - purchase and undo, filters, delete with confirmation, invalid input
+    - a simultaneous-edit conflict
+    - live sync between two "phones" and the display
+    - persistence after a backend restart, PIN mode
+  - **Layout** at 320×568, 375×812, 390×844, 430×932, 768×1024, 1024×768,
+    1280×800, 1440×900 and 1920×1080, for both pages:
+    - no horizontal scroll, no overlapping or clipped cards or text
+    - touch targets of at least 40 px, dialogs that fit the screen
+    - at 1920×1080, the entrance display fits without scrolling
+- **Startup:** the server starts and stops cleanly (within about a second, with
+  live streams open), data files are private, and a second instance exits with a
+  clear message.
 
 ## Security (home network only)
 

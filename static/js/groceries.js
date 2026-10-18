@@ -16,12 +16,32 @@
     pinConfigured: true,
     categories: [],
     suggestions: [],
-    doneOpen: false,
+    filter: readFilter(),
     loaded: false,
     editing: null,
     pendingAfterSignin: null,
     newIds: new Set(),
   };
+
+  function readFilter() {
+    try {
+      const f = localStorage.getItem("aura.groceries.filter");
+      return ["needed", "purchased", "all"].includes(f) ? f : "needed";
+    } catch { return "needed"; }
+  }
+
+  function setFilter(f) {
+    state.filter = f;
+    try { localStorage.setItem("aura.groceries.filter", f); } catch { /* private mode */ }
+    if (state.loaded) render();
+    else syncFilterButtons();
+  }
+
+  function syncFilterButtons() {
+    for (const b of document.querySelectorAll(".g-filter__btn")) {
+      b.setAttribute("aria-selected", String(b.dataset.filter === state.filter));
+    }
+  }
 
   // ---------- networking ----------
 
@@ -142,8 +162,14 @@
       ? `${open.length} to buy${done.length ? ` · ${done.length} purchased` : ""}`
       : done.length ? "Everything's bought" : "Nothing on the list";
 
+    syncFilterButtons();
+    $("f-needed").textContent = open.length ? String(open.length) : "";
+    $("f-purchased").textContent = done.length ? String(done.length) : "";
+    const showOpen = state.filter !== "purchased";
+    const showDone = state.filter !== "needed";
+
     const groups = new Map();
-    for (const item of open) {
+    for (const item of showOpen ? open : []) {
       if (!groups.has(item.category_label)) groups.set(item.category_label, []);
       groups.get(item.category_label).push(item);
     }
@@ -160,17 +186,15 @@
       return sec;
     }));
 
-    if (!open.length) {
-      showState("empty",
-        done.length ? "All done" : "Your list is empty",
-        state.canEdit ? "Type below or tap a suggestion to add something." : "Enter the household PIN to start adding items.",
-        "cart");
+    const addHint = state.canEdit ? "Type below or tap a suggestion to add something." : "Enter the household PIN to start adding items.";
+    if (state.filter === "purchased" && !done.length) {
+      showState("empty", "Nothing purchased yet", "Tap the circle next to an item when you've bought it.", "check");
+    } else if (state.filter !== "purchased" && !open.length && (state.filter === "needed" || !done.length)) {
+      showState("empty", done.length ? "All done" : "Your list is empty", addHint, "cart");
     }
 
-    $("g-done").hidden = done.length === 0;
+    $("g-done").hidden = !showDone || done.length === 0;
     $("g-done-count").textContent = done.length ? `(${done.length})` : "";
-    $("g-done-list").hidden = !state.doneOpen;
-    $("g-done-toggle").setAttribute("aria-expanded", String(state.doneOpen));
     $("g-done-list").replaceChildren(...done.map(itemRow));
     $("g-clear").hidden = !state.canEdit;
     state.newIds.clear();
@@ -520,10 +544,10 @@
   function wire() {
     wireComposer();
     $("g-banner-btn").addEventListener("click", openSignin);
-    $("g-done-toggle").addEventListener("click", () => {
-      state.doneOpen = !state.doneOpen;
-      render();
-    });
+    for (const b of document.querySelectorAll(".g-filter__btn")) {
+      b.addEventListener("click", () => setFilter(b.dataset.filter));
+    }
+    syncFilterButtons();
     $("g-clear").addEventListener("click", async () => {
       const n = state.items.filter((i) => i.purchased).length;
       if (!requireEdit(null)) return;
