@@ -7,6 +7,10 @@ shifting background. The weather panel animates to match the real conditions. Th
 grocery list can be managed from both of your phones and updates live on the
 entrance display.
 
+It also has a push-to-talk voice assistant that answers from this data, and the
+Pi runs Pi-hole for network-wide ad blocking. **Day-to-day operation, recovery
+and the router settings are in [HANDOVER.md](HANDOVER.md).**
+
 ## Project layout
 
 ```
