@@ -8,6 +8,7 @@ data/groceries.json
 .env.*.bak
 data/location.json
 data/weather_cache.json
+data/calendar_cache.json
 data/aura.db*
 data/session.key
 data/groceries.json.migrated
