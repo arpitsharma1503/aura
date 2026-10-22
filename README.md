@@ -732,6 +732,43 @@ find the blocked domain that the app needs, and allow just that domain
 **Emergency:** set the device (or router) DNS back to automatic / 192.168.1.1;
 then, if needed, `sudo deploy/pihole/rollback.sh`.
 
+### Turning it on for the whole home (router change)
+
+Do these in order, and only after one test device has worked through Pi-hole.
+
+1. **Pin the Pi's own DNS to the router** so the Pi never depends on itself:
+   `sudo deploy/pihole/pin-pi-dns.sh` (keeps the IP and SSH up; reverts itself if
+   lookups fail; `--undo` to go back).
+2. **Reserve the Pi's address** on the router: LAN / DHCP → static lease /
+   address reservation → MAC `88:a2:9e:b1:64:da` → `192.168.1.11`.
+3. **Give out the Pi as DNS** on the router: LAN / DHCP server → DNS →
+   *Primary DNS* `192.168.1.11`. Leave *Secondary* empty, or put `192.168.1.11`
+   again if it can't be empty. **Do not** put a public DNS (8.8.8.8, 1.1.1.1) or
+   the router's own address there: devices use the secondary at random and
+   would skip filtering. Do **not** change the router's WAN/Internet DNS and do
+   **not** turn off its DHCP server.
+4. **IPv6:** if devices get an IPv6 DNS server from the router (on a Mac:
+   `scutil --dns | grep nameserver`), they can bypass Pi-hole. On the router's
+   LAN IPv6 page, turn off DNS in router advertisements / DHCPv6 DNS, or set
+   it to "use IPv4 DNS". If the ISP gives no IPv6 internet (the Pi has no
+   global IPv6 address today), disabling LAN IPv6 is also safe.
+5. **Apply:** devices pick up the new DNS when they reconnect or renew their
+   lease (up to 24 h). Toggle Wi-Fi off/on to switch a device immediately.
+6. **Check:** AURA Settings → Network protection should say the router hands
+   out `192.168.1.11`; Pi-hole's dashboard should list your devices as clients.
+
+**Rollback (if anything misbehaves):** on the router set the LAN DNS back to
+automatic / `192.168.1.1` (or the value you wrote down), save, then toggle Wi-Fi
+on the affected devices. Pi-hole can stay installed. If the router UI is
+unreachable, any device can still browse by setting its own DNS to `192.168.1.1`.
+The Pi itself is unaffected throughout (step 1).
+
+**Limitations:** devices with hard-coded or encrypted DNS (some smart TVs,
+Chromecast/Android "Private DNS", iCloud Private Relay, browsers set to a DoH
+provider) bypass Pi-hole. Guests' devices are filtered too while on your Wi-Fi.
+If the Pi is off, devices that follow the router have no DNS until it is back
+or the router is rolled back.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after
