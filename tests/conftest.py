@@ -69,6 +69,7 @@ def make_settings(tmp_path: Path, **overrides) -> Settings:
         "log_dir": tmp_path,
         "location_detect_cooldown_seconds": 0,
         "edit_access": "pin",   # most access tests exercise the stricter mode
+        "voice_port": 1025,     # never reach a real voice worker running on the Pi
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)

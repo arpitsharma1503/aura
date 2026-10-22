@@ -24,6 +24,7 @@ from .auth import COOKIE_NAME, AccessControl, LoginLocked
 from .config import PROJECT_ROOT, Settings, get_settings
 from . import sysinfo
 from .agenda import AgendaResponse, AgendaService, parse_feeds
+from .assistant import Assistant, Sources, Turn
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -52,6 +53,7 @@ from .open_meteo import OpenMeteoProvider
 from .recommendations import Recommendation, build_recommendations
 from .security import LanOnlyMiddleware
 from .settings_store import SECTIONS, SettingsError, SettingsStore
+from .voice import VoiceClient, VoiceError, VoiceSession
 from .weather import (
     MockWeatherProvider,
     WeatherProvider,
@@ -83,6 +85,10 @@ class WifiConnect(BaseModel):
     allow_disconnect: bool = False
 
 
+class AskIn(BaseModel):
+    text: str = Field(min_length=1, max_length=300)
+
+
 class PinLogin(BaseModel):
     pin: str = Field(min_length=1, max_length=64)
 
@@ -95,7 +101,8 @@ def build_provider(name: str, client: httpx.AsyncClient) -> WeatherProvider | No
     return None
 
 
-def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None,
+               voice_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
     """``transport`` lets tests replace the network with ``httpx.MockTransport``."""
     settings = settings or get_settings()
     ZoneInfo(settings.default_timezone)  # fail fast on a bad timezone name
@@ -190,6 +197,23 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     )
     agenda.on_change = lambda: broker.publish("calendar", {})
 
+    async def current_weather():
+        return await weather_service.get(weather_location(), timezone())
+
+    def agenda_for(days: int) -> AgendaResponse:
+        agenda.tz_name = timezone()
+        return agenda.agenda(days)
+
+    assistant = Assistant(Sources(
+        weather=current_weather, commute=lambda: commute.status(), calendar=agenda_for,
+        groceries=lambda: groceries.load(), timezone=lambda: timezone(),
+        clock_format=lambda: prefs.display.clock_format,
+        temperature_unit=lambda: prefs.display.temperature_unit,
+        travel_window_hours=lambda: prefs.weather.travel_window_hours,
+    ))
+    voice = VoiceClient(settings.voice_port, transport=voice_transport)
+    voice_session = VoiceSession(voice, assistant, broker.publish)
+
     def weather_location():
         """Where weather is fetched for: the city (location dialog), or the exact
         Home coordinates when Settings → Weather says so."""
@@ -217,11 +241,14 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             broker.publish("location", {})        # dashboards re-read /api/config and refresh
         if section == "groceries":
             await auto_clear()
+        if section == "assistant":
+            broker.publish("assistant", {"state": "settings"})
         return {"commute": "The commute monitor uses the new schedule now.",
                 "locations": "Commute (and weather, if set) use the new places now.",
                 "weather": "Weather uses the new settings from the next update.",
                 "display": "Open dashboards update within a few seconds.",
-                "groceries": "Phones and the dashboard use the new settings now."}.get(section, "")
+                "groceries": "Phones and the dashboard use the new settings now.",
+                "assistant": "The assistant uses the new settings now."}.get(section, "")
 
     async def auto_clear() -> None:
         days = prefs.groceries.auto_clear_purchased_days
@@ -269,6 +296,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         for t in list(background):
             t.cancel()
         await client.aclose()
+        await voice.aclose()
         groceries.close()
         prefs.close()
 
@@ -285,6 +313,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.prefs = prefs
     app.state.agenda = agenda
     app.state.network = network
+    app.state.assistant = assistant
+    app.state.voice = voice_session
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -508,6 +538,10 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "calendar": [f.model_dump(mode="json") for f in agenda.agenda().feeds],
         }
 
+    async def voice_info() -> dict:
+        h = await voice.health()
+        return {"available": h is not None, "health": h}
+
     @app.get("/api/settings", dependencies=[Depends(editor)])
     async def get_settings_center(request: Request) -> dict:
         return {
@@ -516,7 +550,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "customized": {name: prefs.customized(name) for name in SECTIONS},
             "can_edit": access.can_edit(request),
             "can_admin": access.can_admin(request),
-            "info": settings_info(),
+            "info": {**settings_info(), "assistant": await voice_info()},
         }
 
     @app.patch("/api/settings/{section}", dependencies=[Depends(editor)])
@@ -566,6 +600,93 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         if not body.confirm:
             raise HTTPException(status_code=422, detail="Confirm the change first.")
         return await network.connect(body.ssid, body.password, allow_disconnect=body.allow_disconnect)
+
+    # ----- voice assistant -----
+
+    def assistant_on() -> None:
+        if not prefs.assistant.enabled:
+            raise HTTPException(status_code=403, detail="The assistant is turned off in Settings → Assistant.")
+
+    def mic_allowed(request: Request) -> bool:
+        # Only the entrance screen (the Pi's own browser) may switch the microphone on.
+        return access.is_local(request)
+
+    def require_mic(request: Request) -> None:
+        assistant_on()
+        if not mic_allowed(request):
+            raise HTTPException(status_code=403,
+                                detail="The microphone can only be started from the entrance screen. You can type a question here.")
+
+    def voice_failure(exc: VoiceError) -> JSONResponse:
+        return JSONResponse(status_code=exc.status, content={"detail": str(exc), "retry": exc.retry})
+
+    @app.get("/api/assistant")
+    async def assistant_status(request: Request) -> dict:
+        h = await voice.health()
+        return {
+            "enabled": prefs.assistant.enabled,
+            "mic_allowed": mic_allowed(request),
+            "spoken_replies": prefs.assistant.spoken_replies,
+            "max_listen_seconds": prefs.assistant.max_listen_seconds,
+            "state": voice_session.state,
+            "error": voice_session.error,
+            "voice": h,
+            "voice_available": h is not None,
+            "transcript": [t.model_dump(mode="json") for t in assistant.transcript()],
+        }
+
+    @app.post("/api/assistant/listen", response_model=Turn | None)
+    async def assistant_listen(request: Request):
+        require_mic(request)
+        try:
+            return await voice_session.listen(prefs.assistant.max_listen_seconds)
+        except VoiceError as exc:
+            return voice_failure(exc)
+
+    @app.post("/api/assistant/stop", status_code=204)
+    async def assistant_stop(request: Request) -> Response:
+        require_mic(request)
+        try:
+            await voice_session.stop()
+        except VoiceError as exc:
+            return voice_failure(exc)
+        return Response(status_code=204)
+
+    @app.post("/api/assistant/cancel", status_code=204)
+    async def assistant_cancel(request: Request) -> Response:
+        require_mic(request)
+        try:
+            await voice_session.cancel()
+        except VoiceError as exc:
+            return voice_failure(exc)
+        return Response(status_code=204)
+
+    @app.post("/api/assistant/ask", response_model=Turn)
+    async def assistant_ask(body: AskIn) -> Turn:
+        assistant_on()
+        turn = await assistant.ask(body.text, source="typed")
+        broker.publish("assistant", {"state": "answered", "turn_id": turn.id})
+        return turn
+
+    @app.delete("/api/assistant/transcript", status_code=204, dependencies=[Depends(editor)])
+    async def assistant_clear() -> Response:
+        assistant.clear()
+        broker.publish("assistant", {"state": "cleared"})
+        return Response(status_code=204)
+
+    @app.get("/api/assistant/speech/{turn_id}")
+    async def assistant_speech(turn_id: int) -> Response:
+        assistant_on()
+        if not prefs.assistant.spoken_replies:
+            raise HTTPException(status_code=404, detail="Spoken replies are turned off.")
+        turn = assistant.get(turn_id)
+        if turn is None:
+            raise HTTPException(status_code=404, detail="That answer was cleared.")
+        try:
+            wav = await voice.speak(turn.answer.text)
+        except VoiceError as exc:
+            return voice_failure(exc)
+        return Response(wav, media_type="audio/wav")
 
     # ----- groceries -----
 

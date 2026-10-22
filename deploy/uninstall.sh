@@ -2,11 +2,13 @@
 # Remove AURA's automatic startup (service + kiosk autostart). Data is kept.
 set -euo pipefail
 UNIT="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/aura.service"
+VOICE="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/aura-voice.service"
 DESKTOP="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/aura-kiosk.desktop"
 systemctl --user disable --now aura.service 2>/dev/null || true
+systemctl --user disable --now aura-voice.service 2>/dev/null || true
 pkill -u "$USER" -f 'deploy/kiosk/aura-kiosk.sh' 2>/dev/null || true
 pkill -u "$USER" -f 'aura-kiosk/chromium' 2>/dev/null || true
-for f in "$UNIT" "$DESKTOP"; do
+for f in "$UNIT" "$VOICE" "$DESKTOP"; do
   if [ -e "$f" ]; then mv "$f" "$f.removed-$(date +%Y%m%d-%H%M%S)"; echo "moved aside $f"; fi
 done
 systemctl --user daemon-reload

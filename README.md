@@ -616,6 +616,74 @@ AURA_CALENDAR_DAYS_AHEAD=30
 - **Failures:** if a feed can't be fetched, its last saved copy keeps being shown and
   Settings → Calendars says so. Nothing is invented when no feed is reachable.
 
+## Voice assistant
+
+Press the **microphone** in the top-right corner of the entrance screen (or the
+**M** key / the TV remote's **red** button, if the TV passes remote keys to the Pi
+over HDMI-CEC) and ask a question. AURA listens until you pause (at most 10 s by
+default), shows **Listening** on every open screen while the microphone is on,
+then answers on screen and, if the TV is on, out loud.
+
+You can ask about:
+
+| Ask | Answer comes from |
+|---|---|
+| "What's the weather today?", "Is it hot outside?" | Weather (Open-Meteo) |
+| "Will it rain before I leave?", "Do I need an umbrella?" | Hourly forecast up to today's recommended departure (or the travel window) |
+| "How is my commute to the office?", "When should I leave?" | Commute monitor (TomTom) |
+| "What's on my calendar today / tomorrow?", "Any birthdays this week?" | Calendars |
+| "What groceries do I need?" | Shared grocery list |
+| "Summarize my day." | All of the above |
+| "What time is it?", "What can you do?" | — |
+
+Anything else gets "I can't help with that yet". If data is missing (no TomTom key,
+no calendar, weather offline) the answer says so; nothing is made up. Requests to
+*change* something ("delete the groceries", "turn off Wi-Fi") are refused: the
+assistant is read-only. Phones and laptops can open the same view and **type** a
+question, but only the entrance screen can switch the microphone on.
+
+**How it works** (all on the Pi, no cloud, works offline):
+
+```
+dashboard (aura.service :8080)  ──loopback──►  voice worker (aura-voice.service, 127.0.0.1:8091)
+  intent → allow-listed tool → AURA data         arecord (USB mic) → faster-whisper base.en → text
+                                                 Piper en_US-lessac-medium → WAV → played by the screen's browser
+```
+
+- **Speech recognition:** faster-whisper `base.en` (int8), about 1.6–1.8 s per
+  question on the Pi 5. **Spoken replies:** Piper, about 0.2 s per sentence.
+  The worker uses about 0.5 GB of RAM. Its unit sets `MemoryMax=1200M`, but
+  Raspberry Pi OS boots with `cgroup_disable=memory`, so systemd memory limits
+  (here and in `aura.service`) are **not enforced** unless you add
+  `cgroup_enable=memory` to `/boot/firmware/cmdline.txt` and reboot. The two
+  services are still separate processes, so one crashing doesn't stop the other.
+- **Understanding** is a fixed list of question types matched by keywords, not a
+  language model. New abilities are added as tools in `app/assistant.py`.
+- **Models** live in `data/models/` (about 200 MB, git-ignored). Re-download with
+  `.venv/bin/python -m app.voice_worker --download`.
+- **Sound** plays on whatever screen asked: the TV's speakers through HDMI when
+  the TV is on. The USB microphone has no speaker. With the TV off, answers are
+  on screen only. Turn spoken replies off in Settings → Assistant.
+
+**Privacy:** the microphone records only after a button press, for at most the
+configured seconds; the audio stays in the worker's memory, is transcribed and
+then dropped, never written to disk or sent anywhere. The question/answer
+transcript is kept in memory only (last 20) until you press *Clear* or AURA restarts.
+
+**Settings → Assistant:** turn the assistant off, turn spoken replies off, change
+the listening limit, and see whether the speech service, models and microphone
+are ready.
+
+```bash
+systemctl --user status aura-voice        # running? models loaded?
+journalctl --user-unit aura-voice -f      # its log (no audio or transcripts are logged)
+systemctl --user restart aura-voice
+curl -s http://127.0.0.1:8091/health      # from the Pi itself only
+```
+
+If the microphone is unplugged or a different one is used, find its name with
+`arecord -L` and set `AURA_VOICE_MIC_DEVICE` in `.env`, then restart `aura-voice`.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after

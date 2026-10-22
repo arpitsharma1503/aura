@@ -4,9 +4,11 @@
 #   deploy/install.sh              install backend service + kiosk autostart
 #   deploy/install.sh --no-kiosk   backend service only
 #   deploy/install.sh --takeover   also stop a manually started AURA on the port
+#   deploy/install.sh --no-voice   skip the voice assistant worker
 #
 # What it does:
 #   1. copies deploy/systemd/aura.service   -> ~/.config/systemd/user/aura.service
+#      and deploy/systemd/aura-voice.service -> ~/.config/systemd/user/aura-voice.service
 #   2. copies deploy/kiosk/aura-kiosk.desktop -> ~/.config/autostart/aura-kiosk.desktop
 #   3. backs up any existing copy to <file>.bak-<timestamp> first
 #   4. reloads systemd (user), enables the service and starts it
@@ -18,15 +20,19 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 UNIT_SRC="$ROOT/deploy/systemd/aura.service"
 DESKTOP_SRC="$ROOT/deploy/kiosk/aura-kiosk.desktop"
 UNIT_DST="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/aura.service"
+VOICE_SRC="$ROOT/deploy/systemd/aura-voice.service"
+VOICE_DST="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/aura-voice.service"
 DESKTOP_DST="${XDG_CONFIG_HOME:-$HOME/.config}/autostart/aura-kiosk.desktop"
 PORT="$(grep -E '^AURA_PORT=' "$ROOT/.env" 2>/dev/null | cut -d= -f2 || true)"
 PORT="${PORT:-8080}"
 KIOSK=1
 TAKEOVER=0
+VOICE=1
 for arg in "$@"; do
   case "$arg" in
     --no-kiosk) KIOSK=0 ;;
     --takeover) TAKEOVER=1 ;;
+    --no-voice) VOICE=0 ;;
     *) echo "unknown option: $arg" >&2; exit 2 ;;
   esac
 done
@@ -49,12 +55,16 @@ backup_and_copy() {
 
 chmod 0755 "$ROOT/deploy/kiosk/aura-kiosk.sh"
 backup_and_copy "$UNIT_SRC" "$UNIT_DST"
+if [ "$VOICE" = 1 ]; then
+  backup_and_copy "$VOICE_SRC" "$VOICE_DST"
+fi
 if [ "$KIOSK" = 1 ]; then
   backup_and_copy "$DESKTOP_SRC" "$DESKTOP_DST"
 fi
 
 systemctl --user daemon-reload
 systemd-analyze --user verify "$UNIT_DST"
+if [ "$VOICE" = 1 ]; then systemd-analyze --user verify "$VOICE_DST"; fi
 
 # A manually started AURA would make the service fail with "port in use".
 manual_pid="$(ss -ltnpH "sport = :$PORT" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2 || true)"
@@ -73,6 +83,10 @@ fi
 
 systemctl --user enable aura.service
 systemctl --user restart aura.service
+if [ "$VOICE" = 1 ]; then
+  systemctl --user enable aura-voice.service
+  systemctl --user restart aura-voice.service
+fi
 if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)" != "yes" ]; then
   echo
   echo "NOTE: lingering is off, so AURA would only start after you log in."

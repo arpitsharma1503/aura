@@ -40,6 +40,8 @@ LockPersonality=yes
 RestrictRealtime=yes
 SystemCallArchitectures=native
 # Keep a runaway process from starving the entrance display.
+# NOTE: only enforced if the kernel memory cgroup is enabled. Raspberry Pi OS boots
+# with cgroup_disable=memory, so these are currently advisory (see README).
 MemoryHigh=600M
 MemoryMax=900M
 

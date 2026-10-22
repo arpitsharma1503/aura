@@ -36,6 +36,7 @@
       <a href="#display">Display</a>
       <a href="#groceries">Groceries</a>
       <a href="#calendars">Calendars</a>
+      <a href="#assistant">Assistant</a>
       <a href="#system">System</a>
     </nav>
 
@@ -246,6 +247,24 @@
           only once, even if several calendars contain it. Calendar addresses are private and are set on the Pi in
           <code>.env</code> (<code>AURA_CALENDAR_FEEDS</code>); they are never shown here.</p>
       </section>
+
+      <!-- Assistant -------------------------------------------------------- -->
+      <form class="s-card" id="assistant" data-section="assistant" aria-labelledby="assistant-h" novalidate>
+        <header class="s-card__head"><h2 id="assistant-h">Assistant</h2></header>
+        <dl class="s-grid" id="assistant-info"></dl>
+        <label class="s-switch"><input type="checkbox" data-field="enabled">
+          <span>Voice assistant <small>Microphone button on the dashboard; answers come from AURA's own data</small></span></label>
+        <label class="s-switch"><input type="checkbox" data-field="spoken_replies">
+          <span>Spoken replies <small>Read answers aloud through the entrance screen's speakers (the TV, over HDMI)</small></span></label>
+        <label class="s-field"><span>Listen for at most</span>
+          <select class="sheet__input" data-field="max_listen_seconds" data-type="int">
+            <option value="5">5 seconds</option><option value="8">8 seconds</option><option value="10">10 seconds</option>
+            <option value="15">15 seconds</option></select></label>
+        <p class="s-help">Privacy: the microphone only turns on when someone presses the microphone button (or the remote's
+          shortcut) on the entrance screen, and the dashboard shows <strong>Listening</strong> while it is on. Speech is
+          recognised on the Pi itself; audio is never saved or sent anywhere. Questions and answers are kept in memory
+          until cleared or AURA restarts. The assistant can only answer questions; it can't change data or settings.</p>
+      </form>
 
       <!-- System ----------------------------------------------------------- -->
       <section class="s-card" id="system" aria-labelledby="system-h">

@@ -155,14 +155,21 @@ class GrocerySettings(_Strict):
         return out
 
 
+class AssistantSettings(_Strict):
+    enabled: bool = True
+    spoken_replies: bool = True              # play answers through the screen's speakers (TV over HDMI)
+    max_listen_seconds: int = Field(default=10, ge=3, le=15)
+
+
 SECTIONS: dict[str, type[_Strict]] = {
     "display": DisplaySettings,
     "weather": WeatherSettings,
     "locations": LocationsSettings,
     "commute": CommuteSettings,
     "groceries": GrocerySettings,
+    "assistant": AssistantSettings,
 }
-Section = Literal["display", "weather", "locations", "commute", "groceries"]
+Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant"]
 
 
 def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
@@ -195,6 +202,7 @@ def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
             "max_requests_per_day": min(env.commute_max_requests_per_day, 650),
         },
         "groceries": {},
+        "assistant": {"enabled": env.voice_enabled},
     }
 
 
@@ -270,6 +278,8 @@ class SettingsStore:
     def commute(self) -> CommuteSettings: return self._cache["commute"]  # noqa: E704
     @property
     def groceries(self) -> GrocerySettings: return self._cache["groceries"]  # noqa: E704
+    @property
+    def assistant(self) -> AssistantSettings: return self._cache["assistant"]  # noqa: E704
 
     def customized(self, section: str) -> list[str]:
         return sorted(self._overrides(section))

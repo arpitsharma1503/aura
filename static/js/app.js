@@ -875,6 +875,9 @@
     es.addEventListener("location", () => { loadConfig(); });
     es.addEventListener("commute", () => { loadCommute(); });
     es.addEventListener("calendar", () => { loadCalendar(); });
+    es.addEventListener("assistant", (e) => {
+      try { window.AuraAssistant.onEvent(JSON.parse(e.data)); } catch { /* ignore malformed */ }
+    });
     state.events = es;
   }
 
@@ -965,6 +968,7 @@
         .format(new Date(`${isoDate}T12:00:00Z`));
     },
   });
+  window.AuraAssistant.init({ icon, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather?.visual || null);
   loadConfig().then(async () => {
     loadWeather();

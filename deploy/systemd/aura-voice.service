@@ -1,0 +1,44 @@
+# AURA voice worker as a *user* service: microphone, speech-to-text (faster-whisper)
+# and spoken replies (Piper). Separate from aura.service so its memory use or a
+# crash never affects the dashboard. Listens on 127.0.0.1:8091 only.
+#
+# Installed by deploy/install.sh to ~/.config/systemd/user/aura-voice.service.
+#
+#   systemctl --user status aura-voice
+#   systemctl --user restart aura-voice
+#   journalctl --user-unit aura-voice -f
+#
+# Audio is kept in memory and dropped after transcription; nothing is recorded
+# unless someone presses the microphone button on the entrance screen.
+
+[Unit]
+Description=AURA voice assistant worker (speech, local only)
+Documentation=file:///home/arpit/aura/README.md
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=exec
+WorkingDirectory=/home/arpit/aura
+ExecStart=/home/arpit/aura/.venv/bin/python -m app.voice_worker
+Environment=PYTHONUNBUFFERED=1
+# Models are already downloaded; never reach Hugging Face at runtime.
+Environment=HF_HUB_OFFLINE=1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+# Speech models need ~0.5 GB; keep them from starving the display or Pi-hole.
+# NOTE: only enforced if the kernel memory cgroup is enabled. Raspberry Pi OS boots
+# with cgroup_disable=memory, so these are currently advisory (see README).
+MemoryHigh=900M
+MemoryMax=1200M
+# Transcription is CPU-heavy for ~2 s; let the dashboard and kiosk go first.
+Nice=5
+
+[Install]
+WantedBy=default.target

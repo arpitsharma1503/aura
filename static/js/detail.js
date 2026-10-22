@@ -20,6 +20,7 @@ window.AuraDetail = (() => {
     weather: { title: "Weather", render: renderWeather },
     advice: { title: "Before you go", render: renderAdvice },
     commute: { title: "Commute", render: renderCommute },
+    assistant: { title: "Ask AURA", render: () => { const v = window.AuraAssistant.view(); window.AuraAssistant.paintView(); return v; } },
   };
 
   // ---------- tiny DOM helper (text only; never innerHTML with data) ----------
@@ -47,7 +48,7 @@ window.AuraDetail = (() => {
   // ---------- open / close with history ----------
 
   function parseHash(hash) {
-    const m = /^#\/(clock|weather|advice|commute)(?:\/([a-z]+))?$/.exec(hash || "");
+    const m = /^#\/(clock|weather|advice|commute|assistant)(?:\/([a-z]+))?$/.exec(hash || "");
     return m ? { view: m[1], section: m[2] || null } : null;
   }
 

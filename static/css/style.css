@@ -1181,6 +1181,94 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
 .dcal__sub { grid-column: 2 / -1; font-size: 0.8rem; color: var(--ink-3); }
 .dcal__when { font-size: 0.85rem; color: var(--ink-2); white-space: nowrap; }
 
+/* ---------- Voice assistant: mic button, listening pill, "Ask AURA" view ---------- */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.topbar__mic {
+  order: 98; flex: none; box-sizing: border-box; cursor: pointer;
+  display: inline-grid; place-items: center;
+  width: max(2.75rem, 40px); height: max(2.75rem, 40px); border-radius: 50%; margin-block: -0.5rem;
+  font: inherit; color: var(--ink-3); background: transparent; border: 0;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.topbar__mic svg { width: 1.35rem; height: 1.35rem; }
+.topbar__mic:hover { color: var(--ink); background: rgba(255, 255, 255, 0.06); }
+.topbar__mic:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; color: var(--ink); }
+.topbar__mic.is-live { color: #1a0606; background: var(--danger); animation: mic-live 1.6s ease-in-out infinite; }
+.topbar__mic[data-state="processing"] { color: var(--accent); }
+@keyframes mic-live { 50% { box-shadow: 0 0 0 0.45rem rgba(255, 122, 122, 0.18); } }
+.pill--live { order: 97; color: var(--danger); background: rgba(255, 122, 122, 0.1); }
+
+.asst { display: grid; gap: 1.3rem; }
+.asst__hero { display: flex; align-items: center; gap: 1.4rem; }
+.asst__orb {
+  flex: none; display: grid; place-items: center; cursor: pointer;
+  width: 5.5rem; height: 5.5rem; border-radius: 50%;
+  color: #1a1306; background: var(--accent); border: 0;
+  box-shadow: 0 0 0 0 rgba(255, 207, 122, 0.25);
+  transition: background 0.2s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+.asst__orb svg { width: 2.3rem; height: 2.3rem; }
+.asst__orb:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.asst__orb:active:not(:disabled) { transform: scale(0.96); }
+.asst__orb:disabled { cursor: default; color: var(--ink-3); background: rgba(255, 255, 255, 0.06); }
+.asst[data-state="listening"] .asst__orb { color: #1a0606; background: var(--danger); animation: orb-live 1.4s ease-in-out infinite; }
+.asst[data-state="processing"] .asst__orb { animation: orb-think 1.2s ease-in-out infinite; }
+@keyframes orb-live { 50% { box-shadow: 0 0 0 1.1rem rgba(255, 122, 122, 0.16); } }
+@keyframes orb-think { 50% { box-shadow: 0 0 0 0.7rem rgba(255, 207, 122, 0.16); } }
+.asst__status { min-width: 0; display: grid; gap: 0.35rem; }
+.asst__state { margin: 0; font-size: 1.6rem; font-weight: 300; color: var(--ink); }
+.asst[data-state="error"] .asst__state, .asst[data-state="unavailable"] .asst__state { color: var(--warn); }
+.asst__hint { margin: 0; color: var(--ink-2); line-height: 1.45; }
+.asst__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.asst__actions:empty { display: none; }
+.asst__actions .btn { display: inline-flex; align-items: center; gap: 0.45rem; }
+.asst__actions .btn svg { width: 1.05rem; height: 1.05rem; }
+
+.asst__ask { display: flex; gap: 0.5rem; }
+.asst__ask input {
+  flex: 1; min-width: 0; font: inherit; font-size: 1rem; color: var(--ink);
+  padding: 0.75rem 1rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line);
+}
+.asst__ask input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.asst__send {
+  flex: none; display: grid; place-items: center; cursor: pointer;
+  width: 2.9rem; height: 2.9rem; border-radius: 50%;
+  color: var(--ink-2); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line);
+}
+.asst__send svg { width: 1.2rem; height: 1.2rem; }
+.asst__send:hover:not(:disabled) { color: var(--ink); }
+.asst__send:disabled, .asst__chip:disabled, .asst__ask input:disabled { opacity: 0.5; cursor: default; }
+.asst__examples { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.asst__chip {
+  font: inherit; font-size: 0.85rem; cursor: pointer;
+  padding: 0.45rem 0.85rem; min-height: 2.5rem; border-radius: 999px;
+  color: var(--ink-2); background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line);
+}
+.asst__chip:hover:not(:disabled) { color: var(--ink); background: rgba(255, 255, 255, 0.08); }
+.asst__chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.asst__trhead { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.asst__clear {
+  font: inherit; font-size: 0.8rem; cursor: pointer; padding: 0.4rem 0.8rem; min-height: 2.25rem;
+  color: var(--ink-3); background: none; border: 1px solid var(--line); border-radius: 999px;
+}
+.asst__clear:hover { color: var(--ink); }
+.asst__transcript { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.8rem; }
+.asst__empty { color: var(--ink-3); }
+.asst__turn { display: grid; gap: 0.45rem; padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.02); }
+.asst__q { margin: 0; display: grid; gap: 0.2rem; color: var(--ink-2); }
+.asst__who { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-4); }
+.asst__a { margin: 0; font-size: 1.08rem; line-height: 1.5; color: var(--ink); }
+.asst__turn.is-limited .asst__a { color: var(--ink-2); }
+@media (max-width: 520px) {
+  .asst__hero { flex-direction: column; align-items: flex-start; }
+  .asst__orb { width: 4.5rem; height: 4.5rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar__mic.is-live, .asst__orb { animation: none !important; }
+}
+
 /* =====================================================================
    Entrance layout - every large landscape screen (laptops, monitors, TVs).
 

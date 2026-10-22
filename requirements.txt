@@ -7,3 +7,7 @@ httpx==0.28.1
 segno==1.6.6
 icalendar==7.3.0
 recurring-ical-events==3.8.2
+
+# Voice assistant (local speech; models are downloaded separately into data/models)
+faster-whisper==1.2.1
+piper-tts==1.8.0

@@ -317,6 +317,16 @@
     $("cal-info").replaceChildren(...(cals.length ? cals.map((f) => row(f.label,
       f.ok ? "Up to date" : (f.error ? `Problem: ${f.error}` : "Not loaded yet"),
       f.last_success ? `updated ${fmtTime(f.last_success)}` : null)) : [row("Calendars", "None connected")]));
+    const a = i.assistant || {};
+    const hlt = a.health;
+    const st = (x) => ({ ready: "Ready", loading: "Loading…", missing: "Not downloaded", error: "Error" }[x?.state] || "—");
+    $("assistant-info").replaceChildren(...(a.available && hlt ? [
+      row("Voice service", "Running", "local only, 127.0.0.1"),
+      row("Speech recognition", st(hlt.stt), hlt.stt?.error || `faster-whisper ${hlt.stt?.model} · on the Pi`),
+      row("Spoken replies", st(hlt.tts), hlt.tts?.error || `Piper ${hlt.tts?.voice} · plays on the TV when it's on`),
+      row("Microphone", hlt.mic?.present ? "Connected" : "Not found", hlt.mic?.device),
+    ] : [row("Voice service", "Not running", "systemctl --user status aura-voice"),
+         row("Typed questions", "Still available")]));
     const g = i.groceries;
     $("groceries-info").replaceChildren(
       row("Shared list", `${g.items} item${g.items === 1 ? "" : "s"}`, `${g.open} to buy`),

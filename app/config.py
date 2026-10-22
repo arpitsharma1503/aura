@@ -97,6 +97,15 @@ class Settings(BaseSettings):
     calendar_refresh_minutes: int = Field(default=30, ge=5, le=1440)
     calendar_days_ahead: int = Field(default=30, ge=1, le=90)
 
+    # Voice assistant. Speech runs in a separate local process (aura-voice) on
+    # loopback; audio stays in memory on the Pi and is never written to disk.
+    voice_enabled: bool = True
+    voice_port: int = Field(default=8091, ge=1024, le=65535)
+    voice_mic_device: str = "plughw:CARD=Device,DEV=0"     # ALSA name; `arecord -L` lists them
+    voice_stt_model: str = "base.en"                        # faster-whisper model name
+    voice_tts_voice: str = "en_US-lessac-medium"            # Piper voice name
+    voice_threads: int = Field(default=4, ge=1, le=8)
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080

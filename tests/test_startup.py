@@ -27,7 +27,7 @@ def start(tmp_path, port, extra_env=None):
         **os.environ,
         "AURA_PORT": str(port), "AURA_HOST": "127.0.0.1", "AURA_DATA_DIR": str(tmp_path),
         "AURA_LOG_DIR": str(tmp_path), "AURA_WEATHER_PROVIDER": "none", "AURA_LOCATION_DETECTION": "off",
-        "AURA_COMMUTE_ENABLED": "false", "AURA_CALENDAR_FEEDS": "",
+        "AURA_COMMUTE_ENABLED": "false", "AURA_CALENDAR_FEEDS": "", "AURA_VOICE_PORT": "1025",
         **(extra_env or {}),
     }
     return subprocess.Popen([sys.executable, "-m", "app"], cwd=ROOT, env=env,
