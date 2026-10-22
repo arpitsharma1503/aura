@@ -684,6 +684,38 @@ curl -s http://127.0.0.1:8091/health      # from the Pi itself only
 If the microphone is unplugged or a different one is used, find its name with
 `arecord -L` and set `AURA_VOICE_MIC_DEVICE` in `.env`, then restart `aura-voice`.
 
+## Network protection (Pi-hole)
+
+Pi-hole is a DNS server that answers "0.0.0.0" for known ad and tracker domains.
+It runs natively on the Pi (service `pihole-FTL`; admin page on port 80), next
+to AURA (port 8080). Scripts are in `deploy/pihole/`:
+
+| Script | sudo | What it does |
+|---|---|---|
+| `backup.sh` | yes | saves network config to `~/aura-backups/network-<time>.tar.gz` (mode 600) |
+| *(official installer)* | yes | `basic-install.sh` from install.pi-hole.net |
+| `configure.sh` | yes | admin page pinned to 80/443, local-network-only DNS, 7-day query log, DHCP off |
+| `verify.sh` | no | resolving, blocking, the Pi's own DNS, AURA still up, port 8080 untouched |
+| `rollback.sh` | yes | stop + disable Pi-hole (`--start` to undo) |
+
+**What does not change:** the router's DHCP and DNS, the Pi's network settings,
+and the Pi's own DNS (`/etc/resolv.conf` keeps pointing at the router, so the Pi
+can always reach the internet and be repaired even if Pi-hole fails).
+
+**Only devices that use the Pi for DNS are filtered.** A device is protected only
+after its DNS (or the router's DHCP DNS setting) points to 192.168.1.11. DNS
+blocking cannot remove ads served from the same domain as the content (most
+YouTube ads, many app and social-media ads), and devices using encrypted DNS
+(DNS-over-HTTPS, iCloud Private Relay, Android "Private DNS") or hard-coded DNS
+bypass it.
+
+**If a site or app breaks:** open the admin page → Query Log, filter by the device,
+find the blocked domain that the app needs, and allow just that domain
+(Domains → Allow). Prefer allowing a single domain over removing a blocklist.
+
+**Emergency:** set the device (or router) DNS back to automatic / 192.168.1.1;
+then, if needed, `sudo deploy/pihole/rollback.sh`.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after
