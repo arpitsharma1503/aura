@@ -709,6 +709,22 @@ YouTube ads, many app and social-media ads), and devices using encrypted DNS
 (DNS-over-HTTPS, iCloud Private Relay, Android "Private DNS") or hard-coded DNS
 bypass it.
 
+**AURA Settings → Network protection** shows (read-only): whether `pihole-FTL`
+is running, a real test lookup through it (example.com must resolve,
+doubleclick.net must be blocked), the last healthy check, and which DNS server
+the router hands out, so it never claims devices are protected when they are not.
+Query statistics (last 24 h, % blocked, blocklist size) need a Pi-hole *app
+password*: in the Pi-hole admin page → Settings → Web interface / API → switch to
+Expert → **Configure app password**, copy it once, then on the Pi add to `.env`
+
+```
+AURA_PIHOLE_APP_PASSWORD=<the app password>
+```
+
+and `systemctl --user restart aura`. It stays on the Pi, is only sent to Pi-hole
+over loopback, and never reaches a browser. AURA has no Pi-hole controls;
+changes are made in Pi-hole's own admin page.
+
 **If a site or app breaks:** open the admin page → Query Log, filter by the device,
 find the blocked domain that the app needs, and allow just that domain
 (Domains → Allow). Prefer allowing a single domain over removing a blocklist.

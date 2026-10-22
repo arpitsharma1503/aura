@@ -338,6 +338,39 @@
     try { state.info = (await api("/api/settings")).info; renderInfo(); } catch { /* keep old */ }
   }
 
+  // ---------- network protection (read-only Pi-hole status) ----------
+  async function loadDnsFilter(force = false) {
+    $("dns-msg").textContent = "Checking…";
+    $("dns-admin").href = `http://${location.hostname}/admin/`;
+    try {
+      const d = await api(`/api/system/dns-filter${force ? "?refresh=true" : ""}`);
+      const svc = { running: "Running", stopped: "Stopped", failed: "Failed", not_installed: "Not installed", unknown: "Unknown" }[d.service];
+      const yes = (v, good, badText) => v == null ? "—" : (v ? good : badText);
+      const rows = [
+        row("Pi-hole service", svc, d.pi_address ? `DNS server at ${d.pi_address}` : null),
+        row("DNS answers", yes(d.dns_ok, "Working", "Not answering"), `checked ${fmtTime(d.checked_at)}`),
+        row("Ad blocking", yes(d.blocking_ok, "Working", "Not blocking"), "test domain doubleclick.net"),
+        row("Last healthy check", d.last_ok_at ? fmtTime(d.last_ok_at) : "—"),
+      ];
+      if (d.stats) {
+        const s = d.stats, n = (x) => Number(x).toLocaleString("en-IN");
+        rows.push(row("Queries (last 24 h)", n(s.total_queries), s.active_clients != null ? `${s.active_clients} active device${s.active_clients === 1 ? "" : "s"}` : null));
+        rows.push(row("Blocked", `${n(s.blocked_queries)} (${s.percent_blocked}%)`, s.blocking_enabled === false ? "blocking paused" : null));
+        rows.push(row("Domains on blocklists", s.domains_on_blocklists != null ? n(s.domains_on_blocklists) : "—",
+          s.blocklist_updated ? `lists updated ${fmtTime(s.blocklist_updated)}` : null));
+      }
+      $("dns-status").replaceChildren(...rows);
+      $("dns-msg").textContent = d.stats_note || "";
+      $("dns-problems").replaceChildren(...d.problems.map((t) => el("li", {}, t)));
+      const routerDns = d.router_dns.join(", ") || "unknown";
+      $("dns-coverage").textContent = d.router_uses_pihole
+        ? `The router tells devices to use ${routerDns} for DNS, which includes this Pi, so devices that follow the router are filtered.`
+        : `Not network-wide yet: the router tells devices to use ${routerDns} for DNS. Only devices you have set to use ${d.pi_address || "this Pi"} by hand are filtered. Running Pi-hole alone does not protect a device.`;
+    } catch (err) {
+      $("dns-msg").textContent = `Couldn't check network protection: ${err.message}`;
+    }
+  }
+
   // ---------- network ----------
   async function loadNetwork() {
     $("net-msg").textContent = "Checking…";
@@ -496,6 +529,7 @@
     $("qa-add").addEventListener("click", addQuickAdd);
     $("qa-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addQuickAdd(); } });
     $("net-refresh").addEventListener("click", loadNetwork);
+    $("dns-refresh").addEventListener("click", () => loadDnsFilter(true));
     $("sys-refresh").addEventListener("click", loadSystem);
     $("wifi-scan").addEventListener("click", scanWifi);
     $("wifi-form").addEventListener("submit", connectWifi);
@@ -542,6 +576,7 @@
       return;
     }
     loadNetwork();
+    loadDnsFilter();
     loadSystem();
   }
 

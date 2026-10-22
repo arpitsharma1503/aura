@@ -106,6 +106,12 @@ class Settings(BaseSettings):
     voice_tts_voice: str = "en_US-lessac-medium"            # Piper voice name
     voice_threads: int = Field(default=4, ge=1, le=8)
 
+    # Network protection (Pi-hole on this Pi). Read-only status in Settings.
+    # The app password is created in Pi-hole's admin page (Settings -> Web interface / API,
+    # "Configure app password"); it stays on the server and is only sent to Pi-hole on loopback.
+    pihole_api_url: str = "http://127.0.0.1"
+    pihole_app_password: SecretStr | None = None
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080

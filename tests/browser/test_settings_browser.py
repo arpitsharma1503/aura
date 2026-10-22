@@ -288,3 +288,40 @@ def test_dashboard_reloads_itself_after_server_restart(chrome, srv):
                " && document.getElementById('commute').dataset.state === 'active'", timeout=30)
     p.errors[:] = [e for e in p.errors if "ERR_CONNECTION_REFUSED" not in e and "/api/" not in e]
     assert p.errors == []
+
+
+DNS_OK = {"installed": True, "service": "running", "dns_ok": True, "blocking_ok": True,
+          "last_ok_at": "2026-10-23T00:50:00Z", "checked_at": "2026-10-23T00:50:00Z",
+          "stats": {"total_queries": 12034, "blocked_queries": 1810, "percent_blocked": 15.0,
+                    "domains_on_blocklists": 76543, "active_clients": 3, "blocklist_updated": "2026-10-22T10:00:00Z",
+                    "blocking_enabled": True},
+          "stats_note": None, "router_dns": ["192.168.1.1"], "router_uses_pihole": False,
+          "pi_address": "192.168.1.11", "problems": []}
+
+
+def test_network_protection_card(chrome, srv, artifacts):
+    p = chrome.new_page()
+    p.viewport(1440, 900)
+    p.fixture("/api/system/dns-filter", DNS_OK)
+    p.goto(f"{srv.url}/settings#protection")
+    p.wait_for("document.getElementById('dns-status').children.length >= 7", timeout=15)
+    text = p.text("#protection")
+    for k in ("Running", "Working", "12,034", "1,810 (15%)", "76,543", "3 active devices"):
+        assert k in text, k
+    assert "Not network-wide yet" in text and "192.168.1.1" in text and "does not protect" in text
+    assert p.js("document.getElementById('dns-admin').href").endswith("/admin/")
+    assert "password" not in p.js("JSON.stringify(window.localStorage)") and p.errors == []
+    p.screenshot(str(artifacts / "settings-protection.png"))
+
+
+def test_network_protection_problems_shown(chrome, srv):
+    down = {**DNS_OK, "service": "stopped", "dns_ok": False, "blocking_ok": None, "stats": None,
+            "stats_note": "Pi-hole isn't running.",
+            "problems": ["The Pi-hole service isn't running. On the Pi: sudo systemctl start pihole-FTL"]}
+    p = chrome.new_page()
+    p.viewport(1440, 900)
+    p.fixture("/api/system/dns-filter", down)
+    p.goto(f"{srv.url}/settings#protection")
+    p.wait_for("document.getElementById('dns-problems').children.length === 1", timeout=15)
+    text = p.text("#protection")
+    assert "Stopped" in text and "Not answering" in text and "systemctl start pihole-FTL" in text

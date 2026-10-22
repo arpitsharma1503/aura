@@ -177,3 +177,8 @@ legend { padding: 0; margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--ink-
   .s-nav { flex-direction: column; position: sticky; top: 1rem; align-self: start; margin: 0; padding: 0; background: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
   .s-nav a { justify-content: flex-start; }
 }
+
+/* Network protection problems */
+.s-problems { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--warn, #ffb35c); line-height: 1.5; }
+.s-problems:empty { display: none; }
+.s-problems li + li { margin-top: 0.35rem; }

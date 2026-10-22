@@ -30,6 +30,7 @@
 
     <nav class="s-nav" aria-label="Settings sections">
       <a href="#network">Network</a>
+      <a href="#protection">Protection</a>
       <a href="#locations">Locations</a>
       <a href="#weather">Weather</a>
       <a href="#commute">Commute</a>
@@ -93,6 +94,22 @@
       </section>
 
       <!-- Locations -------------------------------------------------------- -->
+      <!-- Network protection (Pi-hole) ---------------------------------- -->
+      <section class="s-card" id="protection" aria-labelledby="protection-h">
+        <header class="s-card__head">
+          <h2 id="protection-h">Network protection</h2>
+          <button type="button" class="btn s-small" id="dns-refresh">Check now</button>
+        </header>
+        <dl class="s-grid" id="dns-status"></dl>
+        <p class="s-msg" id="dns-msg" role="status" aria-live="polite"></p>
+        <ul class="s-problems" id="dns-problems"></ul>
+        <p class="s-help" id="dns-coverage"></p>
+        <p class="s-help">Pi-hole blocks ad and tracker domains for devices that use this Pi for DNS. It can't remove ads
+          served from the same domain as the content (most YouTube and many in-app ads), and devices using encrypted or
+          fixed DNS bypass it. Manage blocklists, the query log and allowed domains in Pi-hole's own admin page:
+          <a id="dns-admin" href="/admin/" target="_blank" rel="noopener">open Pi-hole admin</a> (it asks for its own password).</p>
+      </section>
+
       <form class="s-card" id="locations" data-section="locations" aria-labelledby="locations-h" novalidate>
         <header class="s-card__head"><h2 id="locations-h">Home &amp; office</h2></header>
         <p class="s-help">Home and Office are used for the <strong>commute</strong>. Weather uses the city under the clock,

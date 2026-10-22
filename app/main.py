@@ -25,6 +25,7 @@ from .config import PROJECT_ROOT, Settings, get_settings
 from . import sysinfo
 from .agenda import AgendaResponse, AgendaService, parse_feeds
 from .assistant import Assistant, Sources, Turn
+from .dnsfilter import DnsFilterMonitor, DnsFilterStatus
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -102,7 +103,8 @@ def build_provider(name: str, client: httpx.AsyncClient) -> WeatherProvider | No
 
 
 def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None,
-               voice_transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
+               voice_transport: httpx.AsyncBaseTransport | None = None,
+               dnsfilter: DnsFilterMonitor | None = None) -> FastAPI:
     """``transport`` lets tests replace the network with ``httpx.MockTransport``."""
     settings = settings or get_settings()
     ZoneInfo(settings.default_timezone)  # fail fast on a bad timezone name
@@ -213,6 +215,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     ))
     voice = VoiceClient(settings.voice_port, transport=voice_transport)
     voice_session = VoiceSession(voice, assistant, broker.publish)
+    dns_filter = dnsfilter or DnsFilterMonitor(
+        settings.pihole_api_url,
+        settings.pihole_app_password.get_secret_value() if settings.pihole_app_password else None)
 
     def weather_location():
         """Where weather is fetched for: the city (location dialog), or the exact
@@ -297,6 +302,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             t.cancel()
         await client.aclose()
         await voice.aclose()
+        await dns_filter.aclose()
         groceries.close()
         prefs.close()
 
@@ -315,6 +321,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.network = network
     app.state.assistant = assistant
     app.state.voice = voice_session
+    app.state.dns_filter = dns_filter
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -590,6 +597,11 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/api/system/network", response_model=NetworkStatus)
     async def network_status() -> NetworkStatus:
         return await network.status()
+
+    @app.get("/api/system/dns-filter", response_model=DnsFilterStatus)
+    async def dns_filter_status(refresh: bool = False) -> DnsFilterStatus:
+        # Read-only; no Pi-hole credentials or controls are ever exposed to browsers.
+        return await dns_filter.status(force=refresh)
 
     @app.post("/api/system/wifi/scan", response_model=list[WifiNetwork], dependencies=[Depends(admin)])
     async def wifi_scan() -> list[WifiNetwork]:
