@@ -27,122 +27,147 @@
       <div class="brand">
         <span class="brand__mark" aria-hidden="true"></span>
         <span class="brand__name">AURA</span>
+        <span class="brand__home" id="home-name">Home</span>
       </div>
       <div class="topbar__right">
+        <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
+        <span class="pill pill--offline" id="offline-pill" role="status" hidden>
+          <span class="dot"></span>Connection lost · retrying
+        </span>
         <span class="pill pill--live" id="listening-pill" role="status" hidden><span class="dot"></span>Listening</span>
         <button class="topbar__mic" id="mic-btn" type="button" aria-label="Ask AURA" title="Ask AURA" data-state="idle"></button>
         <a class="topbar__settings" href="/settings" id="settings-link" aria-label="Settings" title="Settings">
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </a>
-        <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
-        <span class="pill pill--offline" id="offline-pill" role="status" hidden>
-          <span class="dot"></span>Connection lost · retrying
-        </span>
       </div>
     </header>
 
-    <section class="time" aria-label="Current time">
-      <button type="button" class="tile-hit" data-open="clock" aria-haspopup="dialog" aria-describedby="date"
-              aria-label="Time and date details">
-        <span class="time__clock" id="clock" aria-live="off">
-          <span id="clock-hm">--:--</span><span class="time__meridiem" id="clock-ampm"></span>
-        </span>
-        <span class="time__date-row"><span class="time__date" id="date">&nbsp;</span><span class="tile-arrow tile-arrow--inline" aria-hidden="true"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></span>
-      </button>
-      <div class="place" id="place" data-status="loading">
-        <svg class="time__pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>
-        <span class="place__city" id="city">&nbsp;</span>
-        <span class="place__region" id="region"></span>
-        <span class="badge" id="location-badge" hidden></span>
-        <button type="button" class="place__btn" id="location-btn" aria-haspopup="dialog">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-          <span id="location-btn-label">Location</span>
+    <!-- Overview: greeting, time, place, and status capsules built only from live data -->
+    <section class="hero time" aria-label="Home overview">
+      <div class="hero__main">
+        <p class="hero__greeting" id="greeting">&nbsp;</p>
+        <button type="button" class="tile-hit hero__time" data-open="clock" aria-haspopup="dialog" aria-describedby="date"
+                aria-label="Time and date details">
+          <span class="time__clock" id="clock" aria-live="off"><span id="clock-hm">--:--</span><span class="time__meridiem" id="clock-ampm"></span></span>
+          <span class="time__date" id="date">&nbsp;</span>
         </button>
+        <div class="place" id="place" data-status="loading">
+          <svg class="time__pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0C18.5 15.4 12 21 12 21Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2.3" fill="currentColor"/></svg>
+          <span class="place__city" id="city">&nbsp;</span>
+          <span class="place__region" id="region"></span>
+          <span class="badge" id="location-badge" hidden></span>
+          <button type="button" class="place__btn" id="location-btn" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+            <span id="location-btn-label">Location</span>
+          </button>
+        </div>
+        <p class="place__note" id="location-note" hidden></p>
       </div>
-      <p class="place__note" id="location-note" hidden></p>
-      <ul class="agenda" id="agenda" aria-label="Today's events and holidays" data-open="clock#calendar" hidden></ul>
-      <ol class="daily" id="daily" aria-label="Coming days" data-open="weather#daily"></ol>
+      <ul class="status" id="status-row" aria-label="At a glance"></ul>
     </section>
 
-    <section class="card weather" id="weather" aria-label="Weather" data-state="loading" data-open="weather">
-      <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
-      
-      <div class="weather__loading">
-        <div class="skeleton skeleton--icon"></div>
-        <div class="skeleton-stack">
-          <div class="skeleton skeleton--xl"></div>
-          <div class="skeleton skeleton--md"></div>
-        </div>
-      </div>
+    <nav class="rooms" id="rooms" aria-label="Rooms" role="tablist"></nav>
 
-      <div class="weather__message" id="weather-message">
-        <div class="weather__message-icon" id="weather-message-icon"></div>
-        <div>
-          <h2 class="weather__message-title" id="weather-message-title"></h2>
-          <p class="weather__message-body" id="weather-message-body"></p>
-        </div>
-      </div>
+    <section class="tiles" id="tiles" role="tabpanel" aria-label="Tiles" data-room="overview">
 
-      <div class="weather__content">
-        <div class="weather__now">
-          <div class="weather__art" id="weather-art"></div>
-          <div class="weather__reading">
-            <div class="weather__temp" id="weather-temp"></div>
-            <div class="weather__desc" id="weather-desc"></div>
-            <div class="weather__range" id="weather-range"></div>
-            <div class="weather__sun" id="weather-sun"></div>
+      <article class="tile tile--wide card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
+        <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
+        <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2></header>
+        <div class="weather__loading">
+          <div class="skeleton skeleton--icon"></div>
+          <div class="skeleton-stack"><div class="skeleton skeleton--xl"></div><div class="skeleton skeleton--md"></div></div>
+        </div>
+        <div class="weather__message" id="weather-message">
+          <div class="weather__message-icon" id="weather-message-icon"></div>
+          <div>
+            <h3 class="weather__message-title" id="weather-message-title"></h3>
+            <p class="weather__message-body" id="weather-message-body"></p>
           </div>
         </div>
-        <dl class="weather__stats" id="weather-stats" data-open="weather#metrics"></dl>
-        <ol class="hourly" id="hourly" aria-label="Next hours" data-open="weather#hourly"></ol>
-        <div class="weather__meta" id="weather-meta"></div>
-      </div>
-      <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    </section>
+        <div class="weather__content">
+          <div class="weather__now">
+            <div class="weather__art" id="weather-art"></div>
+            <div class="weather__reading">
+              <div class="weather__temp" id="weather-temp"></div>
+              <div class="weather__desc" id="weather-desc"></div>
+              <div class="weather__range" id="weather-range"></div>
+              <div class="weather__sun" id="weather-sun"></div>
+            </div>
+          </div>
+          <ol class="daily" id="daily" aria-label="Coming days" data-open="weather#daily"></ol>
+          <dl class="weather__stats" id="weather-stats" data-open="weather#metrics"></dl>
+          <ol class="hourly" id="hourly" aria-label="Next hours" data-open="weather#hourly"></ol>
+          <div class="weather__meta" id="weather-meta"></div>
+        </div>
+        <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
 
-    <section class="card commute" id="commute" aria-labelledby="commute-title" data-state="loading" data-open="commute">
-      <h2 class="card__title">
-        <span id="commute-title">Commute</span>
-        <span class="card__end"><span class="card__count" id="commute-route"></span></span>
-      </h2>
-      <div class="commute__body" id="commute-body">
-        <div class="skeleton skeleton--row"></div>
-        <div class="skeleton skeleton--row"></div>
-      </div>
-      <div class="commute__meta" id="commute-meta"></div>
-      <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    </section>
+      <article class="tile tile--wide card commute" id="commute" data-tile="commute" data-tone="green" aria-labelledby="commute-title" data-state="loading" data-open="commute">
+        <header class="tile__head"><span class="tile__icon" data-icon="car" aria-hidden="true"></span><h2 class="tile__title" id="commute-title">Commute</h2><span class="tile__aside" id="commute-route"></span></header>
+        <div class="commute__body" id="commute-body">
+          <div class="skeleton skeleton--row"></div>
+          <div class="skeleton skeleton--row"></div>
+        </div>
+        <div class="commute__meta" id="commute-meta"></div>
+        <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
 
-    <section class="card advice" aria-labelledby="advice-title" data-open="advice">
-      <h2 class="card__title"><span id="advice-title">Before you go</span></h2>
-      <ul class="advice__list" id="advice-list" data-state="loading">
-        <li class="skeleton skeleton--row"></li>
-        <li class="skeleton skeleton--row"></li>
-      </ul>
-      <button type="button" class="tile-arrow" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-    </section>
-
-    <section class="card grocery" aria-labelledby="grocery-title" data-open="groceries">
-      <h2 class="card__title">
-        <span id="grocery-title">Groceries</span>
-        <span class="card__end"><span class="card__count" id="grocery-count"></span></span>
-      </h2>
-      <div class="grocery__body">
-        <ul class="grocery__list" id="grocery-list" data-state="loading">
-          <li class="skeleton skeleton--row"></li>
+      <article class="tile tile--wide card advice" id="advice" data-tile="advice" data-tone="amber" aria-labelledby="advice-title" data-open="advice">
+        <header class="tile__head"><span class="tile__icon" data-icon="compass" aria-hidden="true"></span><h2 class="tile__title" id="advice-title">Before you go</h2></header>
+        <ul class="advice__list" id="advice-list" data-state="loading">
           <li class="skeleton skeleton--row"></li>
           <li class="skeleton skeleton--row"></li>
         </ul>
-        <a class="grocery__qr" id="grocery-qr" href="/groceries" hidden>
-          <img id="grocery-qr-img" alt="QR code that opens the grocery list on your phone">
-          <span class="grocery__qr-label">Scan to edit</span>
-        </a>
-      </div>
-      <a class="tile-arrow" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        <button type="button" class="tile-arrow" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card calendar" id="calendar-tile" data-tile="calendar" data-tone="red" aria-labelledby="calendar-title" data-open="calendar" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="calendar" aria-hidden="true"></span><h2 class="tile__title" id="calendar-title">Calendar</h2><span class="tile__aside" id="calendar-when"></span></header>
+        <ul class="agenda" id="agenda" aria-label="Upcoming events and holidays"></ul>
+        <p class="tile__empty" id="calendar-empty" hidden></p>
+        <button type="button" class="tile-arrow" data-open="calendar" aria-haspopup="dialog" aria-label="Calendar details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile tile--wide card grocery" id="grocery-tile" data-tile="groceries" data-tone="orange" aria-labelledby="grocery-title" data-open="groceries">
+        <header class="tile__head"><span class="tile__icon" data-icon="cart" aria-hidden="true"></span><h2 class="tile__title" id="grocery-title">Groceries</h2><span class="tile__aside card__count" id="grocery-count"></span></header>
+        <div class="grocery__body">
+          <ul class="grocery__list" id="grocery-list" data-state="loading">
+            <li class="skeleton skeleton--row"></li>
+            <li class="skeleton skeleton--row"></li>
+          </ul>
+          <a class="grocery__qr" id="grocery-qr" href="/groceries" hidden>
+            <img id="grocery-qr-img" alt="QR code that opens the grocery list on your phone">
+            <span class="grocery__qr-label">Scan to edit</span>
+          </a>
+        </div>
+        <a class="tile-arrow" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      </article>
+
+      <article class="tile card assistant-tile" id="assistant-tile" data-tile="assistant" data-tone="violet" aria-labelledby="assistant-title" data-open="assistant" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="mic" aria-hidden="true"></span><h2 class="tile__title" id="assistant-title">Ask AURA</h2></header>
+        <p class="tile__value" id="assistant-status">&nbsp;</p>
+        <p class="tile__sub" id="assistant-sub"></p>
+        <button type="button" class="tile-arrow" data-open="assistant" aria-haspopup="dialog" aria-label="Open the assistant"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card protection" id="protection-tile" data-tile="protection" data-tone="teal" aria-labelledby="protection-title" data-open="protection" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="shield" aria-hidden="true"></span><h2 class="tile__title" id="protection-title">Network protection</h2></header>
+        <p class="tile__value" id="protection-status">&nbsp;</p>
+        <p class="tile__sub" id="protection-sub"></p>
+        <button type="button" class="tile-arrow" data-open="protection" aria-haspopup="dialog" aria-label="Network protection details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card system" id="system-tile" data-tile="system" data-tone="slate" aria-labelledby="system-title" data-open="system" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="chip" aria-hidden="true"></span><h2 class="tile__title" id="system-title">System</h2><span class="tile__aside" id="system-aside"></span></header>
+        <dl class="sysgrid" id="system-stats"></dl>
+        <button type="button" class="tile-arrow" data-open="system" aria-haspopup="dialog" aria-label="System details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <p class="tiles__empty" id="tiles-empty" hidden></p>
     </section>
   </main>
 
-  <!-- Detail view for a tile. Opened via #/clock, #/weather[/section], #/advice, #/commute -->
+  <!-- Detail view for a tile. Opened via #/clock, #/weather[/section], #/advice, #/commute, #/calendar, ... -->
   <dialog class="detail" id="detail" aria-labelledby="detail-title">
     <div class="detail__inner">
       <header class="detail__head">

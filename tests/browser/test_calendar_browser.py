@@ -17,7 +17,7 @@ def dashboard(chrome, srv, w=1920, h=1080, calendar=None):
     p.fixture("/api/calendar", calendar or calendar_payload())
     p.goto(f"{srv.url}/")
     p.wait_for("document.getElementById('grocery-list').dataset.state !== 'loading'"
-               " && !document.getElementById('agenda').hidden")
+               " && document.getElementById('calendar-tile').dataset.state !== 'loading'")
     return p
 
 
@@ -25,7 +25,8 @@ def test_dashboard_agenda_shows_today_capped(chrome, server, artifacts):
     p = dashboard(chrome, server)
     rows = p.js("[...document.querySelectorAll('#agenda li')].map(li => li.textContent.trim())")
     assert len(rows) == 3                                      # 2 items + "+2 more" (max three rows)
-    assert "Rohan's birthday" in rows[0] and "Today" in rows[0] and "Diwali" in rows[1]
+    assert "Rohan's birthday" in rows[0] and "Diwali" in rows[1]
+    assert p.text("#calendar-when") == "Today"
     assert "+ 2 more" in rows[-1]
     assert sum("Rohan" in r for r in rows) == 1
     p.screenshot(str(artifacts / "agenda-1920.png"))
@@ -33,15 +34,16 @@ def test_dashboard_agenda_shows_today_capped(chrome, server, artifacts):
 
 def test_agenda_falls_forward_to_next_day_with_items(chrome, server):
     p = dashboard(chrome, server, calendar=calendar_payload(today_items=False))
-    text = p.text("#agenda")
-    assert "Halloween" in text and "Tomorrow" in text
+    assert "Halloween" in p.text("#agenda") and p.text("#calendar-when") == "Tomorrow"
 
 
-def test_clock_detail_lists_events_once_with_calendars(chrome, server, artifacts):
+def test_calendar_detail_lists_events_once_with_calendars(chrome, server, artifacts):
     p = dashboard(chrome, server)
-    p.js("window.AuraDetail.open('clock')")
+    click_tile = "document.querySelector('#calendar-tile .tile-arrow').click()"
+    p.js(click_tile)
     p.wait_for(IS_OPEN)
     text = p.text("#detail-body")
+    assert p.js("document.getElementById('detail').dataset.view") == "calendar"
     for term in ("Events, birthdays & holidays", "Rohan's birthday", "Diwali", "Dentist", "Halloween",
                  "Family", "Holidays"):
         assert term in text, term
@@ -60,3 +62,11 @@ def test_entrance_fits_with_agenda(chrome, server, artifacts, w, h):
         return a.bottom > innerHeight || a.right > innerWidth; })()""")
     assert not clipped
     p.screenshot(str(artifacts / f"agenda-{w}x{h}.png"))
+
+
+def test_calendar_tile_when_not_connected(chrome, server):
+    unconfigured = {**calendar_payload(), "status": "unconfigured", "days": [], "feeds": []}
+    p = dashboard(chrome, server, calendar=unconfigured)
+    assert p.js("document.getElementById('calendar-tile').dataset.state") == "off"
+    assert "No calendar connected" in p.text("#calendar-tile")
+    assert p.js("document.querySelectorAll('#agenda li').length") == 0      # nothing invented

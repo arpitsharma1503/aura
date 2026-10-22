@@ -21,6 +21,9 @@ window.AuraDetail = (() => {
     advice: { title: "Before you go", render: renderAdvice },
     commute: { title: "Commute", render: renderCommute },
     assistant: { title: "Ask AURA", render: () => { const v = window.AuraAssistant.view(); window.AuraAssistant.paintView(); return v; } },
+    calendar: { title: "Calendar", render: renderCalendar },
+    protection: { title: "Network protection", render: renderProtection },
+    system: { title: "System", render: renderSystem },
   };
 
   // ---------- tiny DOM helper (text only; never innerHTML with data) ----------
@@ -48,7 +51,7 @@ window.AuraDetail = (() => {
   // ---------- open / close with history ----------
 
   function parseHash(hash) {
-    const m = /^#\/(clock|weather|advice|commute|assistant)(?:\/([a-z]+))?$/.exec(hash || "");
+    const m = /^#\/(clock|weather|advice|commute|assistant|calendar|protection|system)(?:\/([a-z]+))?$/.exec(hash || "");
     return m ? { view: m[1], section: m[2] || null } : null;
   }
 
@@ -126,6 +129,7 @@ window.AuraDetail = (() => {
 
   function startTicker() {
     stopTicker();
+    if (current?.view === "protection") ctx.reloadProtection?.();
     if (current?.view !== "clock") return;
     ticker = setInterval(() => {
       const el = $("dclock-time");
@@ -165,7 +169,6 @@ window.AuraDetail = (() => {
       rows.push(metric("Daylight", `${Math.floor(len / 60)} h ${Math.round(len % 60)} min`));
     }
     out.push(section("time", "Details", h("dl", { class: "dmetrics" }, rows)));
-    out.push(section("calendar", "Events, birthdays & holidays", calendarList()));
     return out;
   }
 
@@ -203,6 +206,85 @@ window.AuraDetail = (() => {
     if (cal.message) parts.push(note(cal.message, "dnote--warn"));
     if (feeds) parts.push(note(`Calendars — ${feeds}`, "dnote--muted"));
     return parts;
+  }
+
+  function renderCalendar() {
+    const cal = ctx.calendar();
+    const feeds = cal?.feeds || [];
+    $("detail-sub").textContent = feeds.length ? feeds.map((f) => f.label).join(" · ") : "";
+    return [section("calendar", "Events, birthdays & holidays", calendarList())];
+  }
+
+  // ----- network protection (read-only) -----
+  function renderProtection() {
+    const d = ctx.protection();
+    if (!d) return [note("Checking network protection…")];
+    const svc = { running: "Running", stopped: "Stopped", failed: "Failed", not_installed: "Not installed", unknown: "Unknown" }[d.service];
+    const yes = (v, a, b) => (v == null ? "—" : v ? a : b);
+    $("detail-sub").textContent = d.pi_address ? `Pi-hole on ${d.pi_address}` : "Pi-hole";
+    const out = [];
+    if (!d.installed) {
+      out.push(h("div", { class: "dempty" }, h("span", { html: ctx.icon("info") }),
+        h("div", {}, h("strong", {}, "Pi-hole isn't installed"),
+          h("p", {}, "Network-wide ad blocking isn't set up on this Pi. See README → Network protection."))));
+      return out;
+    }
+    out.push(section("health", "Service health", h("dl", { class: "dmetrics" },
+      metric("Pi-hole service", svc),
+      metric("DNS answers", yes(d.dns_ok, "Working", "Not answering"), "test lookup of example.com"),
+      metric("Ad blocking", yes(d.blocking_ok, "Working", "Not blocking"), "test domain doubleclick.net"),
+      metric("Last healthy check", d.last_ok_at ? ctx.formatTime(new Date(d.last_ok_at)) : "—",
+        `checked ${ctx.formatTime(new Date(d.checked_at))}`)),
+      d.problems.length ? h("ul", { class: "dproblems" }, d.problems.map((t) => h("li", {}, t))) : null));
+    const routerDns = d.router_dns.join(", ") || "unknown";
+    out.push(section("coverage", "Which devices are protected", h("dl", { class: "dmetrics" },
+      metric("Router gives out DNS", routerDns, d.router_uses_pihole ? "includes this Pi" : "not this Pi")),
+      note(d.router_uses_pihole
+        ? "Devices that take their settings from the router use Pi-hole. Devices with encrypted or fixed DNS (iCloud Private Relay, Android Private DNS, some TVs) bypass it, and DNS filtering can't remove ads served from the same site (most YouTube ads)."
+        : `Not network-wide: only devices you have set to use ${d.pi_address || "this Pi"} for DNS are filtered. Pi-hole running alone doesn't protect a device.`,
+        d.router_uses_pihole ? "dnote--muted" : "dnote--warn")));
+    if (d.stats) {
+      const n = (x) => Number(x).toLocaleString("en-IN");
+      out.push(section("stats", "Last 24 hours", h("dl", { class: "dmetrics" },
+        metric("DNS lookups", n(d.stats.total_queries), d.stats.active_clients != null ? `${d.stats.active_clients} active devices` : null),
+        metric("Blocked", `${n(d.stats.blocked_queries)} (${d.stats.percent_blocked}%)`),
+        metric("Domains on blocklists", d.stats.domains_on_blocklists != null ? n(d.stats.domains_on_blocklists) : "—"),
+        metric("Blocking", d.stats.blocking_enabled == null ? "—" : d.stats.blocking_enabled ? "Enabled" : "Paused"))));
+    } else if (d.stats_note) {
+      out.push(section("stats", "Statistics", note(d.stats_note, "dnote--muted")));
+    }
+    out.push(section("manage", "Manage", note("Blocklists, the query log and allowed domains are managed in Pi-hole's own admin page, which asks for its own password."),
+      h("p", {}, h("a", { class: "btn", href: `http://${location.hostname}/admin/`, target: "_blank", rel: "noopener" }, "Open Pi-hole admin"))));
+    return out;
+  }
+
+  // ----- system -----
+  function renderSystem() {
+    const s = ctx.system();
+    const n = ctx.network();
+    if (!s) return [note("Reading system status…")];
+    $("detail-sub").textContent = `${s.hostname}${s.model ? ` · ${s.model}` : ""}`;
+    const pct = (a, b) => (b ? `${Math.round(100 * (1 - a / b))}% used` : "—");
+    const up = s.system_uptime_s != null ? (s.system_uptime_s >= 86400 ? `${Math.floor(s.system_uptime_s / 86400)} d ${Math.floor((s.system_uptime_s % 86400) / 3600)} h`
+      : `${Math.floor(s.system_uptime_s / 3600)} h ${Math.floor((s.system_uptime_s % 3600) / 60)} min`) : "—";
+    const out = [section("health", "Raspberry Pi", h("dl", { class: "dmetrics" },
+      metric("CPU temperature", s.cpu_temperature_c != null ? `${s.cpu_temperature_c.toFixed(1)}°C` : "—", s.cpu_temperature_c >= 75 ? "hot: check ventilation" : null),
+      metric("CPU load (1 min)", s.load_1m != null ? s.load_1m.toFixed(2) : "—", "4 cores"),
+      metric("Memory", pct(s.memory_available_mb, s.memory_total_mb), s.memory_available_mb != null ? `${(s.memory_available_mb / 1024).toFixed(1)} GB available` : null),
+      metric("Storage", s.disk_free_gb != null ? `${s.disk_free_gb.toFixed(1)} GB free` : "—", s.disk_total_gb ? `of ${s.disk_total_gb.toFixed(0)} GB` : null),
+      metric("Uptime", up),
+      metric("System", s.os, s.kernel)))];
+    if (n) {
+      out.push(section("network", "Network", h("dl", { class: "dmetrics" },
+        metric("Internet", n.connectivity === "full" ? "Connected" : (n.connectivity || "Unknown")),
+        metric("Connection", n.wifi_connected ? `Wi-Fi · ${n.wifi_ssid || ""}` : (n.interfaces.some((x) => x.type === "ethernet" && x.state === "connected") ? "Ethernet" : "—")),
+        metric("Address", n.lan_ip || "—", `${n.hostname}.local`))));
+    }
+    out.push(section("services", "AURA", h("dl", { class: "dmetrics" },
+      metric("Dashboard", "Running", `version ${s.app_version}`),
+      metric("Running since", ctx.formatTime(new Date(s.app_started_at))))),
+      note("Wi-Fi, locations and other preferences are in Settings.", "dnote--muted"));
+    return out;
   }
 
   // ----- weather -----

@@ -155,6 +155,95 @@ class GrocerySettings(_Strict):
         return out
 
 
+TileId = Literal["weather", "commute", "advice", "calendar", "groceries", "assistant", "protection", "system"]
+# Default order; on the entrance screen it packs into exactly three rows of four columns.
+TILES: tuple[str, ...] = ("weather", "commute", "advice", "groceries", "calendar", "assistant", "protection", "system")
+
+
+def _label(raw: Any, field: str, max_len: int) -> str:
+    if not isinstance(raw, str):
+        raise ValueError(f"{field} must be text")
+    text = re.sub(r"\s+", " ", raw).strip()
+    if not text:
+        raise ValueError(f"{field} can't be empty")
+    if len(text) > max_len:
+        raise ValueError(f"{field} must be at most {max_len} characters")
+    if any(ord(c) < 32 for c in text):
+        raise ValueError(f"{field} contains invalid characters")
+    return text
+
+
+def _unique_tiles(v: Any) -> list[str]:
+    if not isinstance(v, list):
+        raise ValueError("must be a list of tiles")
+    out: list[str] = []
+    for t in v:
+        if t not in TILES:
+            raise ValueError(f"unknown tile: {t!r}")
+        if t not in out:
+            out.append(t)
+    return out
+
+
+class Room(_Strict):
+    """A room or zone on the dashboard: a named group of information tiles.
+    Rooms don't imply any connected hardware; they only organise tiles."""
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,23}$")
+    name: str
+    tiles: list[TileId] = []
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v):
+        return _label(v, "room name", 24)
+
+    @field_validator("tiles", mode="before")
+    @classmethod
+    def _tiles(cls, v):
+        return _unique_tiles(v)
+
+
+def _default_rooms() -> list[Room]:
+    return [
+        Room(id="entrance", name="Entrance", tiles=["weather", "advice", "commute", "calendar", "assistant"]),
+        Room(id="kitchen", name="Kitchen", tiles=["groceries"]),
+        Room(id="network", name="Network & system", tiles=["protection", "system"]),
+    ]
+
+
+class HomeSettings(_Strict):
+    name: str = "Home"
+    tile_order: list[TileId] = Field(default_factory=lambda: list(TILES))
+    hidden_tiles: list[TileId] = []
+    rooms: list[Room] = Field(default_factory=_default_rooms, max_length=8)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v):
+        return _label(v, "home name", 30)
+
+    @field_validator("tile_order", mode="before")
+    @classmethod
+    def _order(cls, v):
+        order = _unique_tiles(v)
+        return order + [t for t in TILES if t not in order]     # tiles added later still appear
+
+    @field_validator("hidden_tiles", mode="before")
+    @classmethod
+    def _hidden(cls, v):
+        return _unique_tiles(v)
+
+    @model_validator(mode="after")
+    def _rooms_unique(self):
+        ids = [r.id for r in self.rooms]
+        names = [r.name.casefold() for r in self.rooms]
+        if len(set(ids)) != len(ids) or len(set(names)) != len(names):
+            raise ValueError("room names must be different from each other")
+        if "overview" in ids:
+            raise ValueError("'overview' is reserved for the whole-home view")
+        return self
+
+
 class AssistantSettings(_Strict):
     enabled: bool = True
     spoken_replies: bool = True              # play answers through the screen's speakers (TV over HDMI)
@@ -168,8 +257,9 @@ SECTIONS: dict[str, type[_Strict]] = {
     "commute": CommuteSettings,
     "groceries": GrocerySettings,
     "assistant": AssistantSettings,
+    "home": HomeSettings,
 }
-Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant"]
+Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant", "home"]
 
 
 def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
@@ -203,6 +293,7 @@ def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
         },
         "groceries": {},
         "assistant": {"enabled": env.voice_enabled},
+        "home": {},
     }
 
 
@@ -280,6 +371,8 @@ class SettingsStore:
     def groceries(self) -> GrocerySettings: return self._cache["groceries"]  # noqa: E704
     @property
     def assistant(self) -> AssistantSettings: return self._cache["assistant"]  # noqa: E704
+    @property
+    def home(self) -> HomeSettings: return self._cache["home"]  # noqa: E704
 
     def customized(self, section: str) -> list[str]:
         return sorted(self._overrides(section))

@@ -16,3 +16,5 @@ data/groceries.json.migrated
 backups/
 tests/browser/artifacts/
 data/commute.lock
+docs/redesign/before/
+docs/redesign/after/

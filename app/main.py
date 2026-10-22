@@ -242,7 +242,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             broker.publish("commute", {})
         if section in ("weather", "locations"):
             weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
-        if section in ("display", "weather", "locations", "groceries"):
+        if section in ("display", "weather", "locations", "groceries", "home"):
             broker.publish("location", {})        # dashboards re-read /api/config and refresh
         if section == "groceries":
             await auto_clear()
@@ -253,7 +253,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                 "weather": "Weather uses the new settings from the next update.",
                 "display": "Open dashboards update within a few seconds.",
                 "groceries": "Phones and the dashboard use the new settings now.",
-                "assistant": "The assistant uses the new settings now."}.get(section, "")
+                "assistant": "The assistant uses the new settings now.",
+                "home": "Open dashboards show the new rooms and tiles within a few seconds."}.get(section, "")
 
     async def auto_clear() -> None:
         days = prefs.groceries.auto_clear_purchased_days
@@ -355,6 +356,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "weather_refresh_seconds": prefs.weather.refresh_minutes * 60,
             "dev_preview": provider is not None and provider.is_mock,
             "location": location.public().model_dump(mode="json"),
+            "home": prefs.home.model_dump(mode="json"),
+            "assistant_enabled": prefs.assistant.enabled,
         }
 
     # ----- session / access -----

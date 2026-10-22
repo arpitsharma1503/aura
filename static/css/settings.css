@@ -43,13 +43,13 @@ html:has(.s-page) { font-size: max(15px, min(0.35vw + 12px, 0.9vw, 1.6vh)); }
   scroll-margin-top: 4rem;
   display: flex; flex-direction: column; gap: 1rem;
   padding: clamp(16px, 2vw, 28px);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--card-hi), var(--card) 40%);
-  border: 1px solid var(--line);
+  border-radius: var(--r-tile);
+  background: var(--surface-1);
+  border: 1px solid rgba(255, 255, 255, 0.04);
 }
 .s-card.is-dirty { border-color: rgba(255, 207, 122, 0.4); }
 .s-card__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-.s-card__head h2 { margin: 0; font-size: 1.25rem; font-weight: 500; }
+.s-card__head h2 { margin: 0; font-size: 1.25rem; font-weight: 650; letter-spacing: -0.01em; }
 .s-sub h3 { margin: 0.4rem 0 0.4rem; font-size: 1rem; font-weight: 600; }
 .s-help { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--ink-3); }
 .s-help a, .s-details a { color: var(--accent); }
@@ -182,3 +182,28 @@ legend { padding: 0; margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--ink-
 .s-problems { margin: 0.4rem 0 0; padding-left: 1.2rem; color: var(--warn, #ffb35c); line-height: 1.5; }
 .s-problems:empty { display: none; }
 .s-problems li + li { margin-top: 0.35rem; }
+
+/* Home & rooms: reorderable tile list and room editor */
+.s-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.s-row {
+  display: flex; align-items: center; gap: 0.4rem; min-width: 0;
+  padding: 0.35rem 0.4rem 0.35rem 0.8rem; border-radius: var(--r-sm); background: rgba(255, 255, 255, 0.04);
+}
+.s-row__main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.7rem; min-height: 2.5rem; cursor: pointer; }
+.s-row__main input { width: 1.15rem; height: 1.15rem; accent-color: var(--accent); }
+.s-move {
+  flex: none; display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; cursor: pointer;
+  border: 0; border-radius: 50%; font: inherit; font-size: 1.05rem; color: var(--ink-2); background: transparent;
+}
+.s-move:hover { color: var(--ink); background: var(--surface-2); }
+.s-move:focus-visible { outline: none; box-shadow: var(--focus); }
+li:first-child > .s-move:nth-of-type(1), li:first-child > .s-room__top > .s-move:nth-of-type(1),
+li:last-child > .s-move:nth-of-type(2), li:last-child > .s-room__top > .s-move:nth-of-type(2) { opacity: 0.3; }
+.s-room { flex-direction: column; align-items: stretch; gap: 0.5rem; padding: 0.6rem 0.6rem 0.7rem 0.8rem; }
+.s-room__top { display: flex; align-items: center; gap: 0.3rem; }
+.s-room__top .s-room__name { flex: 1; min-width: 0; }
+.s-room__remove { color: var(--danger); }
+.s-room__tiles { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem 1rem; }
+.s-room__tiles label { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.2rem; font-size: 0.9rem; color: var(--ink-2); cursor: pointer; }
+.s-room__tiles input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+@media (pointer: coarse) { .s-move { width: 2.75rem; height: 2.75rem; } .s-room__tiles label { min-height: 2.75rem; } }

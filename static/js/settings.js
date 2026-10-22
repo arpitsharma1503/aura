@@ -9,7 +9,9 @@
   const $ = (id) => document.getElementById(id);
   const state = { settings: null, info: null, snapshot: {}, canEdit: false, canAdmin: false, scan: [], target: null };
   const LABELS = { network: "Network", locations: "Locations", weather: "Weather", commute: "Commute",
-    display: "Display", groceries: "Groceries" };
+    display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms" };
+  const TILE_NAMES = { weather: "Weather", commute: "Commute", advice: "Before you go", groceries: "Groceries",
+    calendar: "Calendar", assistant: "Ask AURA", protection: "Network protection", system: "System" };
 
   // ---------- API ----------
   class ApiError extends Error {
@@ -78,6 +80,14 @@
     if (node.matches("fieldset.s-choice")) return node.querySelector("input:checked")?.value ?? null;
     if (type === "days") return [...node.querySelectorAll("input:checked")].map((i) => i.value);
     if (type === "list") return [...node.querySelectorAll("li")].map((li) => li.dataset.value);
+    if (type === "tiles") return [...node.querySelectorAll(":scope > li")].map((li) => li.dataset.value);
+    if (type === "hidden-tiles") return [...$("tile-editor").querySelectorAll(":scope > li")]
+      .filter((li) => !li.querySelector("input[type=checkbox]").checked).map((li) => li.dataset.value);
+    if (type === "rooms") return [...node.querySelectorAll(":scope > li")].map((li) => ({
+      id: li.dataset.id,
+      name: li.querySelector(".s-room__name").value.trim(),
+      tiles: [...li.querySelectorAll(".s-room__tiles input:checked")].map((i) => i.value),
+    }));
     if (node.type === "checkbox") return node.checked;
     const v = node.value.trim();
     if (type === "int") return v === "" ? null : Number(v);
@@ -94,6 +104,14 @@
       node.querySelectorAll("input").forEach((i) => { i.checked = (value || []).includes(i.value); });
     } else if (type === "list") {
       renderQuickAdd(value || []);
+    } else if (type === "tiles") {
+      renderTileEditor(value || []);
+    } else if (type === "hidden-tiles") {
+      for (const li of $("tile-editor").querySelectorAll(":scope > li")) {
+        li.querySelector("input[type=checkbox]").checked = !(value || []).includes(li.dataset.value);
+      }
+    } else if (type === "rooms") {
+      renderRoomEditor(value || []);
     } else if (node.type === "checkbox") {
       node.checked = !!value;
     } else if (node.tagName === "SELECT" && value != null && ![...node.options].some((o) => o.value === String(value))) {
@@ -251,6 +269,65 @@
     input.value = "";
     const form = $("groceries");
     updateDirty(form); setStatus(form, isDirty(form) ? "Unsaved changes" : "");
+  }
+
+  // ---------- Home & rooms editors ----------
+  function homeChanged() {
+    const form = $("home");
+    updateDirty(form); setStatus(form, isDirty(form) ? "Unsaved changes" : "");
+  }
+
+  function moveButtons(li, label) {
+    const up = el("button", { type: "button", class: "s-move", "aria-label": `Move ${label} up` }, "↑");
+    const down = el("button", { type: "button", class: "s-move", "aria-label": `Move ${label} down` }, "↓");
+    up.addEventListener("click", () => { if (li.previousElementSibling) { li.previousElementSibling.before(li); up.focus(); homeChanged(); } });
+    down.addEventListener("click", () => { if (li.nextElementSibling) { li.nextElementSibling.after(li); down.focus(); homeChanged(); } });
+    return [up, down];
+  }
+
+  function renderTileEditor(order) {
+    $("tile-editor").replaceChildren(...order.map((id) => {
+      const li = el("li", { class: "s-row", "data-value": id });
+      const box = el("input", { type: "checkbox", checked: true, "aria-label": `Show ${TILE_NAMES[id] || id}` });
+      li.append(el("label", { class: "s-row__main" }, box, el("span", {}, TILE_NAMES[id] || id)), ...moveButtons(li, TILE_NAMES[id] || id));
+      return li;
+    }));
+  }
+
+  function roomRow(room) {
+    const li = el("li", { class: "s-row s-room", "data-id": room.id });
+    const name = el("input", { class: "sheet__input s-room__name", maxlength: "24", value: room.name, "aria-label": "Room name" });
+    const tiles = el("fieldset", { class: "s-room__tiles" }, el("legend", { class: "sr-only" }, `Tiles in ${room.name}`),
+      Object.entries(TILE_NAMES).map(([id, label]) => el("label", {},
+        el("input", { type: "checkbox", value: id, checked: room.tiles.includes(id) }), label)));
+    const remove = el("button", { type: "button", class: "s-move s-room__remove", "aria-label": `Remove ${room.name}` }, "×");
+    remove.addEventListener("click", () => { li.remove(); homeChanged(); });
+    li.append(el("div", { class: "s-room__top" }, name, ...moveButtons(li, room.name), remove), tiles);
+    return li;
+  }
+
+  function renderRoomEditor(rooms) {
+    $("room-editor").replaceChildren(...rooms.map(roomRow));
+  }
+
+  function addRoom() {
+    const input = $("room-new");
+    const name = input.value.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    const list = $("room-editor");
+    const rows = [...list.querySelectorAll(":scope > li")];
+    const form = $("home");
+    if (rows.length >= 8) { setStatus(form, "Up to 8 rooms.", "error"); return; }
+    if (rows.some((li) => li.querySelector(".s-room__name").value.trim().toLowerCase() === name.toLowerCase())) {
+      setStatus(form, `There's already a room called ${name}.`, "error"); return;
+    }
+    const base = name.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "room";
+    let id = base === "overview" ? "overview-room" : base, n = 2;
+    while (rows.some((li) => li.dataset.id === id)) id = `${base}-${n++}`;
+    list.append(roomRow({ id, name, tiles: [] }));
+    input.value = "";
+    list.lastElementChild.querySelector(".s-room__tiles input")?.focus();
+    homeChanged();
   }
 
   // ---------- place search (fills coordinates; nothing saved until Save) ----------
@@ -528,6 +605,8 @@
     } catch { /* optional */ }
     $("qa-add").addEventListener("click", addQuickAdd);
     $("qa-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addQuickAdd(); } });
+    $("room-add").addEventListener("click", addRoom);
+    $("room-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addRoom(); } });
     $("net-refresh").addEventListener("click", loadNetwork);
     $("dns-refresh").addEventListener("click", () => loadDnsFilter(true));
     $("sys-refresh").addEventListener("click", loadSystem);

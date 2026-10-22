@@ -25,6 +25,11 @@
     weatherPayload: null,   // last /api/weather response of any status (for detail views)
     commute: null,          // last /api/commute response
     calendar: null,         // last /api/calendar response
+    groceries: null,        // last /api/groceries response
+    protection: null,       // last /api/system/dns-filter response
+    system: null,           // last /api/system/info response
+    network: null,          // last /api/system/network response
+    room: "overview",       // selected room tab
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -128,6 +133,9 @@
       timeZone: tz(), weekday: "long", day: "numeric", month: "long",
     }).format(now);
     document.body.dataset.phase = phaseFor(now);
+    const { hour } = zonedParts(now);
+    const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 22 ? "Good evening" : "Good night";
+    if ($("greeting").textContent !== greeting) $("greeting").textContent = greeting;
   }
 
   function startClock() {
@@ -478,12 +486,13 @@
         state.weatherReceivedAt = Date.now();
         renderWeather(payload);
         renderAdvice(payload);
+        renderStatus();
         return;
       }
       state.weather = null;
       if (payload.reason === "no_location") {
         showWeatherMessage("unavailable", "Set your home location",
-          "Weather appears once AURA knows which city your home is in. Use the Location button under the clock.", "pin");
+          "Weather appears once AURA knows which city your home is in. Use the Location button above.", "pin");
       } else if (payload.reason === "disabled") {
         showWeatherMessage("unavailable", "Weather is turned off",
           "Set AURA_WEATHER_PROVIDER=open_meteo in .env to enable live weather.");
@@ -492,6 +501,7 @@
           `${payload.message || "The weather service returned an error"}. Retrying automatically.`);
       }
       renderAdvice(null, payload.reason === "no_location" ? "no_location" : payload.status);
+      renderStatus();
     } catch {
       // AURA server unreachable: keep what we have, marked stale.
       if (state.weather) {
@@ -548,6 +558,8 @@
   const QR_REFRESH_MS = 10 * 60_000;   // the Pi's IP can change; keep the code current
 
   function renderGroceries(res) {
+    state.groceries = res;
+    renderStatus();
     const list = $("grocery-list");
     const count = $("grocery-count");
     list.dataset.state = res.status;
@@ -568,8 +580,8 @@
     }
 
     count.textContent = `${open.length} to buy`;
-    // The wide entrance layout has room for a single column of 5.
-    const max = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches ? 5 : MAX_GROCERIES;
+    // The entrance layout's wide tile has room for two columns of three.
+    const max = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches ? 6 : MAX_GROCERIES;
     const shown = open.slice(0, max);
     const canEdit = state.session?.can_edit;
     list.toggleAttribute("data-readonly", !canEdit);
@@ -791,6 +803,7 @@
     try {
       state.commute = await fetchJSON("/api/commute");
       renderCommute(state.commute);
+      renderStatus();
       Detail.refresh("commute");
     } catch {
       if ($("commute").dataset.state === "loading") {
@@ -819,21 +832,39 @@
 
   function renderAgenda(cal) {
     const list = $("agenda");
-    const days = cal?.days || [];
+    const tile = $("calendar-tile");
+    const empty = $("calendar-empty");
+    const setEmpty = (title, text, kind = "ok") => {
+      list.replaceChildren();
+      tile.dataset.state = kind;
+      $("calendar-when").textContent = "";
+      empty.replaceChildren(Object.assign(document.createElement("b"), { textContent: title }), document.createTextNode(text));
+      empty.hidden = false;
+    };
+    if (!cal || cal.status === "unconfigured") {
+      setEmpty("No calendar connected", "Add a calendar address on the Pi (Settings → Calendars).", "off");
+      return;
+    }
+    const days = cal.days || [];
     // Today's items; if there are none, the next day that has something.
     const day = days.find((d) => d.date === cal.today) || days[0];
-    if (!day || !["ok", "partial"].includes(cal.status)) { list.hidden = true; list.replaceChildren(); return; }
-    // At most three rows: three items, or two plus "+N more" (keeps the clock column within the screen).
+    if (!day) {
+      if (cal.status === "error" || cal.status === "loading") setEmpty("Calendars unavailable", "They couldn't be reached right now.", "error");
+      else setEmpty("Nothing coming up", "No events, birthdays or holidays in the next few weeks.");
+      return;
+    }
+    empty.hidden = true;
+    tile.dataset.state = cal.status === "partial" ? "alert" : "ok";
+    // At most three rows: three items, or two plus "+N more".
     const shown = day.items.length > 3 ? day.items.slice(0, 2) : day.items;
-    const label = dayLabel(day.date, cal.today);
-    list.replaceChildren(...shown.map((it, i) => {
+    $("calendar-when").textContent = dayLabel(day.date, cal.today);
+    list.replaceChildren(...shown.map((it) => {
       const li = document.createElement("li");
       li.className = "agenda__item";
       li.dataset.kind = it.kind;
-      li.innerHTML = `<span class="agenda__when"></span><span class="agenda__icon">${icon(KIND_ICON[it.kind])}</span><span class="agenda__title"></span><span class="agenda__time"></span>`;
-      li.querySelector(".agenda__when").textContent = i === 0 ? label : "";
+      li.innerHTML = `<span class="agenda__icon">${icon(KIND_ICON[it.kind])}</span><span class="agenda__title"></span><span class="agenda__time"></span>`;
       li.querySelector(".agenda__title").textContent = it.title;
-      li.querySelector(".agenda__time").textContent = calTime(it, cal.timezone);
+      li.querySelector(".agenda__time").textContent = it.all_day ? "" : calTime(it, cal.timezone);
       return li;
     }));
     if (day.items.length > shown.length) {
@@ -842,15 +873,214 @@
       more.textContent = `+ ${day.items.length - shown.length} more`;
       list.append(more);
     }
-    list.hidden = false;
   }
 
   async function loadCalendar() {
     try {
       state.calendar = await fetchJSON("/api/calendar");
       renderAgenda(state.calendar);
-      Detail.refresh("clock");
+      renderStatus();
+      Detail.refresh("calendar");
     } catch { /* keep what's shown */ }
+  }
+
+  // ---------- network protection (read-only Pi-hole status) ----------
+
+  async function loadProtection() {
+    try {
+      state.protection = await fetchJSON("/api/system/dns-filter");
+    } catch { /* keep the last known state */ }
+    renderProtection(state.protection);
+    renderStatus();
+    Detail.refresh("protection");
+  }
+
+  function renderProtection(d) {
+    const tile = $("protection-tile");
+    const val = $("protection-status");
+    const sub = $("protection-sub");
+    if (!d) { tile.dataset.state = "loading"; val.textContent = "Checking…"; sub.textContent = ""; return; }
+    if (!d.installed) {
+      tile.dataset.state = "off";
+      val.textContent = "Not installed";
+      sub.textContent = "Network-wide ad blocking (Pi-hole) isn't set up on this Pi.";
+      return;
+    }
+    if (d.service !== "running" || d.dns_ok === false) {
+      tile.dataset.state = "alert";
+      val.textContent = d.service !== "running" ? "Stopped" : "Not answering";
+      sub.textContent = d.problems?.[0] || "Pi-hole needs attention.";
+      return;
+    }
+    const n = (x) => Number(x).toLocaleString("en-IN");
+    const stats = d.stats ? ` · ${d.stats.percent_blocked}% of ${n(d.stats.total_queries)} lookups blocked (24 h)` : "";
+    if (d.blocking_ok === false || d.problems?.length) {
+      tile.dataset.state = "alert";
+      val.textContent = "Needs attention";
+      sub.textContent = d.problems?.[0] || "A test ad domain was not blocked.";
+    } else if (d.router_uses_pihole) {
+      tile.dataset.state = "ok";
+      val.textContent = "Active";
+      sub.textContent = `Router gives out this Pi for DNS, so devices that follow it are filtered${stats}.`;
+    } else if (d.router_uses_pihole == null) {
+      tile.dataset.state = "ok";
+      val.textContent = "Running";
+      sub.textContent = `Blocking works; couldn't tell which DNS server the router gives out${stats}.`;
+    } else {
+      tile.dataset.state = "ok";
+      val.textContent = "Running";
+      sub.textContent = `Not network-wide yet: only devices set to use this Pi for DNS are filtered${stats}.`;
+    }
+  }
+
+  // ---------- system ----------
+
+  async function loadSystem() {
+    try {
+      const [info, net] = await Promise.all([fetchJSON("/api/system/info"), fetchJSON("/api/system/network").catch(() => null)]);
+      state.system = info;
+      if (net) state.network = net;
+    } catch { /* keep the last known state */ }
+    renderSystem();
+    Detail.refresh("system");
+  }
+
+  function renderSystem() {
+    const s = state.system, n = state.network;
+    const tile = $("system-tile");
+    if (!s) { tile.dataset.state = "loading"; return; }
+    const items = [];
+    const add = (label, value, warn = false) => {
+      const div = document.createElement("div");
+      const dt = document.createElement("dt"); dt.textContent = label;
+      const dd = document.createElement("dd"); dd.textContent = value;
+      if (warn) dd.className = "is-warn";
+      div.append(dt, dd); items.push(div);
+    };
+    const hot = s.cpu_temperature_c != null && s.cpu_temperature_c >= 75;
+    const memPct = s.memory_total_mb ? Math.round(100 * (1 - s.memory_available_mb / s.memory_total_mb)) : null;
+    const diskPct = s.disk_total_gb ? Math.round(100 * (1 - s.disk_free_gb / s.disk_total_gb)) : null;
+    if (s.cpu_temperature_c != null) add("CPU", `${Math.round(s.cpu_temperature_c)}°C`, hot);
+    if (memPct != null) add("Memory", `${memPct}% used`, memPct >= 90);
+    if (diskPct != null) add("Storage", `${Math.round(s.disk_free_gb)} GB free`, diskPct >= 90);
+    if (n) add("Network", n.connectivity === "full" ? (n.wifi_connected ? "Wi-Fi" : "Ethernet") : (n.connectivity || "Unknown"), n.connectivity && n.connectivity !== "full");
+    $("system-stats").replaceChildren(...items);
+    const problem = hot || memPct >= 90 || diskPct >= 90 || (n && n.connectivity && n.connectivity !== "full");
+    tile.dataset.state = problem ? "alert" : "ok";
+    $("system-aside").textContent = problem ? "Check" : "Healthy";
+  }
+
+  // ---------- at-a-glance status capsules (only from data already loaded) ----------
+
+
+  function renderStatus() {
+    const caps = [];
+    const cap = (iconName, label, value, open, tone, kind = "") => caps.push({ iconName, label, value, open, tone, kind });
+    const w = state.weather?.data;
+    if (w) {
+      cap("cloud", w.city || "Weather", `${fmtTemp(w.current.temperature_c)} ${w.current.description}`, "weather", "var(--tone-sky)");
+      const alert = state.weather.recommendations?.find((r) => r.priority === "high");
+      if (alert) cap(alert.icon, "Before you go", alert.title, "advice", "var(--tone-amber)", "alert");
+    } else if (state.weatherPayload && state.weatherPayload.reason !== "no_location") {
+      cap("cloudOff", "Weather", "Unavailable", "weather", "var(--tone-sky)", "alert");
+    }
+    const c = state.commute;
+    if (c?.recommendation && ["active", "prefetch", "before_window"].includes(c.state)) {
+      const r = c.recommendation;
+      const t = new Intl.DateTimeFormat("en-US", { timeZone: c.timezone, hour: "numeric", minute: "2-digit", hour12: twelve() }).format(new Date(r.departure_at));
+      cap("car", `To ${c.office_label}`, r.leave_now ? `Leave now · ${r.duration_min} min` : `Leave ${t} · ${r.duration_min} min`, "commute", "var(--tone-green)",
+        r.traffic_level === "heavy" || r.traffic_level === "severe" ? "alert" : "");
+    }
+    const cal = state.calendar;
+    const today = cal?.days?.find((d) => d.date === cal.today);
+    if (today?.items.length) {
+      const first = today.items[0];
+      cap(KIND_ICON[first.kind] || "calendar", "Today", today.items.length > 1 ? `${first.title} +${today.items.length - 1}` : first.title, "calendar", "var(--tone-red)");
+    }
+    const g = state.groceries;
+    const open = (g?.items || []).filter((i) => !i.purchased).length;
+    if (open) cap("cart", "Groceries", `${open} to buy`, "groceries", "var(--tone-orange)");
+    const p = state.protection;
+    if (p?.installed) {
+      if (p.service !== "running" || p.dns_ok === false || p.problems?.length) cap("shieldOff", "Ad blocking", "Needs attention", "protection", "var(--tone-teal)", "alert");
+      else cap("shield", "Ad blocking", p.router_uses_pihole ? "On for home network" : p.router_uses_pihole == null ? "Running" : "On (not network-wide)", "protection", "var(--tone-teal)");
+    }
+    $("status-row").replaceChildren(...caps.slice(0, 6).map((x) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "status__btn";
+      b.dataset.open = x.open;
+      if (x.kind) b.dataset.kind = x.kind;
+      b.style.setProperty("--tone", x.tone);
+      b.setAttribute("aria-label", `${x.label}: ${x.value}`);
+      b.innerHTML = `<span class="status__icon" aria-hidden="true">${icon(x.iconName)}</span><span class="status__text"><span class="status__label"></span><span class="status__value"></span></span>`;
+      b.querySelector(".status__label").textContent = x.label;
+      b.querySelector(".status__value").textContent = x.value;
+      li.append(b);
+      return li;
+    }));
+  }
+
+  // ---------- rooms: tabs, tile order and visibility (Settings → Home & rooms) ----------
+
+  const ROOM_KEY = "aura.room";
+
+  function applyHome() {
+    const home = state.config?.home;
+    if (!home) return;
+    $("home-name").textContent = home.name;
+    document.title = `AURA · ${home.name}`;
+    const rooms = [{ id: "overview", name: "Overview", tiles: home.tile_order.filter((t) => !home.hidden_tiles.includes(t)) },
+      ...home.rooms.map((r) => ({ ...r, tiles: r.tiles.filter((t) => !home.hidden_tiles.includes(t)) }))];
+    if (!rooms.some((r) => r.id === state.room)) state.room = "overview";
+    const nav = $("rooms");
+    nav.replaceChildren(...(rooms.length > 1 ? rooms : []).map((r) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "room-tab";
+      b.setAttribute("role", "tab");
+      b.dataset.room = r.id;
+      b.setAttribute("aria-selected", String(r.id === state.room));
+      b.tabIndex = r.id === state.room ? 0 : -1;
+      b.textContent = r.name;
+      b.addEventListener("click", () => selectRoom(r.id));
+      return b;
+    }));
+    const room = rooms.find((r) => r.id === state.room);
+    const order = room.id === "overview" ? home.tile_order : room.tiles;
+    const tiles = $("tiles");
+    tiles.dataset.room = room.id;
+    tiles.setAttribute("aria-label", room.id === "overview" ? "All tiles" : `${room.name} tiles`);
+    for (const el of tiles.querySelectorAll("[data-tile]")) {
+      const id = el.dataset.tile;
+      el.hidden = !room.tiles.includes(id);
+      el.style.order = String(Math.max(0, order.indexOf(id)));
+    }
+    const empty = $("tiles-empty");
+    empty.hidden = room.tiles.length > 0;
+    empty.textContent = room.id === "overview" ? "All tiles are hidden. Choose tiles in Settings → Home & rooms."
+      : `Nothing in ${room.name} yet. Choose its tiles in Settings → Home & rooms.`;
+  }
+
+  function selectRoom(id, { focus = false } = {}) {
+    state.room = id;
+    try { localStorage.setItem(ROOM_KEY, id); } catch { /* private mode */ }
+    applyHome();
+    if (focus) $("rooms").querySelector(`[data-room="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+  }
+
+  function wireRooms() {
+    try { state.room = localStorage.getItem(ROOM_KEY) || "overview"; } catch { /* private mode */ }
+    $("rooms").addEventListener("keydown", (e) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+      const tabs = [...$("rooms").querySelectorAll(".room-tab")];
+      const i = tabs.findIndex((t) => t.dataset.room === state.room);
+      const next = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1
+        : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      e.preventDefault();
+      selectRoom(tabs[next].dataset.room, { focus: true });
+    });
   }
 
   // ---------- live updates (Server-Sent Events) ----------
@@ -909,6 +1139,7 @@
         Detail.refresh();
       }
       $("preview-pill").hidden = !cfg.dev_preview;
+      applyHome();
       renderLocation(cfg.location);
       renderClock();
       Detail.refresh("clock");
@@ -939,6 +1170,8 @@
 
   // The Pi's own screen opens /?kiosk=1 (see deploy/kiosk): hide the mouse pointer there.
   if (new URLSearchParams(location.search).has("kiosk")) document.body.classList.add("kiosk");
+  for (const el of document.querySelectorAll("[data-icon]")) el.innerHTML = icon(el.dataset.icon, 1.7);
+  wireRooms();
   startClock();
   wireDialog();
   Detail.init({
@@ -946,6 +1179,10 @@
     weather: () => state.weatherPayload,
     commute: () => state.commute,
     calendar: () => state.calendar,
+    protection: () => state.protection,
+    system: () => state.system,
+    network: () => state.network,
+    reloadProtection: () => loadProtection(),
     calendarTime: (item, tzName) => calTime(item, tzName),
     calendarDay: (isoDate, today) => dayLabel(isoDate, today),
     icon,
@@ -976,6 +1213,8 @@
     loadGroceries();
     loadCommute();
     loadCalendar();
+    loadProtection();
+    loadSystem();
     refreshQr();
     connectEvents();
   });
@@ -988,5 +1227,7 @@
     if (!state.events || state.events.readyState !== EventSource.OPEN) loadGroceries();
   }, GROCERY_POLL_MS);
   setInterval(refreshQr, QR_REFRESH_MS);
+  setInterval(loadProtection, 60_000);
+  setInterval(loadSystem, 60_000);
   setInterval(shiftPixels, BURN_IN_SHIFT_MS);
 })();

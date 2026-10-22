@@ -228,8 +228,8 @@ def test_unavailable_data_states(chrome, srv):
     text = p.text("#detail-body")
     assert "Traffic isn't connected yet" in text and "TomTom API key" in text
     assert " min" not in text                                # no invented durations
-    p.js("window.AuraDetail.open('clock')")
-    p.wait_for(f"{VIEW} === 'clock'")
+    p.js("window.AuraDetail.open('calendar')")
+    p.wait_for(f"{VIEW} === 'calendar'")
     assert "No calendar connected" in p.text("#detail-body")
 
 

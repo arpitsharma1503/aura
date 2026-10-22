@@ -79,18 +79,16 @@ def test_tiles_show_only_a_bare_arrow(chrome, srv):
         const a = arrows[0]; const cs = a && getComputedStyle(a); const r = a?.getBoundingClientRect(), c = card.getBoundingClientRect();
         return {card: card.className, n: arrows.length, text: a?.textContent.trim(), bg: cs?.backgroundColor,
                 border: cs?.borderTopWidth, svg: !!a?.querySelector('svg'),
-                bottomRight: r && (c.right - r.right) < 30 && (c.bottom - r.bottom) < 30,
+                topRight: r && (c.right - r.right) < 30 && (r.top - c.top) < 40,
                 label: a?.getAttribute('aria-label')}; }))()""")
-    assert len(info) == 4
+    assert len(info) == 8
     for t in info:
         assert t["n"] == 1 and t["svg"] and t["text"] == "", t
         assert t["bg"] in ("rgba(0, 0, 0, 0)", "transparent") and t["border"] == "0px", t
-        assert t["bottomRight"] and t["label"], t
+        assert t["topRight"] and t["label"], t
     body = p.js("document.getElementById('shell').innerText")
     for word in ("Details", "View details", "See more", "Explore"):
         assert word not in body
-    # The clock tile has a decorative arrow inside its own button, hidden from screen readers.
-    assert p.js("document.querySelector('.tile-hit .tile-arrow').getAttribute('aria-hidden')") == "true"
     # Nothing non-clickable gets an arrow.
     assert p.js("document.querySelectorAll('.topbar .tile-arrow, .daily .tile-arrow, .place .tile-arrow').length") == 0
 
@@ -224,7 +222,7 @@ def test_network_and_system_sections_render(chrome, srv):
     sysinfo = p.text("#sys-info")
     for k in ("Backend", "Healthy", "AURA version", "Python", "Storage free", "Memory available"):
         assert k in sysinfo, k
-    assert "nmcli" in p.text(".s-details")                                   # manual Wi-Fi instructions
+    assert "nmcli" in p.text("#network .s-details")                                   # manual Wi-Fi instructions
     assert p.errors == []
 
 

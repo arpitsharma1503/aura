@@ -29,15 +29,16 @@
     </header>
 
     <nav class="s-nav" aria-label="Settings sections">
-      <a href="#network">Network</a>
-      <a href="#protection">Protection</a>
+      <a href="#home">Home &amp; rooms</a>
       <a href="#locations">Locations</a>
       <a href="#weather">Weather</a>
       <a href="#commute">Commute</a>
-      <a href="#display">Display</a>
-      <a href="#groceries">Groceries</a>
       <a href="#calendars">Calendars</a>
       <a href="#assistant">Assistant</a>
+      <a href="#protection">Protection</a>
+      <a href="#network">Network &amp; Wi-Fi</a>
+      <a href="#display">Display</a>
+      <a href="#groceries">Groceries</a>
       <a href="#system">System</a>
     </nav>
 
@@ -52,63 +53,28 @@
 
     <main class="s-main" id="s-main" hidden>
 
-      <!-- Network ---------------------------------------------------------- -->
-      <section class="s-card" id="network" aria-labelledby="network-h">
-        <header class="s-card__head">
-          <h2 id="network-h">Network &amp; Wi-Fi</h2>
-          <button type="button" class="btn s-small" id="net-refresh">Refresh</button>
-        </header>
-        <dl class="s-grid" id="net-status"></dl>
-        <p class="s-msg" id="net-msg" role="status" aria-live="polite"></p>
-
-        <div class="s-sub" id="wifi-panel">
-          <h3>Wi-Fi</h3>
-          <p class="s-help" id="wifi-help"></p>
-          <button type="button" class="btn" id="wifi-scan">Find Wi-Fi networks</button>
-          <ul class="s-nets" id="wifi-list" aria-label="Wi-Fi networks"></ul>
-          <form class="s-connect" id="wifi-form" hidden novalidate>
-            <p class="s-connect__to">Connect to <strong id="wifi-target"></strong></p>
-            <label class="s-field" id="wifi-pass-row">
-              <span>Password</span>
-              <span class="s-pass">
-                <input class="sheet__input" id="wifi-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" aria-describedby="wifi-pass-err">
-                <button type="button" class="btn s-small" id="wifi-show" aria-pressed="false">Show</button>
-              </span>
-              <small class="s-err" id="wifi-pass-err"></small>
-            </label>
-            <div class="s-actions">
-              <button type="button" class="btn" id="wifi-cancel">Cancel</button>
-              <button type="submit" class="btn btn--primary" id="wifi-connect">Connect</button>
-            </div>
-          </form>
-          <details class="s-details">
-            <summary>Other ways to change Wi-Fi</summary>
-            <ul>
-              <li><strong>On the Pi's screen:</strong> exit the dashboard with <kbd>Alt</kbd>+<kbd>F4</kbd> (or connect a keyboard), then use the network icon in the top-right of the Raspberry Pi desktop.</li>
-              <li><strong>Over SSH (Ethernet):</strong> <code>nmcli device wifi list</code>, then <code>nmcli --ask device wifi connect "Network name"</code> (it asks for the password).</li>
-              <li><strong>Text menu:</strong> run <code>sudo nmtui</code> → <em>Activate a connection</em>.</li>
-              <li><strong>If you lose access:</strong> plug in an Ethernet cable (the Pi keeps that connection) or use a keyboard and screen; saved networks reconnect automatically.</li>
-            </ul>
-          </details>
+      <form class="s-card" id="home" data-section="home" aria-labelledby="home-h" novalidate>
+        <header class="s-card__head"><h2 id="home-h">Home &amp; rooms</h2></header>
+        <p class="s-help">Rooms group the dashboard's tiles so each part of the home shows what matters there. They are
+          labels for information, not connected devices; real smart-home devices can be added to rooms later.</p>
+        <label class="s-field"><span>Home name</span>
+          <input class="sheet__input" data-field="name" maxlength="30" autocomplete="off"></label>
+        <div class="s-field">
+          <span id="tiles-label">Tiles on the Overview</span>
+          <ol class="s-list" id="tile-editor" data-field="tile_order" data-type="tiles" aria-labelledby="tiles-label"></ol>
+          <span data-field="hidden_tiles" data-type="hidden-tiles" hidden></span>
+          <small class="s-help">Switch a tile off to hide it everywhere. The arrows change the order on the Overview.</small>
         </div>
-      </section>
-
-      <!-- Locations -------------------------------------------------------- -->
-      <!-- Network protection (Pi-hole) ---------------------------------- -->
-      <section class="s-card" id="protection" aria-labelledby="protection-h">
-        <header class="s-card__head">
-          <h2 id="protection-h">Network protection</h2>
-          <button type="button" class="btn s-small" id="dns-refresh">Check now</button>
-        </header>
-        <dl class="s-grid" id="dns-status"></dl>
-        <p class="s-msg" id="dns-msg" role="status" aria-live="polite"></p>
-        <ul class="s-problems" id="dns-problems"></ul>
-        <p class="s-help" id="dns-coverage"></p>
-        <p class="s-help">Pi-hole blocks ad and tracker domains for devices that use this Pi for DNS. It can't remove ads
-          served from the same domain as the content (most YouTube and many in-app ads), and devices using encrypted or
-          fixed DNS bypass it. Manage blocklists, the query log and allowed domains in Pi-hole's own admin page:
-          <a id="dns-admin" href="/admin/" target="_blank" rel="noopener">open Pi-hole admin</a> (it asks for its own password).</p>
-      </section>
+        <div class="s-field">
+          <span id="rooms-label">Rooms</span>
+          <ol class="s-list" id="room-editor" data-field="rooms" data-type="rooms" aria-labelledby="rooms-label"></ol>
+          <div class="s-inline">
+            <input class="sheet__input" id="room-new" maxlength="24" placeholder="New room, e.g. Living room" aria-label="New room name">
+            <button type="button" class="btn" id="room-add">Add room</button>
+          </div>
+          <small class="s-help">Up to 8 rooms. Pick which tiles each room shows; the Overview always shows every visible tile.</small>
+        </div>
+      </form>
 
       <form class="s-card" id="locations" data-section="locations" aria-labelledby="locations-h" novalidate>
         <header class="s-card__head"><h2 id="locations-h">Home &amp; office</h2></header>
@@ -140,7 +106,6 @@
         </div>
       </form>
 
-      <!-- Weather ---------------------------------------------------------- -->
       <form class="s-card" id="weather" data-section="weather" aria-labelledby="weather-h" novalidate>
         <header class="s-card__head"><h2 id="weather-h">Weather</h2></header>
         <dl class="s-grid" id="weather-info"></dl>
@@ -163,7 +128,6 @@
         <p class="s-help">Temperature units and animations are under <a href="#display">Display</a>.</p>
       </form>
 
-      <!-- Commute ---------------------------------------------------------- -->
       <form class="s-card" id="commute" data-section="commute" aria-labelledby="commute-h" novalidate>
         <header class="s-card__head"><h2 id="commute-h">Commute</h2></header>
         <dl class="s-grid" id="commute-info"></dl>
@@ -209,7 +173,86 @@
         </details>
       </form>
 
-      <!-- Display ---------------------------------------------------------- -->
+      <section class="s-card" id="calendars" aria-labelledby="calendars-h">
+        <header class="s-card__head"><h2 id="calendars-h">Calendars</h2></header>
+        <dl class="s-grid" id="cal-info"></dl>
+        <p class="s-help">Events, birthdays and holidays appear under the clock and in its detail view. Each day shows an item
+          only once, even if several calendars contain it. Calendar addresses are private and are set on the Pi in
+          <code>.env</code> (<code>AURA_CALENDAR_FEEDS</code>); they are never shown here.</p>
+      </section>
+
+      <form class="s-card" id="assistant" data-section="assistant" aria-labelledby="assistant-h" novalidate>
+        <header class="s-card__head"><h2 id="assistant-h">Assistant</h2></header>
+        <dl class="s-grid" id="assistant-info"></dl>
+        <label class="s-switch"><input type="checkbox" data-field="enabled">
+          <span>Voice assistant <small>Microphone button on the dashboard; answers come from AURA's own data</small></span></label>
+        <label class="s-switch"><input type="checkbox" data-field="spoken_replies">
+          <span>Spoken replies <small>Read answers aloud through the entrance screen's speakers (the TV, over HDMI)</small></span></label>
+        <label class="s-field"><span>Listen for at most</span>
+          <select class="sheet__input" data-field="max_listen_seconds" data-type="int">
+            <option value="5">5 seconds</option><option value="8">8 seconds</option><option value="10">10 seconds</option>
+            <option value="15">15 seconds</option></select></label>
+        <p class="s-help">Privacy: the microphone only turns on when someone presses the microphone button (or the remote's
+          shortcut) on the entrance screen, and the dashboard shows <strong>Listening</strong> while it is on. Speech is
+          recognised on the Pi itself; audio is never saved or sent anywhere. Questions and answers are kept in memory
+          until cleared or AURA restarts. The assistant can only answer questions; it can't change data or settings.</p>
+      </form>
+
+      <section class="s-card" id="protection" aria-labelledby="protection-h">
+        <header class="s-card__head">
+          <h2 id="protection-h">Network protection</h2>
+          <button type="button" class="btn s-small" id="dns-refresh">Check now</button>
+        </header>
+        <dl class="s-grid" id="dns-status"></dl>
+        <p class="s-msg" id="dns-msg" role="status" aria-live="polite"></p>
+        <ul class="s-problems" id="dns-problems"></ul>
+        <p class="s-help" id="dns-coverage"></p>
+        <p class="s-help">Pi-hole blocks ad and tracker domains for devices that use this Pi for DNS. It can't remove ads
+          served from the same domain as the content (most YouTube and many in-app ads), and devices using encrypted or
+          fixed DNS bypass it. Manage blocklists, the query log and allowed domains in Pi-hole's own admin page:
+          <a id="dns-admin" href="/admin/" target="_blank" rel="noopener">open Pi-hole admin</a> (it asks for its own password).</p>
+      </section>
+
+      <section class="s-card" id="network" aria-labelledby="network-h">
+        <header class="s-card__head">
+          <h2 id="network-h">Network &amp; Wi-Fi</h2>
+          <button type="button" class="btn s-small" id="net-refresh">Refresh</button>
+        </header>
+        <dl class="s-grid" id="net-status"></dl>
+        <p class="s-msg" id="net-msg" role="status" aria-live="polite"></p>
+
+        <div class="s-sub" id="wifi-panel">
+          <h3>Wi-Fi</h3>
+          <p class="s-help" id="wifi-help"></p>
+          <button type="button" class="btn" id="wifi-scan">Find Wi-Fi networks</button>
+          <ul class="s-nets" id="wifi-list" aria-label="Wi-Fi networks"></ul>
+          <form class="s-connect" id="wifi-form" hidden novalidate>
+            <p class="s-connect__to">Connect to <strong id="wifi-target"></strong></p>
+            <label class="s-field" id="wifi-pass-row">
+              <span>Password</span>
+              <span class="s-pass">
+                <input class="sheet__input" id="wifi-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" aria-describedby="wifi-pass-err">
+                <button type="button" class="btn s-small" id="wifi-show" aria-pressed="false">Show</button>
+              </span>
+              <small class="s-err" id="wifi-pass-err"></small>
+            </label>
+            <div class="s-actions">
+              <button type="button" class="btn" id="wifi-cancel">Cancel</button>
+              <button type="submit" class="btn btn--primary" id="wifi-connect">Connect</button>
+            </div>
+          </form>
+          <details class="s-details">
+            <summary>Other ways to change Wi-Fi</summary>
+            <ul>
+              <li><strong>On the Pi's screen:</strong> exit the dashboard with <kbd>Alt</kbd>+<kbd>F4</kbd> (or connect a keyboard), then use the network icon in the top-right of the Raspberry Pi desktop.</li>
+              <li><strong>Over SSH (Ethernet):</strong> <code>nmcli device wifi list</code>, then <code>nmcli --ask device wifi connect "Network name"</code> (it asks for the password).</li>
+              <li><strong>Text menu:</strong> run <code>sudo nmtui</code> → <em>Activate a connection</em>.</li>
+              <li><strong>If you lose access:</strong> plug in an Ethernet cable (the Pi keeps that connection) or use a keyboard and screen; saved networks reconnect automatically.</li>
+            </ul>
+          </details>
+        </div>
+      </section>
+
       <form class="s-card" id="display" data-section="display" aria-labelledby="display-h" novalidate>
         <header class="s-card__head"><h2 id="display-h">Display</h2></header>
         <fieldset class="s-choice" data-field="clock_format">
@@ -232,7 +275,6 @@
         <dl class="s-grid" id="display-info"></dl>
       </form>
 
-      <!-- Groceries -------------------------------------------------------- -->
       <form class="s-card" id="groceries" data-section="groceries" aria-labelledby="groceries-h" novalidate>
         <header class="s-card__head"><h2 id="groceries-h">Groceries</h2></header>
         <dl class="s-grid" id="groceries-info"></dl>
@@ -256,34 +298,6 @@
         </div>
       </form>
 
-      <!-- Calendars --------------------------------------------------------- -->
-      <section class="s-card" id="calendars" aria-labelledby="calendars-h">
-        <header class="s-card__head"><h2 id="calendars-h">Calendars</h2></header>
-        <dl class="s-grid" id="cal-info"></dl>
-        <p class="s-help">Events, birthdays and holidays appear under the clock and in its detail view. Each day shows an item
-          only once, even if several calendars contain it. Calendar addresses are private and are set on the Pi in
-          <code>.env</code> (<code>AURA_CALENDAR_FEEDS</code>); they are never shown here.</p>
-      </section>
-
-      <!-- Assistant -------------------------------------------------------- -->
-      <form class="s-card" id="assistant" data-section="assistant" aria-labelledby="assistant-h" novalidate>
-        <header class="s-card__head"><h2 id="assistant-h">Assistant</h2></header>
-        <dl class="s-grid" id="assistant-info"></dl>
-        <label class="s-switch"><input type="checkbox" data-field="enabled">
-          <span>Voice assistant <small>Microphone button on the dashboard; answers come from AURA's own data</small></span></label>
-        <label class="s-switch"><input type="checkbox" data-field="spoken_replies">
-          <span>Spoken replies <small>Read answers aloud through the entrance screen's speakers (the TV, over HDMI)</small></span></label>
-        <label class="s-field"><span>Listen for at most</span>
-          <select class="sheet__input" data-field="max_listen_seconds" data-type="int">
-            <option value="5">5 seconds</option><option value="8">8 seconds</option><option value="10">10 seconds</option>
-            <option value="15">15 seconds</option></select></label>
-        <p class="s-help">Privacy: the microphone only turns on when someone presses the microphone button (or the remote's
-          shortcut) on the entrance screen, and the dashboard shows <strong>Listening</strong> while it is on. Speech is
-          recognised on the Pi itself; audio is never saved or sent anywhere. Questions and answers are kept in memory
-          until cleared or AURA restarts. The assistant can only answer questions; it can't change data or settings.</p>
-      </form>
-
-      <!-- System ----------------------------------------------------------- -->
       <section class="s-card" id="system" aria-labelledby="system-h">
         <header class="s-card__head">
           <h2 id="system-h">System</h2>

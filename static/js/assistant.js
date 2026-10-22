@@ -274,6 +274,27 @@ window.AuraAssistant = (() => {
     btn.title = live ? "Listening… press to stop" : "Ask AURA";
     const pill = $("listening-pill");
     if (pill) pill.hidden = !live;
+    paintTile();
+  }
+
+  /** The dashboard's "Ask AURA" tile: real state only (listening only while recording). */
+  function paintTile() {
+    const tile = $("assistant-tile");
+    if (!tile || !info) return;
+    const vs = viewState();
+    const value = { idle: "Ready", answered: "Ready", listening: "Listening…", processing: "Thinking…",
+      error: "Ready", off: "Turned off", unavailable: "Voice unavailable" }[vs] || "Ready";
+    tile.dataset.state = { listening: "listening", processing: "processing", off: "off", unavailable: "alert" }[vs] || "ok";
+    $("assistant-status").textContent = !info.mic_allowed && vs !== "off" && vs !== "listening" && vs !== "processing" ? "Type a question" : value;
+    const last = (info.transcript || []).at(-1);
+    let sub;
+    if (vs === "off") sub = "Turn it on in Settings → Assistant.";
+    else if (vs === "unavailable") sub = unavailableReason();
+    else if (vs === "listening") sub = "Speak now. I'll stop when you pause.";
+    else if (last) sub = `“${last.question}” — ${last.answer.text}`;
+    else if (info.mic_allowed) sub = "Press the microphone and ask about weather, your commute, calendar or groceries.";
+    else sub = "Ask about weather, your commute, calendar or groceries. The microphone works on the entrance screen.";
+    $("assistant-sub").textContent = sub;
   }
 
   // ---------- wiring ----------
