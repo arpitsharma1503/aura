@@ -141,3 +141,19 @@ def test_turned_off_hides_the_tile(chrome, srv):
     p.goto(f"{srv.url}/")
     p.wait_for("document.querySelectorAll('.room-tab').length > 0")
     assert p.js("document.getElementById('meals-tile').hidden")
+
+
+def test_rest_of_month_button_adds_once(chrome, srv, artifacts):
+    p = dashboard(chrome, srv)
+    open_view(p)
+    p.js("document.querySelector('[data-tab=groceries]').click()")
+    p.wait_for("!!document.getElementById('mp-rest')", timeout=15)
+    assert "Dry goods for the whole month on the 1st" in p.text("#dsec-auto-groceries")
+    p.js("document.getElementById('mp-rest').click()")
+    p.wait_for("!document.getElementById('mp-rest') && document.querySelector('#dsec-auto-groceries .mp-batches') !== null", timeout=15)
+    assert "Rest of the month" in p.text("#dsec-auto-groceries")
+    status, body = srv.api("GET", "/api/groceries")
+    names = [i["name"].lower() for i in body["items"]]
+    assert names and len(names) == len(set(names))
+    p.screenshot(str(artifacts / "meals-auto-groceries.png"))
+    assert p.errors == []

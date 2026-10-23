@@ -244,6 +244,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         travel_window_hours=lambda: prefs.weather.travel_window_hours,
     ))
     meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
+    plan_groceries = nutrition.PlanGroceries(settings.data_dir / "aura.db", groceries)
     voice = VoiceClient(settings.voice_port, transport=voice_transport)
     voice_session = VoiceSession(voice, assistant, broker.publish)
     dns_filter = dnsfilter or DnsFilterMonitor(
@@ -308,6 +309,22 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             await push_wake()
             await asyncio.sleep(30)
 
+    async def meal_grocery_sync() -> None:
+        """Add the meal plan's groceries when a month or plan week starts (also catches up
+        after the Pi was off). Every batch runs once; see nutrition.PlanGroceries.auto."""
+        while True:
+            try:
+                if prefs.meals.enabled and prefs.meals.auto_groceries:
+                    results = plan_groceries.auto(nutrition.load_plan(), nutrition.local_today(timezone()))
+                    if any(r["added"] or r["updated"] for r in results):
+                        groceries_changed()
+                        for r in results:
+                            logging.getLogger("aura.meals").info("plan groceries %s: %d added, %d updated, %d skipped",
+                                                                 r["batch"], len(r["added"]), len(r["updated"]), len(r["skipped"]))
+            except Exception:
+                logging.getLogger("aura").exception("Meal-plan grocery sync failed")
+            await asyncio.sleep(1800)
+
     async def housekeeping() -> None:
         while True:
             try:
@@ -341,6 +358,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         hk = asyncio.create_task(housekeeping())
         background.add(hk)
         hk.add_done_callback(background.discard)
+        mg = asyncio.create_task(meal_grocery_sync())
+        background.add(mg)
+        mg.add_done_callback(background.discard)
         ws = asyncio.create_task(wake_sync())
         background.add(ws)
         ws.add_done_callback(background.discard)
@@ -356,6 +376,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         await dns_filter.aclose()
         groceries.close()
         meal_log.close()
+        plan_groceries.close()
         prefs.close()
 
     app = FastAPI(
@@ -375,6 +396,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.voice = voice_session
     app.state.dns_filter = dns_filter
     app.state.meal_log = meal_log
+    app.state.plan_groceries = plan_groceries
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -864,7 +886,12 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         tomorrow = d + timedelta(days=1)
         t_entry = nutrition.day_entry(plan, tomorrow)
         t_codes = [t_entry[m]["code"] for m in nutrition.MEALS]
+        month = f"{d:%Y-%m}"
         return {
+            "auto": {"enabled": prefs.meals.auto_groceries, "from": plan_groceries.meta("auto_from"),
+                     "month_done": plan_groceries.done(f"{month}-month"),
+                     "batches": plan_groceries.batches(month),
+                     "rule": "Dry goods for the whole month on the 1st; fresh items on Days 1, 8, 15 and 22."},
             "date": d.isoformat(), "week": week, "week_key": key, "note": plan["groceries"]["note"],
             "pantry": plan["groceries"]["pantry"], "pantry_hindi": plan["groceries"]["pantry_hindi"],
             "categories": [{"category": c["category"], "items": [
@@ -874,6 +901,19 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                          "items": [{**i, "on_list": nutrition.grocery_key(i["name"]) in on_list}
                                    for i in nutrition.ingredients_for(plan, t_codes)]},
         }
+
+    @app.post("/api/meals/groceries/rest-of-month", dependencies=[Depends(editor)])
+    async def meals_grocery_rest_of_month() -> dict:
+        """Starting the plan mid-month: dry goods for the remaining plan weeks and this week's
+        fresh items, once. Later months are handled automatically."""
+        plan = meals_on()
+        d = nutrition.local_today(timezone())
+        if plan_groceries.done(f"{d:%Y-%m}-rest") or plan_groceries.done(f"{d:%Y-%m}-month"):
+            raise HTTPException(status_code=409, detail="This month's plan groceries are already on the list.")
+        result = plan_groceries.rest_of_month(plan, d)
+        if result["added"] or result["updated"]:
+            groceries_changed()
+        return result
 
     @app.post("/api/meals/groceries/check", dependencies=[Depends(editor)])
     async def meals_grocery_check(body: PlanGroceryMark) -> dict:

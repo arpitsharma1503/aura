@@ -121,6 +121,31 @@ window.AuraMeals = (() => {
     } catch (err) { flash(err.message); }
     paint();
   }
+  async function addRestOfMonth() {
+    try {
+      const r = await api("/api/meals/groceries/rest-of-month", { method: "POST" });
+      groceries = await api("/api/meals/groceries");
+      flash(`Added ${r.added.length}${r.updated.length ? ` · updated ${r.updated.length}` : ""}${r.skipped.length ? ` · ${r.skipped.length} already on the list` : ""}.`);
+    } catch (err) { flash(err.message); }
+    paint();
+  }
+  function batchLabel(b) {
+    const m = /-(rest|month|w(\d)-fresh)$/.exec(b.batch);
+    const what = !m ? b.batch : m[1] === "rest" ? "Rest of the month (dry goods + this week's fresh)"
+      : m[1] === "month" ? "Whole month's dry goods" : `Week ${m[2]} fresh items`;
+    return el("li", {}, what, el("small", {}, b.added || b.updated ? `${b.added} added${b.updated ? `, ${b.updated} updated` : ""}`
+      : "covered by an earlier batch"));
+  }
+  function autoSection(a) {
+    const shown = a.batches.filter((b) => b.added || b.updated || /-rest$/.test(b.batch));
+    const canRest = !a.month_done && !a.batches.some((b) => /-rest$/.test(b.batch));
+    return el("section", { class: "dsec", id: "dsec-auto-groceries" }, el("h3", { class: "dsec__title" }, "Automatic shopping list"),
+      note(a.enabled ? `${a.rule} Pulses, flours and other dry goods come as one monthly amount; paneer, tofu, dairy, vegetables and fruit week by week. Items you added yourself are never changed.`
+        : "Turned off in Settings → Meal plan.", "dnote--muted"),
+      shown.length ? el("ul", { class: "mp-batches" }, shown.map(batchLabel)) : null,
+      canRest ? el("div", { class: "mp-actions" }, el("button", { type: "button", class: "btn btn--primary", id: "mp-rest", onclick: addRestOfMonth },
+        "Add the rest of this month")) : null);
+  }
   async function saveNote(text) {
     try { day.note = (await api("/api/meals/note", { method: "POST", body: { date: day.date, text } })).note; flash("Note saved."); }
     catch (err) { flash(err.message); }
@@ -323,6 +348,7 @@ window.AuraMeals = (() => {
         : el("button", { type: "button", class: "btn mp-add", "aria-label": `Add ${i.name} to the shopping list`, onclick: () => addToList([{ name: i.name, quantity: i.quantity }]) }, "Add")));
     const tomorrowAddable = t.items.filter((i) => !i.on_list && !i.staple);
     return [
+      g.auto ? autoSection(g.auto) : null,
       el("section", { class: "dsec" }, el("h3", { class: "dsec__title" }, `Week ${g.week} list from the plan`),
         note(`${g.note} These are weekly estimates for both people.`, "dnote--muted"),
         el("div", { class: "mp-actions" },

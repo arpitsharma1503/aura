@@ -819,6 +819,18 @@ The **Today's meals** tile and the meal plan view come from the household's
   tomorrow's recipes (same ingredient + unit added up; different units kept apart).
   **Add** puts items on the shared shopping list; anything already there is skipped,
   so nothing is ever added twice.
+- **Automatic shopping list** (on by default; Settings → Meal plan):
+  - **On the 1st:** the month's *dry goods* in one go — pulses and dals, flours
+    and grains, soya chunks/granules, nuts, seeds, ghee/oil — the PDF's four weekly
+    amounts added together (e.g. atta 8 kg, moong dal 1.7 kg).
+  - **On Days 1, 8, 15 and 22:** that plan week's *fresh* items — paneer, tofu,
+    milk, curd, vegetables, sprouts, fruit, batter and bread — in the PDF's amounts.
+  - Whey (optional supplement) is never added. Items the household added itself
+    are never changed; a plan item still on the list gets the new amount instead
+    of a second entry. Each batch runs once (checked every 30 min, so it also
+    catches up after the Pi was off), and a week missed entirely isn't backfilled.
+  - **Starting mid-month:** **Add the rest of this month** (Groceries tab) adds dry
+    goods for the remaining plan weeks plus this week's fresh items, once.
 - **Plan & training:** targets, both training programmes (by week), recovery,
   hydration, supplements and meal-prep tips from the PDF.
 - **Settings → Meal plan:** turn it off, set display names for Person 1/2, and the

@@ -1355,3 +1355,6 @@ body[data-phase="night"] .shell { opacity: 0.9; }
 
 /* Kiosk (the Pi's own screen, opened with ?kiosk=1): no mouse pointer. */
 body.kiosk, body.kiosk * { cursor: none !important; }
+.mp-batches { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.35rem; }
+.mp-batches li { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.9rem; }
+.mp-batches small { color: var(--ink-3); }

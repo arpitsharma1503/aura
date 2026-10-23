@@ -252,6 +252,8 @@ class MealSettings(_Strict):
     person1_name: str = "Person 1"
     person2_name: str = "Person 2"
     default_person: Literal["both", "person1", "person2"] = "both"
+    # On the 1st: dry goods for the whole month; on plan days 1/8/15/22: that week's fresh items.
+    auto_groceries: bool = True
 
     @field_validator("person1_name", "person2_name", mode="before")
     @classmethod

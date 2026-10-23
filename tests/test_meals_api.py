@@ -142,3 +142,17 @@ def test_notes(tmp_path):
     assert c.post("/api/meals/note", json={"date": "2026-11-03", "text": "Used toor dal instead"}).json()["note"] == "Used toor dal instead"
     assert c.get("/api/meals/day?date=2026-11-03").json()["note"] == "Used toor dal instead"
     assert c.post("/api/meals/note", json={"date": "2026-11-03", "text": "x" * 501}).status_code == 422
+
+
+def test_rest_of_month_endpoint_runs_once(tmp_path):
+    c = lan(tmp_path)
+    g = c.get("/api/meals/groceries").json()
+    assert g["auto"]["enabled"] is True and g["auto"]["month_done"] is False
+    r = c.post("/api/meals/groceries/rest-of-month")
+    assert r.status_code == 200 and r.json()["added"]
+    items = c.get("/api/groceries").json()["items"]
+    assert all(i["notes"].startswith("Meal plan") for i in items)
+    assert c.post("/api/meals/groceries/rest-of-month").status_code == 409
+    after = c.get("/api/meals/groceries").json()["auto"]
+    assert after["month_done"] is True and any(b["batch"].endswith("-rest") for b in after["batches"])
+    assert make_client(tmp_path / "x", client_ip="192.168.1.50").post("/api/meals/groceries/rest-of-month").status_code == 401

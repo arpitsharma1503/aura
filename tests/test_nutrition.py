@@ -69,3 +69,85 @@ def test_records_are_per_calendar_date(tmp_path):
     assert log.meals(date(2026, 10, 1))["breakfast"]["person1"] is True
     v = day_view(plan, log, date(2026, 10, 31))
     assert v["plan_day"] == 30 and v["tomorrow"]["plan_day"] == 1 and v["tomorrow"]["month_restart"]
+
+
+# ----- automatic plan groceries -----
+
+from app.groceries import GroceryStore, ItemIn  # noqa: E402
+from app.nutrition import PlanGroceries, grocery_frequency, plan_grocery_batch  # noqa: E402
+
+
+@pytest.fixture
+def pg(tmp_path):
+    store = GroceryStore(tmp_path / "aura.db")
+    p = PlanGroceries(tmp_path / "aura.db", store)
+    yield p
+    p.close()
+
+
+def by_name(items):
+    return {i["name"]: i for i in items}
+
+
+@pytest.mark.parametrize("cat, name, freq", [
+    ("Pulses / legumes", "Rajma", "monthly"), ("Grains", "Atta", "monthly"), ("Soya / tofu / paneer", "Paneer", "weekly"),
+    ("Soya / tofu / paneer", "Firm tofu", "weekly"), ("Soya / tofu / paneer", "Soya chunks", "monthly"),
+    ("Vegetables", "Spinach", "weekly"), ("Dairy", "Milk", "weekly"), ("Grains", "Idli/dosa batter", "weekly"),
+    ("Optional supplement", "Whey", None),
+])
+def test_grocery_frequency(cat, name, freq):
+    assert grocery_frequency(cat, name) == freq
+
+
+def test_monthly_batch_sums_dry_goods_over_the_four_weeks():
+    plan = load_plan()
+    month = by_name(plan_grocery_batch(plan, "monthly", [1, 2, 3, 4]))
+    assert month["Atta"]["quantity"] == "8 kg" and month["Moong dal"]["quantity"] == "1.7 kg"
+    assert all(i["category"] == "pantry" for i in month.values())
+    assert not any(n.lower().startswith(("paneer", "firm tofu", "milk", "whey")) for n in month)
+    week = by_name(plan_grocery_batch(plan, "weekly", [4]))
+    assert week["Paneer"]["quantity"] == "400 g" and week["Firm tofu"]["quantity"] == "700 g"
+    assert not any(n in week for n in ("Atta", "Rajma", "Moong dal"))
+
+
+def test_rest_of_month_then_auto_never_duplicates(pg):
+    plan = load_plan()
+    first = pg.rest_of_month(plan, date(2026, 10, 23))                   # Day 23 -> week 4
+    assert first["added"] and not first["updated"]
+    names = [i.name for i in pg.store.load().items]
+    assert len(names) == len({n.lower() for n in names})
+    assert pg.auto(plan, date(2026, 10, 24)) == []                       # October is covered
+    assert pg.auto(plan, date(2026, 10, 31)) == []
+    assert pg.rest_of_month(plan, date(2026, 10, 23))["added"] == []     # running it again adds nothing
+    nov = pg.auto(plan, date(2026, 11, 1))
+    assert [r["batch"] for r in nov] == ["2026-11-month", "2026-11-w1-fresh"]
+    assert pg.auto(plan, date(2026, 11, 1)) == [] and pg.auto(plan, date(2026, 11, 7)) == []
+    assert [r["batch"] for r in pg.auto(plan, date(2026, 11, 8))] == ["2026-11-w2-fresh"]
+    assert [r["batch"] for r in pg.auto(plan, date(2026, 11, 30))] == ["2026-11-w4-fresh"]   # week 3 missed while off: not backfilled
+
+
+def test_households_own_items_are_left_alone_and_plan_items_updated(pg):
+    plan = load_plan()
+    pg.store.add(ItemIn(name="Paneer", quantity="1 kg", notes="for guests"))
+    r = pg.auto(plan, date(2026, 11, 1))
+    fresh = r[1]
+    assert "Paneer" in fresh["skipped"]
+    paneer = next(i for i in pg.store.load().items if i.name == "Paneer")
+    assert paneer.quantity == "1 kg" and paneer.notes == "for guests"
+    # an unbought plan item from an earlier week gets the new week's amount instead of a second entry
+    atta_before = [i for i in pg.store.load().items if i.name == "Atta"]
+    pg.auto(plan, date(2026, 12, 1))
+    atta_after = [i for i in pg.store.load().items if i.name == "Atta"]
+    assert len(atta_before) == len(atta_after) == 1
+
+
+def test_auto_starts_next_month_unless_today_is_the_first(tmp_path):
+    plan = load_plan()
+    store = GroceryStore(tmp_path / "a.db")
+    p = PlanGroceries(tmp_path / "a.db", store)
+    assert p.auto(plan, date(2026, 10, 23)) == [] and p.meta("auto_from") == "2026-11"
+    assert store.load().items == []
+    q = PlanGroceries(tmp_path / "b.db", GroceryStore(tmp_path / "b.db"))
+    assert [r["batch"] for r in q.auto(plan, date(2026, 12, 1))] == ["2026-12-month", "2026-12-w1-fresh"]
+    assert q.meta("auto_from") == "2026-12"
+    p.close(); q.close()

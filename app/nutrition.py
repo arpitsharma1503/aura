@@ -384,3 +384,214 @@ def recipe_view(plan: dict, code: str, servings: float) -> dict:
         "prep": plan["prep"].get(code, []),
         "used_on_days": used_on_days(plan, code),
     }
+
+
+# --------------------------------------------------------------------------- automatic plan groceries
+# Dry goods that keep (pulses, flours, grains, soya chunks, nuts) are bought once a
+# month: the four weekly lists from the PDF added together. Fresh items (paneer, tofu,
+# dairy, vegetables, sprouts, fruit, batter, bread) are added week by week on plan
+# days 1, 8, 15 and 22. Each batch is recorded so it is never added twice; items the
+# household put on the list themselves are never changed.
+
+WEEK_START_DAYS = {1: 1, 2: 8, 3: 15, 4: 22}
+_WEEK_END_DAYS = {1: 7, 2: 14, 3: 21, 4: 30}
+_FRESH_CATS = {"Dairy", "Vegetables", "Sprouts", "Fruit", "Sprouts / fruit"}
+_ALIASES = {
+    "yellow moong dal": "moong dal", "basmati rice": "basmati", "rolled oats": "oats", "whole-wheat atta": "atta",
+    "rava/sooji": "rava", "roasted peanuts": "peanuts", "chia seeds": "chia", "peanut butter top-up": "peanut butter",
+    "5 cashews for gravy": "cashews", "cashews for gravy": "cashews", "coconut for chutney/sambar": "coconut",
+    "ghee": "ghee/oil", "cooking oil": "ghee/oil", "ghee/oil top-up": "ghee/oil",
+}
+PLAN_NOTE = "Meal plan"
+
+
+def grocery_frequency(category: str, name: str) -> str | None:
+    """'monthly' (dry, keeps), 'weekly' (fresh) or None (optional supplement: never automatic)."""
+    n = name.lower()
+    if category == "Optional supplement":
+        return None
+    if category in _FRESH_CATS:
+        return "weekly"
+    if category == "Soya / tofu / paneer":
+        return "monthly" if "soya" in n else "weekly"
+    if category == "Grains" and ("batter" in n or "bread" in n):
+        return "weekly"
+    return "monthly"
+
+
+def _canon(name: str) -> str:
+    k = grocery_key(name)
+    return _ALIASES.get(k, k)
+
+
+_QTY_CORE = re.compile(r"^(?P<core>~?\d+(?:\.\d+)?\s*(?:kg|g|L|ml|bunch(?:es)?|loaf|jar|sprig-pack|pack)?|×\d+)\s*(?P<rest>.*)$")
+
+
+def _short_qty(qty: str | None) -> tuple[str | None, str | None]:
+    """A shopping-list quantity (max 20 chars) and the rest of the PDF's wording for the note."""
+    if not qty:
+        return None, None
+    m = _QTY_CORE.match(qty.strip())
+    if m and m["core"]:
+        return m["core"].strip(), (m["rest"].strip(" ()") or None)
+    return (qty if len(qty) <= 20 else None), (None if len(qty) <= 20 else qty)
+
+
+def _grams(qty: str | None) -> float | None:
+    m = re.match(r"^(\d+(?:\.\d+)?)\s*(kg|g)\b", qty or "")
+    return None if not m else float(m[1]) * (1000 if m[2] == "kg" else 1)
+
+
+def _fmt_grams(g: float) -> str:
+    return f"{g / 1000:g} kg" if g >= 1000 else f"{g:g} g"
+
+
+def plan_grocery_batch(plan: dict, kind: str, weeks: list[int]) -> list[dict]:
+    """Items for a batch. kind 'monthly' sums the dry goods of ``weeks``; 'weekly' lists
+    the fresh items of the single week given."""
+    rows: dict[str, dict] = {}
+    for w in plan["groceries"]["weeks"]:
+        if w["week"] not in weeks:
+            continue
+        for cat in w["categories"]:
+            for item in cat["items"]:
+                if grocery_frequency(cat["category"], item["name"]) != kind:
+                    continue
+                key = _canon(item["name"])
+                category = "pantry" if kind == "monthly" else item["grocery_category"]   # soya chunks: dry goods
+                row = rows.setdefault(key, {"name": None, "grams": 0.0, "texts": [], "category": category,
+                                            "weeks": [], "raw": []})
+                row["raw"].append(item["quantity"])
+                if row["name"] is None or len(item["name"]) < len(row["name"]):
+                    row["name"] = key[:1].upper() + key[1:] if key != grocery_key(item["name"]) else item["name"]
+                g = _grams(item["quantity"])
+                if g is not None:
+                    row["grams"] += g
+                elif item["quantity"]:
+                    row["texts"].append(item["quantity"])
+                row["weeks"].append(w["week"])
+    out = []
+    for key, r in rows.items():
+        parts = ([_fmt_grams(r["grams"])] if r["grams"] else []) + sorted(set(r["texts"]))
+        qty_full = " + ".join(parts) if parts else None
+        if kind == "weekly" and len(r["raw"]) == 1:
+            qty_full = r["raw"][0]                     # one week: keep the PDF's own wording ("200 g each")
+        qty, rest = _short_qty(qty_full) if kind == "weekly" else ((qty_full, None) if not qty_full or len(qty_full) <= 20
+                                                                    else (_fmt_grams(r["grams"]) if r["grams"] else None, qty_full))
+        weeks_txt = f"week {r['weeks'][0]}" if len(set(r["weeks"])) == 1 else f"weeks {min(r['weeks'])}–{max(r['weeks'])}"
+        out.append({"name": r["name"], "quantity": qty, "category": r["category"],
+                    "detail": rest, "from": f"{'Fresh' if kind == 'weekly' else 'Dry goods'}, PDF {weeks_txt}"})
+    return sorted(out, key=lambda x: x["name"].casefold())
+
+
+class PlanGroceries:
+    """Applies batches to the shared GroceryStore and remembers which batches were done."""
+
+    def __init__(self, db_path: Path, store) -> None:
+        self.store = store
+        self._db = sqlite3.connect(db_path, check_same_thread=False, isolation_level=None)
+        self._db.execute("PRAGMA busy_timeout=5000")
+        self._db.executescript("""
+            CREATE TABLE IF NOT EXISTS plan_grocery_batch (
+                batch TEXT PRIMARY KEY, done_at TEXT NOT NULL, added INTEGER NOT NULL,
+                updated INTEGER NOT NULL, skipped INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS meal_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+        """)
+        self._lock = threading.Lock()
+
+    def close(self) -> None:
+        self._db.close()
+
+    def done(self, batch: str) -> bool:
+        return self._db.execute("SELECT 1 FROM plan_grocery_batch WHERE batch = ?", (batch,)).fetchone() is not None
+
+    def batches(self, prefix: str) -> list[dict]:
+        rows = self._db.execute("SELECT batch, done_at, added, updated, skipped FROM plan_grocery_batch "
+                                "WHERE batch LIKE ? ORDER BY done_at", (f"{prefix}%",)).fetchall()
+        return [{"batch": b, "done_at": t, "added": a, "updated": u, "skipped": s} for b, t, a, u, s in rows]
+
+    def meta(self, key: str) -> str | None:
+        row = self._db.execute("SELECT value FROM meal_meta WHERE key = ?", (key,)).fetchone()
+        return row[0] if row else None
+
+    def set_meta(self, key: str, value: str) -> None:
+        self._db.execute("INSERT INTO meal_meta VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                         (key, value))
+
+    def _record(self, batch: str, added: int, updated: int, skipped: int) -> None:
+        self._db.execute("INSERT OR REPLACE INTO plan_grocery_batch VALUES (?,?,?,?,?)",
+                         (batch, datetime.now(UTC).isoformat(timespec="seconds"), added, updated, skipped))
+
+    def apply(self, batch: str, items: list[dict], label: str) -> dict:
+        """Put items on the shopping list. Plan-added items get the new quantity;
+        anything the household added itself is left alone."""
+        from .groceries import DuplicateItem, ItemIn, ItemPatch, ListFull, VersionConflict
+        added, updated, skipped = [], [], []
+        with self._lock:
+            open_items = {grocery_key(i.name): i for i in self.store.load().items if not i.purchased}
+            for it in items:
+                note = f"{PLAN_NOTE} · {label}" + (f" · {it['detail']}" if it.get("detail") else "")
+                existing = open_items.get(grocery_key(it["name"])) or open_items.get(_canon(it["name"]))
+                if existing is None:
+                    try:
+                        new = self.store.add(ItemIn(name=it["name"], quantity=it["quantity"], category=it["category"],
+                                                    notes=note[:200]))
+                        open_items[grocery_key(new.name)] = new
+                        added.append(new.name)
+                    except DuplicateItem:
+                        skipped.append(it["name"])
+                    except ListFull:
+                        skipped.append(it["name"])
+                elif (existing.notes or "").startswith(PLAN_NOTE):
+                    if existing.quantity != it["quantity"] or existing.notes != note[:200]:
+                        try:
+                            self.store.update(existing.id, ItemPatch(quantity=it["quantity"], notes=note[:200],
+                                                                     version=existing.version))
+                            updated.append(existing.name)
+                        except VersionConflict:
+                            skipped.append(existing.name)
+                    else:
+                        skipped.append(existing.name)
+                else:
+                    skipped.append(existing.name)                  # the household's own entry: untouched
+            self._record(batch, len(added), len(updated), len(skipped))
+        return {"batch": batch, "added": added, "updated": updated, "skipped": skipped}
+
+    # ----- the two ways batches happen -----
+
+    def rest_of_month(self, plan: dict, d: date) -> dict:
+        """Starting mid-month: dry goods for the remaining plan weeks + this week's fresh items."""
+        week = plan_week(plan_day(d))
+        month = f"{d:%Y-%m}"
+        items = plan_grocery_batch(plan, "monthly", list(range(week, 5))) + plan_grocery_batch(plan, "weekly", [week])
+        result = self.apply(f"{month}-rest", items, f"rest of {d:%b} (from Day {plan_day(d)})")
+        self._record(f"{month}-month", 0, 0, 0)                     # this month's dry goods are covered
+        self._record(f"{month}-w{week}-fresh", 0, 0, 0)
+        if not self.meta("auto_from"):
+            self.set_meta("auto_from", _next_month(d))
+        return result
+
+    def auto(self, plan: dict, d: date) -> list[dict]:
+        """Run from the background task: monthly dry goods once a month (from the 1st),
+        each plan week's fresh items once that week has started. Never for a month before
+        automatic groceries were switched on, never twice."""
+        start = self.meta("auto_from")
+        if start is None:
+            start = f"{d:%Y-%m}" if d.day == 1 else _next_month(d)
+            self.set_meta("auto_from", start)
+        month = f"{d:%Y-%m}"
+        if month < start:
+            return []
+        results = []
+        if not self.done(f"{month}-month"):
+            results.append(self.apply(f"{month}-month", plan_grocery_batch(plan, "monthly", [1, 2, 3, 4]),
+                                      f"{d:%B %Y}, whole month"))
+        week = plan_week(plan_day(d))
+        if not self.done(f"{month}-w{week}-fresh"):
+            results.append(self.apply(f"{month}-w{week}-fresh", plan_grocery_batch(plan, "weekly", [week]),
+                                      f"{d:%b} week {week} (Days {WEEK_START_DAYS[week]}–{_WEEK_END_DAYS[week]})"))
+        return results
+
+
+def _next_month(d: date) -> str:
+    return f"{d.year + (d.month == 12)}-{(d.month % 12) + 1:02d}"
