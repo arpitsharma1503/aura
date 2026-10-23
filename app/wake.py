@@ -37,6 +37,7 @@ RING_SECONDS = 12
 PRE_ROLL = 0.35                               # keep a little audio before the wake word
 SHORT_CLIP = 1.4                              # seconds; shorter wake candidates get a second, accurate check
 END_PAUSE = 1.2                               # Vosk reports an utterance after this much quiet (approx.)
+QUESTION_MIN = 2.0                            # seconds a question capture lasts at least
 MIN_CONF = 0.65                               # candidates only; Whisper confirms every one
 FILLERS = {"uh", "um", "er", "oh", "so", "okay", "ok", "well", "hmm", "and"}
 WAKE_RE = re.compile(
@@ -54,6 +55,12 @@ def split_wake(text: str) -> str | None:
     if any(w and w not in FILLERS for w in lead):      # "Her aura was ..." is not a wake phrase
         return None
     return text[m.end():].strip()
+
+
+def looks_like_wake_only(text: str) -> bool:
+    """'Hey Aura.' (again) or a lone filler is not a question."""
+    t = text.lower().strip(" .,!?")
+    return not t or t in {"hey", "hi", "hello", "aura", "hey aura", "uh", "um", "okay"}
 
 
 def has_speech(pcm: bytes) -> bool:
@@ -96,10 +103,13 @@ def last_utterance(pcm: bytes, gap: float = 0.8, margin: float = 0.3) -> bytes:
 class Capture:
     """A question being recorded from the shared stream (Endpointer decides when it ends)."""
 
-    def __init__(self, max_seconds: int, prefill: list[bytes] | None = None, floor: float | None = None) -> None:
+    def __init__(self, max_seconds: int, prefill: list[bytes] | None = None, floor: float | None = None,
+                 min_seconds: float = 0.0) -> None:
         # With a known room level the detector doesn't have to learn it from the first
-        # moments of the capture, which are often already speech.
-        self.ep = Endpointer(floor=floor)
+        # moments of the capture, which are often already speech. A short click or breath
+        # must not count as the whole question, so questions need a little more speech.
+        self.ep = Endpointer(floor=floor, min_speech_s=0.4)
+        self.min_bytes = int(min_seconds * RATE * 2)
         self.limit = max_seconds * RATE * 2
         self.chunks: list[bytes] = []
         self.done: asyncio.Future = asyncio.get_running_loop().create_future()
@@ -119,6 +129,8 @@ class Capture:
         self.chunks.append(chunk)
         for i in range(0, len(chunk) - FRAME * 2 + 1, FRAME * 2):
             state = self.ep.feed(rms_of(chunk[i:i + FRAME * 2]))
+            if state == "done" and self.size < self.min_bytes:
+                continue                                   # too early to be the end of a question
             if state != "continue":
                 self.reason = state
                 return self.finish()
@@ -187,10 +199,10 @@ class WakeListener:
     def capturing(self) -> bool:
         return self._capture is not None and not self._capture.done.done()
 
-    async def capture(self, max_seconds: int, prefill: list[bytes] | None = None):
+    async def capture(self, max_seconds: int, prefill: list[bytes] | None = None, min_seconds: float = 0.0):
         if self.capturing:
             raise RuntimeError("busy")
-        cap = Capture(max_seconds, prefill, floor=self._room_floor())
+        cap = Capture(max_seconds, prefill, floor=self._room_floor(), min_seconds=min_seconds)
         self._capture = cap
         try:
             return await asyncio.wait_for(cap.done, timeout=max_seconds + 5)
@@ -285,7 +297,8 @@ class WakeListener:
                         first = pos - int(back * RATE)
                         clip = last_utterance(b"".join(c for p, c in ring if p + len(c) // 2 > first))
                         self._busy = True
-                        asyncio.create_task(self._verify(clip, pos))
+                        clip_start = pos - len(clip) // 2          # stream position where the wake utterance starts
+                        asyncio.create_task(self._verify(clip, clip_start, pos))
                         rec, rec_start = None, pos
         finally:
             if self._proc.returncode is None:
@@ -302,34 +315,36 @@ class WakeListener:
                 return max(w["end"] for w in words) - a["start"]
         return None
 
-    async def _verify(self, clip: bytes, after: int) -> None:
+    async def _verify(self, clip: bytes, clip_start: int, after: int) -> None:
         try:
             await self.notify({"event": "checking"})          # instant feedback while we make sure
             if len(clip) <= SHORT_CLIP * RATE * 2:
                 # A lone "Hey Aura" is too short for the quick model: go straight to the accurate one.
-                question = split_wake(await self.transcribe(clip, False, "accurate"))
+                heard = split_wake(await self.transcribe(clip, False, "accurate"))
             else:
-                question = split_wake(await self.transcribe(clip, False, True))
-            if question is None:
+                heard = split_wake(await self.transcribe(clip, False, True))
+            if heard is None:
                 log.info("wake candidate rejected by the second check")      # never log what was said
                 await self.notify({"event": "idle"})
                 return
             self.wakes += 1
-            if question:
-                # The quick check heard "Aura" plus a question: let the accurate model hear it properly.
+            since = b"".join(c for p, c in list(self._ring) if p >= after)
+            if heard or has_speech(since):
+                # They went on talking ("Hey Aura, what's the ..."): the spotter may have stopped at a
+                # short pause, so keep recording from the wake word until they have really finished,
+                # then let the accurate model hear the whole sentence once.
+                prefill = [c for p, c in list(self._ring) if p + len(c) // 2 > clip_start]
+                pcm, ep, _ = await self.capture(self.max_seconds + 4, prefill)
                 await self.notify({"event": "processing"})
-                accurate = await self.transcribe(clip, False)
-                better = split_wake(accurate)
-                await self.notify({"event": "question", "text": better or question})
-                return
-            # Just "Hey Aura": listen for the question on the same stream.
+                text = (await self.transcribe(pcm, False)).strip()
+                question = split_wake(text)
+                question = text if question is None else question
+                if question and not looks_like_wake_only(question):
+                    await self.notify({"event": "question", "text": question})
+                    return
+            # Just "Hey Aura" and they are waiting: listen for the question with the full time.
             await self.notify({"event": "listening", "max_seconds": self.max_seconds})
-            # Audio that arrived while we were checking may already hold the start of the question;
-            # if it is only silence (people wait for "Listening"), start fresh with the full time.
-            prefill = [c for p, c in list(self._ring) if p >= after]
-            if not has_speech(b"".join(prefill)):
-                prefill = []
-            pcm, ep, reason = await self.capture(self.max_seconds, prefill)
+            pcm, ep, reason = await self.capture(self.max_seconds, min_seconds=QUESTION_MIN)
             if not ep.heard_speech and not ep.maybe_speech:
                 await self.notify({"event": "no_speech", "levels": ep.levels()})
                 return
