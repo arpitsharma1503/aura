@@ -267,9 +267,9 @@ window.AuraAssistant = (() => {
 
     const list = root.querySelector("#asst-transcript");
     const turns = info?.transcript || [];
-    list.replaceChildren(...(turns.length ? turns.map(renderTurn) : [el("li", { class: "asst__empty" }, "No questions yet.")]));
+    // Newest first, so the latest answer is always at the top of the conversation.
+    list.replaceChildren(...(turns.length ? [...turns].reverse().map(renderTurn) : [el("li", { class: "asst__empty" }, "No questions yet.")]));
     root.querySelector("#asst-clear").hidden = !turns.length;
-    if (turns.length) list.lastElementChild?.scrollIntoView?.({ block: "nearest" });
   }
 
   function renderTurn(t) {

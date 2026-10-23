@@ -115,6 +115,9 @@ def test_typed_question_answered_by_real_server(chrome, server):
     p.js("document.querySelector('[data-q=\"What groceries do I need?\"]').click()")
     p.wait_for("document.querySelectorAll('.asst__turn').length === 2")
     assert "grocery list is empty" in p.text("#asst-transcript")
+    # newest exchange first
+    first = p.js("document.querySelector('#asst-transcript .asst__turn .asst__q').textContent")
+    assert "What groceries do I need?" in first
     p.js("document.getElementById('asst-clear').click()")
     p.wait_for("document.querySelectorAll('.asst__turn').length === 0")
     assert "No questions yet" in p.text("#asst-transcript")
