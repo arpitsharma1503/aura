@@ -35,7 +35,9 @@ CHUNK_FRAMES = 3                              # 3 x 30 ms = 90 ms per read
 CHUNK_BYTES = FRAME * 2 * CHUNK_FRAMES
 RING_SECONDS = 12
 PRE_ROLL = 0.35                               # keep a little audio before the wake word
-MIN_CONF = 0.8
+SHORT_CLIP = 1.4                              # seconds; shorter wake candidates get a second, accurate check
+END_PAUSE = 1.2                               # Vosk reports an utterance after this much quiet (approx.)
+MIN_CONF = 0.65                               # candidates only; Whisper confirms every one
 FILLERS = {"uh", "um", "er", "oh", "so", "okay", "ok", "well", "hmm", "and"}
 WAKE_RE = re.compile(
     r"^(?P<pre>.*?)\b(?:(?:hey|hi|hay|a|okay|ok)\W+)?(?:aura|aora|ora|aurora|aara|orah|oura|aurah|auro|biora|ayora|aiora|ayura|heyora|hiora)\b[\s,.!?:;-]*",
@@ -52,6 +54,33 @@ def split_wake(text: str) -> str | None:
     if any(w and w not in FILLERS for w in lead):      # "Her aura was ..." is not a wake phrase
         return None
     return text[m.end():].strip()
+
+
+def last_utterance(pcm: bytes, gap: float = 0.8, margin: float = 0.3) -> bytes:
+    """The most recent stretch of speech in ``pcm`` (pauses shorter than ``gap`` seconds
+    belong to it), with a little margin. Found from the audio itself, so it covers the
+    whole "Hey Aura, what's the weather today?" even when the keyword spotter only
+    reports the two wake words."""
+    n = FRAME * 2
+    levels = [rms_of(pcm[i:i + n]) for i in range(0, len(pcm) - n + 1, n)]
+    if len(levels) < 10:
+        return pcm
+    floor = sorted(levels)[len(levels) // 5]                    # quietest fifth = room noise
+    thr = max(floor * 2.5, floor + 80, 120)
+    loud = [v > thr for v in levels]
+    if not any(loud):
+        return pcm
+    end = max(i for i, x in enumerate(loud) if x)
+    gap_frames, quiet, start = int(gap * RATE / FRAME), 0, end
+    for i in range(end, -1, -1):
+        if loud[i]:
+            start, quiet = i, 0
+        else:
+            quiet += 1
+            if quiet >= gap_frames:
+                break
+    m = int(margin * RATE / FRAME)
+    return pcm[max(0, start - m) * n:min(len(levels), end + 1 + m) * n]
 
 
 class Capture:
@@ -227,11 +256,14 @@ class WakeListener:
                 if rec is None:
                     rec = self._recognizer()
                 if rec.AcceptWaveform(chunk):
-                    start = self._candidate(json.loads(rec.Result()))
-                    if start is not None:
+                    span = self._candidate(json.loads(rec.Result()))
+                    if span is not None:
                         self.candidates += 1
-                        first = rec_start + int(max(0.0, start - PRE_ROLL) * RATE)
-                        clip = b"".join(c for p, c in ring if p + len(c) // 2 > first)
+                        # Vosk's word times aren't a reliable stream position, so measure back from
+                        # now: the utterance length plus Vosk's end-of-speech pause (~1 s) and pre-roll.
+                        back = min(RING_SECONDS, span + PRE_ROLL + END_PAUSE + 6.0)   # generous; trimmed below
+                        first = pos - int(back * RATE)
+                        clip = last_utterance(b"".join(c for p, c in ring if p + len(c) // 2 > first))
                         self._busy = True
                         asyncio.create_task(self._verify(clip, pos))
                         rec, rec_start = None, pos
@@ -241,19 +273,22 @@ class WakeListener:
             await self._proc.wait()
 
     def _candidate(self, result: dict) -> float | None:
-        """Start time (s) of a confident "hey aura" in a final Vosk result, else None."""
+        """Seconds from a confident "hey aura" to the end of the utterance, or None."""
         words = result.get("result") or []
         first, second = self.phrase.split()[0], self.phrase.split()[-1]
         for a, b in zip(words, words[1:]):
             if a["word"] == first and b["word"] == second and min(a["conf"], b["conf"]) >= MIN_CONF \
                     and b["start"] - a["end"] < 0.6:
-                return a["start"]
+                return max(w["end"] for w in words) - a["start"]
         return None
 
     async def _verify(self, clip: bytes, after: int) -> None:
         try:
             text = await self.transcribe(clip, False, True)
             question = split_wake(text)
+            if question is None and len(clip) <= SHORT_CLIP * RATE * 2:
+                # A lone "Hey Aura" is too short for the quick model; ask the accurate one once.
+                question = split_wake(await self.transcribe(clip, False, "accurate"))
             if question is None:
                 log.info("wake candidate rejected by the second check")      # never log what was said
                 return

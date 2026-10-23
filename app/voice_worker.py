@@ -256,8 +256,9 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
     busy = asyncio.Lock()             # one transcription / synthesis at a time (CPU bound)
     notify_url: dict[str, str | None] = {"url": None}
 
-    async def transcribe_async(pcm: bytes, vad: bool, wake_check: bool = False) -> str:
-        engine = stt_fast if wake_check and stt_fast.state == "ready" else stt
+    async def transcribe_async(pcm: bytes, vad: bool, wake_check: bool | str = False) -> str:
+        # wake_check: False = a question; True = quick wake check; "accurate" = wake check with the big model
+        engine = stt_fast if wake_check is True and stt_fast.state == "ready" else stt
         if engine.state != "ready":
             raise RuntimeError("speech recognition not ready")
         prompt = "Hey Aura." if wake_check else None      # helps Whisper with a short, isolated "Hey Aura"

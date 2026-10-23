@@ -33,7 +33,7 @@ def listener():
 def test_candidate_needs_both_words_confident_and_adjacent():
     w = listener()
     good = {"result": [{"word": "hey", "conf": 0.95, "start": 1.0, "end": 1.2}, {"word": "aura", "conf": 0.9, "start": 1.25, "end": 1.6}]}
-    assert w._candidate(good) == 1.0
+    assert abs(w._candidate(good) - 0.6) < 1e-9                         # from "hey" to the last word
     low = {"result": [{"word": "hey", "conf": 0.95, "start": 1.0, "end": 1.2}, {"word": "aura", "conf": 0.5, "start": 1.25, "end": 1.6}]}
     assert w._candidate(low) is None
     apart = {"result": [{"word": "hey", "conf": 1, "start": 1.0, "end": 1.2}, {"word": "aura", "conf": 1, "start": 2.5, "end": 2.8}]}
@@ -120,3 +120,23 @@ def test_button_question_with_wake_phrase_is_stripped(tmp_path):
     c2, _ = api(tmp_path, FakeWorker(text="Biora."))
     turn = c2.post("/api/assistant/listen").json()
     assert turn["question"] == "Hey Aura" and turn["answer"]["intent"] == "greeting"
+
+
+def test_candidate_span_covers_the_question():
+    w = listener()
+    words = {"result": [{"word": "hey", "conf": 1, "start": 0.3, "end": 0.5}, {"word": "aura", "conf": 0.95, "start": 0.55, "end": 0.9},
+                        {"word": "[unk]", "conf": 1, "start": 1.0, "end": 2.6}]}
+    assert abs(w._candidate(words) - 2.3) < 1e-9
+
+
+def test_last_utterance_finds_the_whole_phrase():
+    import struct
+    from app.wake import last_utterance
+    noise = lambda sec: struct.pack("<h", 30) * int(16000 * sec)
+    speech = lambda sec: struct.pack("<hh", 900, -900) * int(8000 * sec)
+    # earlier chatter, a long pause, then "Hey Aura" + short pause + question, then quiet
+    pcm = speech(1) + noise(2) + speech(0.6) + noise(0.4) + speech(1.5) + noise(1.2)
+    out = last_utterance(pcm)
+    assert 2.4 * 32000 <= len(out) <= 3.2 * 32000          # 0.6 + 0.4 + 1.5 s plus margins, not the chatter
+    quiet = noise(3)
+    assert last_utterance(quiet) == quiet
