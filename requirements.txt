@@ -11,3 +11,4 @@ recurring-ical-events==3.8.2
 # Voice assistant (local speech; models are downloaded separately into data/models)
 faster-whisper==1.2.1
 piper-tts==1.8.0
+vosk==0.3.45                # wake word "Hey Aura" (keyword spotting, offline)

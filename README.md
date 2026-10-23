@@ -673,6 +673,18 @@ dashboard (aura.service :8080)  ──loopback──►  voice worker (aura-voic
   the TV is on. The USB microphone has no speaker. With the TV off, answers are
   on screen only. Turn spoken replies off in Settings → Assistant.
 
+**Wake word "Hey Aura"** (Settings → Assistant, off by default): the voice service
+keeps the Pi's microphone open and listens only for the phrase. Stage 1 is Vosk
+keyword spotting (`data/models/vosk/small-en-us`, 68 MB) with a grammar that knows
+nothing but "hey aura", so conversation is never transcribed; stage 2 has Whisper
+re-check the candidate, which drops lookalikes such as "Hey, are you ready?". Say
+"Hey Aura, what's the weather?" in one go, or "Hey Aura", wait for Listening, then
+ask. Answers are spoken on the entrance screen (and on any screen with Ask AURA
+open). About 3% of one CPU core while listening. Audio stays in a 12-second
+in-memory buffer and is never saved or sent; rejected candidates are logged only
+as "rejected", never with what was said. Known limits: occasional misses from far
+away, and rarely a similar-sounding phrase (e.g. "Hey Laura") may trigger it.
+
 **Privacy:** the microphone records only after a button press, for at most the
 configured seconds; the audio stays in the worker's memory, is transcribed and
 then dropped, never written to disk or sent anywhere. The question/answer

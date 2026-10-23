@@ -30,91 +30,17 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from .audio import FRAME, RATE, Endpointer, dbfs, rms_of  # noqa: F401  (re-exported for tests)
 from .config import Settings, get_settings
 from .security import is_loopback
+from .wake import WakeListener
 
 log = logging.getLogger("aura.voice")
 
-RATE = 16_000
-FRAME = 480                      # 30 ms of 16-bit mono
 MAX_SECONDS = 15
 CLIP_TTL = 120                   # seconds an untranscribed clip may stay in memory
 PIPER_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
-
-
-# --------------------------------------------------------------------------- end of speech detection
-
-@dataclass
-class Endpointer:
-    """Simple energy-based end-of-speech detection for push-to-talk.
-
-    Learns the room's noise floor from the first ~0.3 s, treats frames well above
-    it as speech, and stops after ``silence_s`` of quiet once speech has started,
-    or after ``no_speech_s`` if nobody speaks at all.
-    """
-    silence_s: float = 1.2
-    no_speech_s: float = 6.0
-    min_speech_s: float = 0.25
-    floor: float | None = None
-    frames: int = 0
-    speech_frames: int = 0
-    quiet_frames: int = 0
-    peak: float = 0.0
-    calib: list[float] = field(default_factory=list)
-
-    def threshold(self) -> float:
-        # Relative to the room: a cheap USB mic a metre or two away gives speech only a few
-        # times louder than a quiet room (measured: room ~35 RMS), so no high fixed minimum.
-        floor = self.floor if self.floor is not None else 60
-        return max(floor * 2.5, floor + 80, 120)
-
-    @property
-    def maybe_speech(self) -> bool:
-        """Clearly louder than the room at some point, even if not for long enough to
-        count as speech. Such clips get a second opinion from Whisper's own VAD."""
-        floor = self.floor if self.floor is not None else 60
-        return self.peak >= max(floor * 1.8, floor + 40, 90)
-
-    def levels(self) -> dict:
-        return {"floor_dbfs": dbfs(self.floor or 0), "peak_dbfs": dbfs(self.peak), "threshold_dbfs": dbfs(self.threshold())}
-
-    def feed(self, rms: float) -> Literal["continue", "done", "no_speech"]:
-        self.frames += 1
-        if self.floor is not None or len(self.calib) >= 3:
-            self.peak = max(self.peak, rms)            # skip the first frames: the mic's switch-on click
-        if self.floor is None:
-            self.calib.append(rms)
-            if len(self.calib) >= 10:
-                self.floor = sorted(self.calib)[len(self.calib) // 2]
-            return "continue"
-        if rms > self.threshold():
-            self.speech_frames += 1
-            self.quiet_frames = 0
-        elif self.speech_frames:
-            self.quiet_frames += 1
-            # slowly track the floor while quiet
-            self.floor = 0.95 * self.floor + 0.05 * rms
-        sec = FRAME / RATE
-        if self.speech_frames * sec >= self.min_speech_s and self.quiet_frames * sec >= self.silence_s:
-            return "done"
-        if self.speech_frames * sec < self.min_speech_s and self.frames * sec >= self.no_speech_s:
-            return "no_speech"
-        return "continue"
-
-    @property
-    def heard_speech(self) -> bool:
-        return self.speech_frames * FRAME / RATE >= self.min_speech_s
-
-
-def rms_of(chunk: bytes) -> float:
-    a = array.array("h", chunk)
-    if not a:
-        return 0.0
-    return math.sqrt(sum(x * x for x in a) / len(a))
-
-
-def dbfs(rms: float) -> float:
-    return round(20 * math.log10(max(rms, 1) / 32768), 1)
+VOSK_URL = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
 
 
 # --------------------------------------------------------------------------- engines
@@ -141,7 +67,7 @@ class SpeechToText:
                           if missing else f"speech model failed to load: {type(exc).__name__}")
             log.warning("STT %s: %s", self.state, exc)
 
-    def transcribe(self, pcm: bytes, vad: bool = False) -> str:
+    def transcribe(self, pcm: bytes, vad: bool = False, prompt: str | None = None) -> str:
         import numpy as np
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
         peak = float(np.max(np.abs(audio))) if audio.size else 0.0
@@ -149,7 +75,7 @@ class SpeechToText:
             audio = audio * min(0.9 / peak, 20.0)       # quiet, distant speech: bring it up to a normal level
         segments, _info = self._model.transcribe(
             audio, language="en", beam_size=1, vad_filter=vad, condition_on_previous_text=False,
-            initial_prompt="Aura, weather, rain, umbrella, commute, office, traffic, calendar, birthday, groceries.")
+            initial_prompt=prompt or "Aura, weather, rain, umbrella, commute, office, traffic, calendar, birthday, groceries.")
         text = " ".join(s.text.strip() for s in segments).strip()
         if vad and text.lower().strip(" .!?") in HALLUCINATIONS:
             return ""                                     # Whisper's usual words for noise, not speech
@@ -224,10 +150,14 @@ class Recorder:
         self._stop = asyncio.Event()
         self._cancel = False
         self.level = -90.0
+        self.wake = None                 # WakeListener, when the wake word is on
+
+    def _shared(self) -> bool:
+        return bool(self.wake and self.wake.running)
 
     @property
     def busy(self) -> bool:
-        return self.proc is not None
+        return self.proc is not None or bool(self.wake and self.wake.capturing)
 
     def argv(self, max_seconds: int) -> list[str]:
         return ["arecord", "-D", self.device, "-f", "S16_LE", "-r", str(RATE), "-c", "1",
@@ -236,6 +166,11 @@ class Recorder:
     async def record(self, max_seconds: int) -> tuple[bytes, Endpointer, str]:
         if self.busy:
             raise HTTPException(409, "Already listening.")
+        if self._shared():
+            try:
+                return await self.wake.capture(max_seconds)
+            except RuntimeError as exc:
+                raise HTTPException(409, "Already listening.") from exc
         self._stop.clear()
         self._cancel = False
         ep = Endpointer()
@@ -283,16 +218,26 @@ class Recorder:
 
     def stop(self) -> None:
         self._stop.set()
+        if self.wake:
+            self.wake.stop_capture()
 
     def cancel(self) -> None:
         self._cancel = True
         self._stop.set()
+        if self.wake:
+            self.wake.stop_capture(cancel=True)
 
 
 # --------------------------------------------------------------------------- HTTP API (loopback only)
 
 class RecordIn(BaseModel):
     max_seconds: int = Field(default=10, ge=2, le=MAX_SECONDS)
+
+
+class WakeIn(BaseModel):
+    enabled: bool
+    max_seconds: int = Field(default=10, ge=2, le=MAX_SECONDS)
+    notify_url: str = Field(pattern=r"^http://127\.0\.0\.1:\d{2,5}/api/assistant/wake$")
 
 
 class SpeakIn(BaseModel):
@@ -306,6 +251,25 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
     rec = Recorder(settings.voice_mic_device)
     clips: dict[str, Clip] = {}
     busy = asyncio.Lock()             # one transcription / synthesis at a time (CPU bound)
+    notify_url: dict[str, str | None] = {"url": None}
+
+    async def transcribe_async(pcm: bytes, vad: bool, wake_check: bool = False) -> str:
+        if stt.state != "ready":
+            raise RuntimeError("speech recognition not ready")
+        prompt = "Hey Aura." if wake_check else None      # helps Whisper with a short, isolated "Hey Aura"
+        async with busy:
+            return await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, pcm, vad, prompt)
+
+    async def notify(event: dict) -> None:
+        if not notify_url["url"]:
+            return
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(notify_url["url"], json=event)
+
+    wake = WakeListener(settings.voice_mic_device, models_dir / "vosk" / "small-en-us", transcribe_async, notify,
+                        phrase=settings.voice_wake_phrase)
+    rec.wake = wake
 
     def sweep() -> None:
         now = time.monotonic()
@@ -319,6 +283,7 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
             loop.run_in_executor(None, stt.load)
             loop.run_in_executor(None, tts.load)
         yield
+        await wake.set_enabled(False)
 
     app = FastAPI(title="AURA voice", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.stt, app.state.tts, app.state.rec, app.state.clips = stt, tts, rec, clips
@@ -338,6 +303,7 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
             "tts": {"state": tts.state, "voice": tts.name, "error": tts.error},
             "mic": {"present": mic_present(rec.device), "device": rec.device, "busy": rec.busy},
             "clips_in_memory": len(clips),
+            "wake": wake.status(),
         }
 
     @app.get("/level")
@@ -362,6 +328,13 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
         clips[cid] = Clip(pcm, time.monotonic(), secs, uncertain=uncertain)
         return {"clip_id": cid, "reason": reason, "seconds": secs, "levels": levels, "uncertain": uncertain,
                 "record_ms": int((time.monotonic() - t0) * 1000)}
+
+    @app.post("/wake")
+    async def wake_config(body: WakeIn) -> dict:
+        """Turn the wake word on/off (sent by the dashboard from Settings → Assistant)."""
+        notify_url["url"] = body.notify_url
+        await wake.set_enabled(body.enabled, body.max_seconds)
+        return wake.status()
 
     @app.post("/stop")
     async def stop() -> dict:
@@ -431,6 +404,24 @@ def download(settings: Settings) -> None:
     tts = TextToSpeech(name, models_dir)
     tts.load()
     print(f"Voice {name}: {tts.state}{': ' + tts.error if tts.error else ''}")
+
+    vosk_dir = models_dir / "vosk" / "small-en-us"
+    if not vosk_dir.exists():
+        import tempfile
+        import zipfile
+        print("Wake-word model vosk-model-small-en-us-0.15 …", flush=True)
+        vosk_dir.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=vosk_dir.parent) as tmp:
+            z = Path(tmp) / "m.zip"
+            with httpx.stream("GET", VOSK_URL, follow_redirects=True, timeout=120) as r:
+                r.raise_for_status()
+                with open(z, "wb") as f:
+                    for chunk in r.iter_bytes(1 << 16):
+                        f.write(chunk)
+            with zipfile.ZipFile(z) as zf:
+                zf.extractall(tmp)
+            (Path(tmp) / "vosk-model-small-en-us-0.15").rename(vosk_dir)
+    print(f"Wake-word model: {'ready' if (vosk_dir / 'README').exists() else 'missing'}")
 
 
 def main() -> None:

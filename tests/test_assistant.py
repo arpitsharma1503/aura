@@ -282,6 +282,11 @@ class FakeWorker:
             return httpx.Response(200, content=b"RIFF....WAVEfmt ", headers={"content-type": "audio/wav"})
         if p in ("/stop", "/cancel"):
             return httpx.Response(200, json={})
+        if p == "/wake":
+            body = json.loads(request.content)
+            assert body["notify_url"].endswith("/api/assistant/wake")
+            return httpx.Response(200, json={"enabled": body["enabled"], "running": body["enabled"], "phrase": "hey aura",
+                                             "error": None, "model": True})
         return httpx.Response(404)
 
 
@@ -380,7 +385,7 @@ def test_settings_validation(tmp_path):
     assert c.patch("/api/settings/assistant", json={"max_listen_seconds": 60}).status_code == 422
     info = c.get("/api/settings").json()
     assert info["values"]["assistant"] == {"enabled": True, "spoken_replies": True, "max_listen_seconds": 10,
-                                           "mic_from_lan": False}
+                                           "mic_from_lan": False, "wake_word": False}
     assert info["info"]["assistant"]["available"] is True
 
 

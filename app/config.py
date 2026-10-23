@@ -105,6 +105,7 @@ class Settings(BaseSettings):
     voice_stt_model: str = "base.en"                        # faster-whisper model name
     voice_tts_voice: str = "en_US-lessac-medium"            # Piper voice name
     voice_threads: int = Field(default=4, ge=1, le=8)
+    voice_wake_phrase: str = Field(default="hey aura", pattern=r"^[a-z]+ [a-z]+$")   # two words (Vosk grammar)
 
     # Network protection (Pi-hole on this Pi). Read-only status in Settings.
     # The app password is created in Pi-hole's admin page (Settings -> Web interface / API,

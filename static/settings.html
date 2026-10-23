@@ -186,6 +186,10 @@
         <dl class="s-grid" id="assistant-info"></dl>
         <label class="s-switch"><input type="checkbox" data-field="enabled">
           <span>Voice assistant <small>Microphone button on the dashboard; answers come from AURA's own data</small></span></label>
+        <label class="s-switch"><input type="checkbox" data-field="wake_word">
+          <span>Wake word “Hey Aura” <small>The Pi listens continuously for “Hey Aura”, then answers the question that
+            follows. Listening happens only on the Pi: it recognises nothing but the wake phrase, keeps a few seconds of
+            audio in memory and never saves or sends it. Every screen shows “Hey Aura” while this is on.</small></span></label>
         <label class="s-switch"><input type="checkbox" data-field="mic_from_lan">
           <span>Start the microphone from phones and laptops <small>Off: only the entrance screen can. On: any device on
             your home network can switch on the Pi's microphone (for up to the time below). The microphone is the one on the

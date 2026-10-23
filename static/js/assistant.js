@@ -12,6 +12,7 @@ window.AuraAssistant = (() => {
     "What's on my calendar today?", "What groceries do I need?", "Summarize my day"];
   const STATES = {
     idle: ["Ready", "Press the microphone and ask a question."],
+    idleWake: ["Ready", "Say “Hey Aura” and your question, or press the microphone."],
     listening: ["Listening…", "Speak now. I'll stop when you pause."],
     processing: ["Thinking…", "Turning your words into an answer."],
     answered: ["Ready", "Ask another question."],
@@ -137,14 +138,27 @@ window.AuraAssistant = (() => {
   }
 
   /** Server-Sent "assistant" events (from any screen). */
+  let wakeErrorTimer = null;
+  const assistantOpen = () => $("detail")?.open && $("detail").dataset.view === "assistant";
+
   function onEvent(data) {
     if (data.state === "listening" || data.state === "processing") {
       state = data.state;
+    } else if (data.state === "error" && data.wake) {
+      // "Hey Aura" problems: show them everywhere for a moment.
+      setState("error", data.error || "Please try again.", false);
+      clearTimeout(wakeErrorTimer);
+      wakeErrorTimer = setTimeout(() => { if (state === "error") setState("idle"); }, 8000);
+      return;
     } else if (data.state === "error" && !pendingVoice) {
       state = "idle";       // another screen's error; ours arrives with our request
     } else if (["answered", "cleared", "settings"].includes(data.state)) {
       if (!pendingVoice && state !== "error") state = "idle";
-      refresh();
+      const speakIt = data.state === "answered" && data.wake && data.turn_id
+        && (document.body.classList.contains("kiosk") || assistantOpen());
+      refresh().then(() => {
+        if (speakIt) speak((info?.transcript || []).find((t) => t.id === data.turn_id));
+      });
       return;
     } else if (data.state === "idle" && !pendingVoice) {
       state = "idle";
@@ -215,14 +229,15 @@ window.AuraAssistant = (() => {
     paintMicButton();
     if (!root) return;
     const vs = viewState();
-    const [title, hint] = STATES[vs] || STATES.idle;
+    const [title, hint] = (vs === "idle" || vs === "answered") && info?.wake_active ? STATES.idleWake : (STATES[vs] || STATES.idle);
     root.dataset.state = vs;
     root.querySelector("#asst-state").textContent = title;
     let hintText = hint;
     if (vs === "error") hintText = errorText || "Please try again.";
     if (vs === "unavailable") hintText = unavailableReason();
     if ((vs === "idle" || vs === "answered") && info && !info.mic_allowed) {
-      hintText = "The microphone can only be started on the entrance screen. Type a question here, or allow other devices in Settings → Assistant.";
+      hintText = info.wake_active ? "Say “Hey Aura” near the Pi, or type a question here."
+        : "The microphone can only be started on the entrance screen. Type a question here, or allow other devices in Settings → Assistant.";
     }
     root.querySelector("#asst-hint").textContent = hintText;
 
@@ -274,6 +289,8 @@ window.AuraAssistant = (() => {
     btn.title = live ? "Listening… press to stop" : "Ask AURA";
     const pill = $("listening-pill");
     if (pill) pill.hidden = !live;
+    const wp = $("wake-pill");
+    if (wp) wp.hidden = live || !(info?.enabled && info?.wake_active);
     paintTile();
   }
 
@@ -292,6 +309,7 @@ window.AuraAssistant = (() => {
     else if (vs === "unavailable") sub = unavailableReason();
     else if (vs === "listening") sub = "Speak now. I'll stop when you pause.";
     else if (last) sub = `“${last.question}” — ${last.answer.text}`;
+    else if (info.wake_active) sub = "Say “Hey Aura” and your question, or press the microphone.";
     else if (info.mic_allowed) sub = "Press the microphone and ask about weather, your commute, calendar or groceries.";
     else sub = "Ask about weather, your commute, calendar or groceries. To use the Pi's microphone from here, allow it in Settings → Assistant.";
     $("assistant-sub").textContent = sub;

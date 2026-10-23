@@ -247,6 +247,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         if section == "groceries":
             await auto_clear()
         if section == "assistant":
+            await push_wake()
             broker.publish("assistant", {"state": "settings"})
         return {"commute": "The commute monitor uses the new schedule now.",
                 "locations": "Commute (and weather, if set) use the new places now.",
@@ -260,6 +261,20 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         days = prefs.groceries.auto_clear_purchased_days
         if days and groceries.clear_purchased_older_than(days):
             groceries_changed()
+
+    async def push_wake() -> None:
+        """Tell the voice worker whether to listen for "Hey Aura" (it forgets on restart)."""
+        a = prefs.assistant
+        try:
+            await voice.configure_wake(a.enabled and a.wake_word, a.max_listen_seconds,
+                                       f"http://127.0.0.1:{settings.port}/api/assistant/wake")
+        except VoiceError:
+            pass                                  # worker down: retried by wake_sync
+
+    async def wake_sync() -> None:
+        while True:
+            await push_wake()
+            await asyncio.sleep(30)
 
     async def housekeeping() -> None:
         while True:
@@ -294,6 +309,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         hk = asyncio.create_task(housekeeping())
         background.add(hk)
         hk.add_done_callback(background.discard)
+        ws = asyncio.create_task(wake_sync())
+        background.add(ws)
+        ws.add_done_callback(background.discard)
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
@@ -650,6 +668,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "error": voice_session.error,
             "voice": h,
             "voice_available": h is not None,
+            "wake_word": prefs.assistant.wake_word,
+            "wake_active": bool(h and h.get("wake", {}).get("running")),
             "transcript": [t.model_dump(mode="json") for t in assistant.transcript()],
         }
 
@@ -680,6 +700,22 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             await voice_session.cancel()
         except VoiceError as exc:
             return voice_failure(exc)
+        return Response(status_code=204)
+
+    @app.post("/api/assistant/wake", status_code=204, include_in_schema=False)
+    async def assistant_wake(request: Request) -> Response:
+        # Only the local voice worker reports wake events.
+        if not access.is_local(request):
+            raise HTTPException(status_code=403, detail="Not allowed.")
+        if not (prefs.assistant.enabled and prefs.assistant.wake_word):
+            return Response(status_code=204)
+        try:
+            ev = await request.json()
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Body must be JSON.") from None
+        if not isinstance(ev, dict):
+            raise HTTPException(status_code=422, detail="Body must be an object.")
+        await voice_session.wake_event(ev)
         return Response(status_code=204)
 
     @app.post("/api/assistant/ask", response_model=Turn)

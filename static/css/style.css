@@ -819,6 +819,7 @@ body[data-phase="night"] .shell { opacity: 0.9; }
 .pill--preview { color: var(--preview); background: rgba(185, 166, 255, 0.08); }
 .pill--offline { color: var(--warn); background: rgba(255, 179, 92, 0.08); }
 .pill--live { order: 97; color: var(--danger); background: rgba(255, 122, 122, 0.1); }
+.pill--wake { order: 96; color: var(--tone-violet); background: rgba(182, 154, 255, 0.08); border-color: rgba(182, 154, 255, 0.4); }
 .pill .dot { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: currentColor; animation: pulse 2s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.3; } }
 

@@ -72,6 +72,10 @@ class VoiceClient:
     async def transcribe(self, clip_id: str) -> dict:
         return (await self._call("POST", f"/transcribe/{clip_id}", timeout=httpx.Timeout(60, connect=2))).json()
 
+    async def configure_wake(self, enabled: bool, max_seconds: int, notify_url: str) -> dict:
+        return (await self._call("POST", "/wake", json={"enabled": enabled, "max_seconds": max_seconds,
+                                                        "notify_url": notify_url})).json()
+
     async def speak(self, text: str) -> bytes:
         return (await self._call("POST", "/speak", json={"text": text[:1200]})).content
 
@@ -132,6 +136,30 @@ class VoiceSession:
                 raise VoiceError("Something went wrong. Please try again.") from exc
             self._set("answered", turn_id=turn.id)
             return turn
+
+    async def wake_event(self, ev: dict) -> None:
+        """Events from the wake-word listener ("Hey Aura") in the voice worker."""
+        kind = ev.get("event")
+        if self._lock.locked():                 # a button-started question is in progress
+            return
+        if kind == "listening":
+            log.info("wake word heard")
+            self._set("listening", max_seconds=ev.get("max_seconds"), wake=True)
+        elif kind == "processing":
+            self._set("processing", wake=True)
+        elif kind == "question":
+            text = (ev.get("text") or "").strip()[:300]
+            if not text:
+                self._set("error", error="I couldn't make out a question. Say “Hey Aura” and try again.", retry=False, wake=True)
+                return
+            log.info("wake word heard with a question")
+            self._set("processing", wake=True)
+            turn = await self.assistant.ask(text, source="voice")
+            self._set("answered", turn_id=turn.id, wake=True)
+        elif kind == "no_speech":
+            self._set("error", error="I didn't hear a question after “Hey Aura”.", retry=False, wake=True)
+        else:
+            self._set("error", error="Something went wrong with the wake word. Please try again.", retry=False, wake=True)
 
     async def stop(self) -> None:
         if self.busy:

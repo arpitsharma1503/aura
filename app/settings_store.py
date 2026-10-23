@@ -251,6 +251,8 @@ class AssistantSettings(_Strict):
     # Off: only the entrance screen (the Pi's own browser) can switch the microphone on.
     # On: any phone/laptop on the home network can (the dashboard is LAN-only anyway).
     mic_from_lan: bool = False
+    # "Hey Aura": the voice service listens continuously, on the Pi only, for the wake phrase.
+    wake_word: bool = False
 
 
 SECTIONS: dict[str, type[_Strict]] = {
