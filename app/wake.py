@@ -56,6 +56,16 @@ def split_wake(text: str) -> str | None:
     return text[m.end():].strip()
 
 
+def has_speech(pcm: bytes) -> bool:
+    n = FRAME * 2
+    levels = [rms_of(pcm[i:i + n]) for i in range(0, len(pcm) - n + 1, n)]
+    if len(levels) < 5:
+        return False
+    floor = sorted(levels)[len(levels) // 5]
+    thr = max(floor * 2.5, floor + 80, 120)
+    return sum(v > thr for v in levels) >= 8                  # about a quarter of a second of speech
+
+
 def last_utterance(pcm: bytes, gap: float = 0.8, margin: float = 0.3) -> bytes:
     """The most recent stretch of speech in ``pcm`` (pauses shorter than ``gap`` seconds
     belong to it), with a little margin. Found from the audio itself, so it covers the
@@ -284,13 +294,15 @@ class WakeListener:
 
     async def _verify(self, clip: bytes, after: int) -> None:
         try:
-            text = await self.transcribe(clip, False, True)
-            question = split_wake(text)
-            if question is None and len(clip) <= SHORT_CLIP * RATE * 2:
-                # A lone "Hey Aura" is too short for the quick model; ask the accurate one once.
+            await self.notify({"event": "checking"})          # instant feedback while we make sure
+            if len(clip) <= SHORT_CLIP * RATE * 2:
+                # A lone "Hey Aura" is too short for the quick model: go straight to the accurate one.
                 question = split_wake(await self.transcribe(clip, False, "accurate"))
+            else:
+                question = split_wake(await self.transcribe(clip, False, True))
             if question is None:
                 log.info("wake candidate rejected by the second check")      # never log what was said
+                await self.notify({"event": "idle"})
                 return
             self.wakes += 1
             if question:
@@ -302,8 +314,11 @@ class WakeListener:
                 return
             # Just "Hey Aura": listen for the question on the same stream.
             await self.notify({"event": "listening", "max_seconds": self.max_seconds})
-            # Audio that arrived while we were checking may already hold the start of the question.
+            # Audio that arrived while we were checking may already hold the start of the question;
+            # if it is only silence (people wait for "Listening"), start fresh with the full time.
             prefill = [c for p, c in list(self._ring) if p >= after]
+            if not has_speech(b"".join(prefill)):
+                prefill = []
             pcm, ep, reason = await self.capture(self.max_seconds, prefill)
             if not ep.heard_speech and not ep.maybe_speech:
                 await self.notify({"event": "no_speech", "levels": ep.levels()})

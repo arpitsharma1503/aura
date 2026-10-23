@@ -717,7 +717,7 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
 .asst__orb:active:not(:disabled) { transform: scale(0.96); }
 .asst__orb:disabled { cursor: default; color: var(--ink-3); background: rgba(255, 255, 255, 0.06); }
 .asst[data-state="listening"] .asst__orb { color: #1a0606; background: var(--danger); animation: orb-live 1.4s ease-in-out infinite; }
-.asst[data-state="processing"] .asst__orb { animation: orb-think 1.2s ease-in-out infinite; }
+.asst[data-state="processing"] .asst__orb, .asst[data-state="checking"] .asst__orb { animation: orb-think 1.2s ease-in-out infinite; }
 @keyframes orb-live { 50% { box-shadow: 0 0 0 1.1rem rgba(255, 122, 122, 0.16); } }
 @keyframes orb-think { 50% { box-shadow: 0 0 0 0.7rem rgba(255, 207, 122, 0.16); } }
 .asst__status { min-width: 0; display: grid; gap: 0.35rem; }
@@ -771,7 +771,7 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
   .asst__orb { width: 4.5rem; height: 4.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .topbar__mic.is-live, .asst__orb { animation: none !important; }
+  .topbar__mic.is-live, .topbar__mic[data-state="checking"], .asst__orb { animation: none !important; }
 }
 
 /* =====================================================================
@@ -838,6 +838,8 @@ body[data-phase="night"] .shell { opacity: 0.9; }
 .topbar__mic:focus-visible, .topbar__settings:focus-visible { outline: none; box-shadow: var(--focus); color: var(--ink); }
 .topbar__mic.is-live { color: #1a0606; background: var(--danger); animation: mic-live 1.6s ease-in-out infinite; }
 .topbar__mic[data-state="processing"] { color: var(--accent); }
+.topbar__mic[data-state="checking"] { color: var(--accent); background: rgba(255, 207, 122, 0.16); animation: mic-check 1.2s ease-in-out infinite; }
+@keyframes mic-check { 50% { box-shadow: 0 0 0 0.35rem rgba(255, 207, 122, 0.14); } }
 @keyframes mic-live { 50% { box-shadow: 0 0 0 0.45rem rgba(255, 122, 122, 0.18); } }
 
 /* ---------- Overview ---------- */

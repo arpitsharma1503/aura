@@ -140,3 +140,20 @@ def test_last_utterance_finds_the_whole_phrase():
     assert 2.4 * 32000 <= len(out) <= 3.2 * 32000          # 0.6 + 0.4 + 1.5 s plus margins, not the chatter
     quiet = noise(3)
     assert last_utterance(quiet) == quiet
+
+
+def test_silent_prefill_is_not_counted():
+    import struct
+    from app.wake import has_speech
+    assert not has_speech(struct.pack("<h", 30) * 16000 * 5)            # 5 s of waiting in a quiet room
+    assert has_speech(struct.pack("<h", 30) * 16000 + struct.pack("<hh", 900, -900) * 8000)
+
+
+def test_checking_then_rejected_returns_to_idle(tmp_path):
+    c, _ = app_client(tmp_path)
+    c.patch("/api/settings/assistant", json={"wake_word": True})
+    c.post("/api/assistant/wake", json={"event": "checking"})
+    assert c.app.state.voice.state == "checking"
+    c.post("/api/assistant/wake", json={"event": "idle"})
+    assert c.app.state.voice.state == "idle"
+    assert c.get("/api/assistant").json()["transcript"] == []          # nothing recorded for a false alarm

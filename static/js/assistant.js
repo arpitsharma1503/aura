@@ -13,6 +13,7 @@ window.AuraAssistant = (() => {
   const STATES = {
     idle: ["Ready", "Press the microphone and ask a question."],
     idleWake: ["Ready", "Say “Hey Aura” and your question, or press the microphone."],
+    checking: ["One moment…", "Making sure that was “Hey Aura”. You can start your question."],
     listening: ["Listening…", "Speak now. I'll stop when you pause."],
     processing: ["Thinking…", "Turning your words into an answer."],
     answered: ["Ready", "Ask another question."],
@@ -142,7 +143,7 @@ window.AuraAssistant = (() => {
   const assistantOpen = () => $("detail")?.open && $("detail").dataset.view === "assistant";
 
   function onEvent(data) {
-    if (data.state === "listening" || data.state === "processing") {
+    if (data.state === "listening" || data.state === "processing" || data.state === "checking") {
       state = data.state;
     } else if (data.state === "error" && data.wake) {
       // "Hey Aura" problems: show them everywhere for a moment.
@@ -160,7 +161,7 @@ window.AuraAssistant = (() => {
         if (speakIt) speak((info?.transcript || []).find((t) => t.id === data.turn_id));
       });
       return;
-    } else if (data.state === "idle" && !pendingVoice) {
+    } else if (data.state === "idle" && !pendingVoice) {      // also: a wake candidate that wasn't "Hey Aura"
       state = "idle";
     }
     paint();
@@ -299,9 +300,9 @@ window.AuraAssistant = (() => {
     const tile = $("assistant-tile");
     if (!tile || !info) return;
     const vs = viewState();
-    const value = { idle: "Ready", answered: "Ready", listening: "Listening…", processing: "Thinking…",
+    const value = { idle: "Ready", answered: "Ready", checking: "One moment…", listening: "Listening…", processing: "Thinking…",
       error: "Ready", off: "Turned off", unavailable: "Voice unavailable" }[vs] || "Ready";
-    tile.dataset.state = { listening: "listening", processing: "processing", off: "off", unavailable: "alert" }[vs] || "ok";
+    tile.dataset.state = { listening: "listening", processing: "processing", checking: "processing", off: "off", unavailable: "alert" }[vs] || "ok";
     $("assistant-status").textContent = !info.mic_allowed && vs !== "off" && vs !== "listening" && vs !== "processing" ? "Type a question" : value;
     const last = (info.transcript || []).at(-1);
     let sub;

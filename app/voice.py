@@ -23,7 +23,7 @@ from .wake import split_wake
 
 log = logging.getLogger("aura.voice")
 
-State = Literal["idle", "listening", "processing", "answered", "error"]
+State = Literal["idle", "checking", "listening", "processing", "answered", "error"]
 
 
 class VoiceError(Exception):
@@ -146,7 +146,12 @@ class VoiceSession:
         kind = ev.get("event")
         if self._lock.locked():                 # a button-started question is in progress
             return
-        if kind == "listening":
+        if kind == "checking":
+            self._set("checking", wake=True)
+        elif kind == "idle":
+            if self.state == "checking":
+                self._set("idle", wake=True)
+        elif kind == "listening":
             log.info("wake word heard")
             self._set("listening", max_seconds=ev.get("max_seconds"), wake=True)
         elif kind == "processing":
