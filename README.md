@@ -658,9 +658,12 @@ dashboard (aura.service :8080)  ──loopback──►  voice worker (aura-voic
                                                  Piper en_US-lessac-medium → WAV → played by the screen's browser
 ```
 
-- **Speech recognition:** faster-whisper `base.en` (int8), about 1.6–1.8 s per
-  question on the Pi 5. **Spoken replies:** Piper, about 0.2 s per sentence.
-  The worker uses about 0.5 GB of RAM. Its unit sets `MemoryMax=1200M`, but
+- **Speech recognition:** faster-whisper `small.en` (int8, beam 5) for questions,
+  about 5.5 s per question on the Pi 5. It was the clear winner in a benchmark on
+  distant, noisy speech (no errors at normal distance vs 26% for `base.en`, and
+  32% vs 55% far away); the small `base.en` model is kept only for the quick
+  "did they say Aura?" wake-word check (about 1.9 s). **Spoken replies:** Piper,
+  about 0.2 s per sentence. The worker uses about 1 GB of RAM. Its unit sets `MemoryMax=1200M`, but
   Raspberry Pi OS boots with `cgroup_disable=memory`, so systemd memory limits
   (here and in `aura.service`) are **not enforced** unless you add
   `cgroup_enable=memory` to `/boot/firmware/cmdline.txt` and reboot. The two

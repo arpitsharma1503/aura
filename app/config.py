@@ -102,7 +102,8 @@ class Settings(BaseSettings):
     voice_enabled: bool = True
     voice_port: int = Field(default=8091, ge=1024, le=65535)
     voice_mic_device: str = "plughw:CARD=Device,DEV=0"     # ALSA name; `arecord -L` lists them
-    voice_stt_model: str = "base.en"                        # faster-whisper model name
+    voice_stt_model: str = "small.en"                       # questions: accurate (benchmarked best on this Pi)
+    voice_wake_check_model: str = "base.en"                 # quick "was that 'Aura'?" check for the wake word
     voice_tts_voice: str = "en_US-lessac-medium"            # Piper voice name
     voice_threads: int = Field(default=4, ge=1, le=8)
     voice_wake_phrase: str = Field(default="hey aura", pattern=r"^[a-z]+ [a-z]+$")   # two words (Vosk grammar)

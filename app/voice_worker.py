@@ -247,6 +247,9 @@ class SpeakIn(BaseModel):
 def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
     models_dir = settings.data_dir / "models"
     stt = SpeechToText(settings.voice_stt_model, models_dir, settings.voice_threads)
+    # The wake check only has to hear "Aura"; a small fast model keeps "Hey Aura" responsive.
+    stt_fast = (SpeechToText(settings.voice_wake_check_model, models_dir, settings.voice_threads)
+                if settings.voice_wake_check_model != settings.voice_stt_model else stt)
     tts = TextToSpeech(settings.voice_tts_voice, models_dir)
     rec = Recorder(settings.voice_mic_device)
     clips: dict[str, Clip] = {}
@@ -254,15 +257,16 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
     notify_url: dict[str, str | None] = {"url": None}
 
     async def transcribe_async(pcm: bytes, vad: bool, wake_check: bool = False) -> str:
-        if stt.state != "ready":
+        engine = stt_fast if wake_check and stt_fast.state == "ready" else stt
+        if engine.state != "ready":
             raise RuntimeError("speech recognition not ready")
         prompt = "Hey Aura." if wake_check else None      # helps Whisper with a short, isolated "Hey Aura"
         t0 = time.monotonic()
         async with busy:
             t1 = time.monotonic()
-            text = await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, pcm, vad, prompt)
-        log.info("transcribed %.1fs of audio in %d ms (waited %d ms)%s", len(pcm) / 2 / RATE,
-                 (time.monotonic() - t1) * 1000, (t1 - t0) * 1000, " [wake check]" if wake_check else "")
+            text = await asyncio.get_running_loop().run_in_executor(None, engine.transcribe, pcm, vad, prompt)
+        log.info("transcribed %.1fs of audio in %d ms with %s (waited %d ms)%s", len(pcm) / 2 / RATE,
+                 (time.monotonic() - t1) * 1000, engine.name, (t1 - t0) * 1000, " [wake check]" if wake_check else "")
         return text
 
     async def notify(event: dict) -> None:
@@ -286,6 +290,8 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
         if load_models:      # load in the background so /health answers ("loading") at once
             loop = asyncio.get_running_loop()
             loop.run_in_executor(None, stt.load)
+            if stt_fast is not stt:
+                loop.run_in_executor(None, stt_fast.load)
             loop.run_in_executor(None, tts.load)
         yield
         await wake.set_enabled(False)
@@ -305,6 +311,7 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
         sweep()
         return {
             "stt": {"state": stt.state, "model": stt.name, "error": stt.error},
+            "wake_check": {"state": stt_fast.state, "model": stt_fast.name},
             "tts": {"state": tts.state, "voice": tts.name, "error": tts.error},
             "mic": {"present": mic_present(rec.device), "device": rec.device, "busy": rec.busy},
             "clips_in_memory": len(clips),
@@ -386,10 +393,11 @@ def download(settings: Settings) -> None:
     """Fetch the configured models into data/models (needs internet once)."""
     import httpx
     models_dir = settings.data_dir / "models"
-    stt = SpeechToText(settings.voice_stt_model, models_dir, settings.voice_threads)
-    print(f"Speech recognition model: faster-whisper {stt.name} …", flush=True)
-    stt.load(allow_download=True)
-    print(f"  {stt.state}{': ' + stt.error if stt.error else ''}")
+    for name in dict.fromkeys([settings.voice_stt_model, settings.voice_wake_check_model]):
+        stt = SpeechToText(name, models_dir, settings.voice_threads)
+        print(f"Speech recognition model: faster-whisper {stt.name} …", flush=True)
+        stt.load(allow_download=True)
+        print(f"  {stt.state}{': ' + stt.error if stt.error else ''}")
 
     name = settings.voice_tts_voice                     # e.g. en_US-lessac-medium
     lang, speaker, quality = name.split("-", 2)

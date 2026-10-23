@@ -32,11 +32,11 @@ NoNewPrivileges=yes
 LockPersonality=yes
 RestrictRealtime=yes
 SystemCallArchitectures=native
-# Speech models need ~0.5 GB; keep them from starving the display or Pi-hole.
+# Speech models need ~1 GB (small.en + base.en + Vosk); keep them from starving the display or Pi-hole.
 # NOTE: only enforced if the kernel memory cgroup is enabled. Raspberry Pi OS boots
 # with cgroup_disable=memory, so these are currently advisory (see README).
-MemoryHigh=900M
-MemoryMax=1200M
+MemoryHigh=1300M
+MemoryMax=1700M
 # Transcription is CPU-heavy for ~2 s; let the dashboard and kiosk go first.
 Nice=5
 

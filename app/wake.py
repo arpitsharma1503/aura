@@ -259,7 +259,11 @@ class WakeListener:
                 return
             self.wakes += 1
             if question:
-                await self.notify({"event": "question", "text": question})
+                # The quick check heard "Aura" plus a question: let the accurate model hear it properly.
+                await self.notify({"event": "processing"})
+                accurate = await self.transcribe(clip, False)
+                better = split_wake(accurate)
+                await self.notify({"event": "question", "text": better or question})
                 return
             # Just "Hey Aura": listen for the question on the same stream.
             await self.notify({"event": "listening", "max_seconds": self.max_seconds})
