@@ -82,7 +82,8 @@ DHCP, Wi-Fi, WAN and port forwarding were not touched. Nothing is exposed to the
 
 - Secrets live only in `~/aura/.env` (mode 600, git-ignored): TomTom key, calendar
   addresses, optional `AURA_PIHOLE_APP_PASSWORD`. Never in the repo, logs or browser.
-- Voice: microphone only after a button press on the TV; audio stays in memory and
+- Voice: microphone only after a button press on the TV (or on a phone/laptop if
+  Settings → Assistant → "Start the microphone from phones and laptops" is on); audio stays in memory and
   is dropped after transcription; transcript in memory only (Clear button).
 - Pi-hole keeps the query log 7 days (`database.maxDBdays`).
 

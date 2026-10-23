@@ -623,14 +623,17 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             raise HTTPException(status_code=403, detail="The assistant is turned off in Settings → Assistant.")
 
     def mic_allowed(request: Request) -> bool:
-        # Only the entrance screen (the Pi's own browser) may switch the microphone on.
-        return access.is_local(request)
+        # The entrance screen (the Pi's own browser) may always switch the microphone on;
+        # other devices on the home network only when Settings → Assistant allows it.
+        # (LanOnlyMiddleware has already refused anything that isn't on the home network.)
+        return access.is_local(request) or prefs.assistant.mic_from_lan
 
     def require_mic(request: Request) -> None:
         assistant_on()
         if not mic_allowed(request):
             raise HTTPException(status_code=403,
-                                detail="The microphone can only be started from the entrance screen. You can type a question here.")
+                                detail="The microphone can only be started from the entrance screen. You can type a question here, "
+                                       "or allow other devices in Settings → Assistant.")
 
     def voice_failure(exc: VoiceError) -> JSONResponse:
         return JSONResponse(status_code=exc.status, content={"detail": str(exc), "retry": exc.retry})
@@ -653,6 +656,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.post("/api/assistant/listen", response_model=Turn | None)
     async def assistant_listen(request: Request):
         require_mic(request)
+        if not access.is_local(request):
+            client = request.client.host if request.client else "unknown"
+            logging.getLogger("aura.voice").info("microphone started from %s", client)
         try:
             return await voice_session.listen(prefs.assistant.max_listen_seconds)
         except VoiceError as exc:

@@ -248,6 +248,9 @@ class AssistantSettings(_Strict):
     enabled: bool = True
     spoken_replies: bool = True              # play answers through the screen's speakers (TV over HDMI)
     max_listen_seconds: int = Field(default=10, ge=3, le=15)
+    # Off: only the entrance screen (the Pi's own browser) can switch the microphone on.
+    # On: any phone/laptop on the home network can (the dashboard is LAN-only anyway).
+    mic_from_lan: bool = False
 
 
 SECTIONS: dict[str, type[_Strict]] = {

@@ -373,7 +373,8 @@ def test_settings_validation(tmp_path):
     c, _ = api(tmp_path)
     assert c.patch("/api/settings/assistant", json={"max_listen_seconds": 60}).status_code == 422
     info = c.get("/api/settings").json()
-    assert info["values"]["assistant"] == {"enabled": True, "spoken_replies": True, "max_listen_seconds": 10}
+    assert info["values"]["assistant"] == {"enabled": True, "spoken_replies": True, "max_listen_seconds": 10,
+                                           "mic_from_lan": False}
     assert info["info"]["assistant"]["available"] is True
 
 
@@ -384,3 +385,30 @@ def test_transcript_never_written_to_disk(tmp_path):
     for f in tmp_path.rglob("*"):
         if f.is_file():
             assert b"groceries do I need" not in f.read_bytes(), f
+
+
+def test_lan_microphone_is_off_by_default_and_can_be_allowed(tmp_path, caplog):
+    import logging
+    phone, w = api(tmp_path, client_ip="192.168.1.131")
+    assert phone.get("/api/assistant").json()["mic_allowed"] is False
+    r = phone.post("/api/assistant/listen")
+    assert r.status_code == 403 and "Settings → Assistant" in r.json()["detail"]
+    assert "/record" not in w.calls
+    # allow it in Settings → Assistant
+    assert phone.patch("/api/settings/assistant", json={"mic_from_lan": True}).status_code == 200
+    assert phone.get("/api/assistant").json()["mic_allowed"] is True
+    with caplog.at_level(logging.INFO):
+        r = phone.post("/api/assistant/listen")
+    assert r.status_code == 200 and r.json()["source"] == "voice"
+    assert w.calls[-2:] == ["/record", "/transcribe/c1"]
+    assert "microphone started from 192.168.1.131" in caplog.text            # audit trail, no audio/text
+    assert phone.post("/api/assistant/stop").status_code == 204
+    # and switched off again: refused at once
+    phone.patch("/api/settings/assistant", json={"mic_from_lan": False})
+    assert phone.post("/api/assistant/listen").status_code == 403
+
+
+def test_entrance_screen_always_allowed(tmp_path):
+    tv, w = api(tmp_path)                                  # 127.0.0.1 = the Pi's own browser
+    assert tv.get("/api/settings").json()["values"]["assistant"]["mic_from_lan"] is False
+    assert tv.post("/api/assistant/listen").status_code == 200

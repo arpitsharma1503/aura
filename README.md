@@ -644,7 +644,11 @@ Anything else gets "I can't help with that yet". If data is missing (no TomTom k
 no calendar, weather offline) the answer says so; nothing is made up. Requests to
 *change* something ("delete the groceries", "turn off Wi-Fi") are refused: the
 assistant is read-only. Phones and laptops can open the same view and **type** a
-question, but only the entrance screen can switch the microphone on.
+question. Only the entrance screen can switch the microphone on, unless you turn on
+**Settings → Assistant → Start the microphone from phones and laptops** (off by
+default): then any device on your home network can start it. It is still the Pi's
+USB microphone, so speak near the Pi; starts from other devices are logged with
+their address (never the audio or the words).
 
 **How it works** (all on the Pi, no cloud, works offline):
 

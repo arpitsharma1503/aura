@@ -222,7 +222,7 @@ window.AuraAssistant = (() => {
     if (vs === "error") hintText = errorText || "Please try again.";
     if (vs === "unavailable") hintText = unavailableReason();
     if ((vs === "idle" || vs === "answered") && info && !info.mic_allowed) {
-      hintText = "The microphone can only be started on the entrance screen. Type a question here instead.";
+      hintText = "The microphone can only be started on the entrance screen. Type a question here, or allow other devices in Settings → Assistant.";
     }
     root.querySelector("#asst-hint").textContent = hintText;
 
@@ -293,7 +293,7 @@ window.AuraAssistant = (() => {
     else if (vs === "listening") sub = "Speak now. I'll stop when you pause.";
     else if (last) sub = `“${last.question}” — ${last.answer.text}`;
     else if (info.mic_allowed) sub = "Press the microphone and ask about weather, your commute, calendar or groceries.";
-    else sub = "Ask about weather, your commute, calendar or groceries. The microphone works on the entrance screen.";
+    else sub = "Ask about weather, your commute, calendar or groceries. To use the Pi's microphone from here, allow it in Settings → Assistant.";
     $("assistant-sub").textContent = sub;
   }
 
