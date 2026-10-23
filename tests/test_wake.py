@@ -157,3 +157,16 @@ def test_checking_then_rejected_returns_to_idle(tmp_path):
     c.post("/api/assistant/wake", json={"event": "idle"})
     assert c.app.state.voice.state == "idle"
     assert c.get("/api/assistant").json()["transcript"] == []          # nothing recorded for a false alarm
+
+
+def test_capture_with_known_room_level_detects_immediate_speech():
+    async def go():
+        cap = Capture(10, floor=35.0)
+        loud, quiet = (b"\x2c\x01" + b"\xd4\xfe") * 720, b"\x23\x00" * 1440      # ~300 vs ~35 RMS
+        for _ in range(15):          # speaking from the very first moment
+            cap.feed(loud)
+        for _ in range(20):
+            cap.feed(quiet)
+        return await asyncio.wait_for(cap.done, 1)
+    pcm, ep, reason = asyncio.run(go())
+    assert reason == "done" and ep.heard_speech and len(pcm) < 4 * 32000        # stopped after the pause, not at 6 s

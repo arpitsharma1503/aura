@@ -96,8 +96,10 @@ def last_utterance(pcm: bytes, gap: float = 0.8, margin: float = 0.3) -> bytes:
 class Capture:
     """A question being recorded from the shared stream (Endpointer decides when it ends)."""
 
-    def __init__(self, max_seconds: int, prefill: list[bytes] | None = None) -> None:
-        self.ep = Endpointer()
+    def __init__(self, max_seconds: int, prefill: list[bytes] | None = None, floor: float | None = None) -> None:
+        # With a known room level the detector doesn't have to learn it from the first
+        # moments of the capture, which are often already speech.
+        self.ep = Endpointer(floor=floor)
         self.limit = max_seconds * RATE * 2
         self.chunks: list[bytes] = []
         self.done: asyncio.Future = asyncio.get_running_loop().create_future()
@@ -188,13 +190,21 @@ class WakeListener:
     async def capture(self, max_seconds: int, prefill: list[bytes] | None = None):
         if self.capturing:
             raise RuntimeError("busy")
-        cap = Capture(max_seconds, prefill)
+        cap = Capture(max_seconds, prefill, floor=self._room_floor())
         self._capture = cap
         try:
             return await asyncio.wait_for(cap.done, timeout=max_seconds + 5)
         finally:
             if self._capture is cap:
                 self._capture = None
+
+    def _room_floor(self, seconds: float = 4.0) -> float | None:
+        """Room noise level from the last few seconds before a capture (quietest fifth)."""
+        recent = list(self._ring)[-int(seconds * RATE * 2 / CHUNK_BYTES):]
+        pcm = b"".join(c for _, c in recent)
+        n = FRAME * 2
+        levels = sorted(rms_of(pcm[i:i + n]) for i in range(0, len(pcm) - n + 1, n))
+        return levels[len(levels) // 5] if len(levels) >= 30 else None
 
     def stop_capture(self, cancel: bool = False) -> None:
         if self._capture:
