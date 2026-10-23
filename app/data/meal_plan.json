@@ -1,0 +1,5286 @@
+{
+ "version": 1,
+ "source": {
+  "title": "1-Month Body Recomposition Plan",
+  "file": "1-Month_Body_Recomposition_Plan.pdf",
+  "sha256": "f72490e5c6971f474ce50bc438846fa22c4871a2bb783b41e3b8505e318befe0",
+  "pages": 19
+ },
+ "people": {
+  "person1": {
+   "label": "Person 1",
+   "summary": "Male, 32, 178 cm, 85 kg, Intermediate"
+  },
+  "person2": {
+   "label": "Person 2",
+   "summary": "Female, 32, 160 cm, 70 kg, Beginner"
+  }
+ },
+ "portion_rule": {
+  "text": "The recipe macros are shown per base serving = Person 2's plate. Person 1 hits his higher target by adding the listed extras each meal (typically +1 scoop whey or extra dal/curd at breakfast, and +1 cup cooked rice OR +2 rotis at lunch and dinner). Roughly: Person 2 eats the base plate; Person 1 eats the base plate ×1.4.",
+  "hindi": "Khana ek saath banega. Person 2 normal plate lega, Person 1 usi plate me thoda extra roti/rice aur protein add karega.",
+  "how_to_use": "Cooking is shared — recipes make enough for both people. Because Person 1 needs more energy and protein than Person 2, each meal lists a base serving (Person 2's portion) and simple Person 1 add-ons (extra roti/rice + a protein topper).",
+  "plating_tip": "Portion as you cook: plate Person 2's base serving first, then add Person 1's extras to the pan/plate — keeps macros on track without weighing every day."
+ },
+ "disclaimer": "This plan is for general education and healthy adults. It is not medical or personalised dietetic advice. Anyone with a medical condition, or who is pregnant/breastfeeding, should consult a doctor or registered dietitian before starting.",
+ "schedule": [
+  {
+   "day": 1,
+   "week": 1,
+   "breakfast": {
+    "label": "Moong dal chilla + curd",
+    "code": "B1"
+   },
+   "lunch": {
+    "label": "Rajma + brown rice + salad",
+    "code": "L1"
+   },
+   "dinner": {
+    "label": "Tofu bhurji + 2 roti",
+    "code": "D2"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 184,
+    "person2": 130
+   }
+  },
+  {
+   "day": 2,
+   "week": 1,
+   "breakfast": {
+    "label": "Masala oats + peanuts",
+    "code": "B3"
+   },
+   "lunch": {
+    "label": "Dal tadka + roti + sabzi",
+    "code": "L3"
+   },
+   "dinner": {
+    "label": "Soya veg curry + roti",
+    "code": "D3"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1570
+   },
+   "protein_g": {
+    "person1": 180,
+    "person2": 126
+   }
+  },
+  {
+   "day": 3,
+   "week": 1,
+   "breakfast": {
+    "label": "Protein poha + sprouts",
+    "code": "B6"
+   },
+   "lunch": {
+    "label": "Chole + jeera rice",
+    "code": "L2"
+   },
+   "dinner": {
+    "label": "Dal + palak sabzi + roti",
+    "code": "D5"
+   },
+   "kcal": {
+    "person1": 2310,
+    "person2": 1590
+   },
+   "protein_g": {
+    "person1": 178,
+    "person2": 124
+   }
+  },
+  {
+   "day": 4,
+   "week": 1,
+   "breakfast": {
+    "label": "Paneer bhurji + roti",
+    "code": "B4"
+   },
+   "lunch": {
+    "label": "Soya chunk curry + rice",
+    "code": "L4"
+   },
+   "dinner": {
+    "label": "Light rajma + salad + curd",
+    "code": "D6"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 186,
+    "person2": 132
+   }
+  },
+  {
+   "day": 5,
+   "week": 1,
+   "breakfast": {
+    "label": "Besan chilla + chutney + curd",
+    "code": "B2"
+   },
+   "lunch": {
+    "label": "Kala chana masala + roti",
+    "code": "L5"
+   },
+   "dinner": {
+    "label": "Tofu tikka masala + roti",
+    "code": "D8"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 185,
+    "person2": 131
+   }
+  },
+  {
+   "day": 6,
+   "week": 1,
+   "breakfast": {
+    "label": "Idli + sambar + chutney",
+    "code": "B8"
+   },
+   "lunch": {
+    "label": "Paneer sabzi + roti",
+    "code": "L6"
+   },
+   "dinner": {
+    "label": "Lauki + moong dal + roti",
+    "code": "D11"
+   },
+   "kcal": {
+    "person1": 2280,
+    "person2": 1560
+   },
+   "protein_g": {
+    "person1": 176,
+    "person2": 122
+   }
+  },
+  {
+   "day": 7,
+   "week": 1,
+   "breakfast": {
+    "label": "Protein smoothie + nuts",
+    "code": "B10"
+   },
+   "lunch": {
+    "label": "Moong dal khichdi + curd",
+    "code": "L7"
+   },
+   "dinner": {
+    "label": "Sprout & grilled tofu bowl",
+    "code": "D12"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 181,
+    "person2": 128
+   }
+  },
+  {
+   "day": 8,
+   "week": 2,
+   "breakfast": {
+    "label": "Tofu scramble + toast",
+    "code": "B5"
+   },
+   "lunch": {
+    "label": "Chole + jeera rice",
+    "code": "L2"
+   },
+   "dinner": {
+    "label": "Paneer tikka + veg + roti",
+    "code": "D1"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 186,
+    "person2": 132
+   }
+  },
+  {
+   "day": 9,
+   "week": 2,
+   "breakfast": {
+    "label": "Overnight oats + curd + PB",
+    "code": "B7"
+   },
+   "lunch": {
+    "label": "Dal tadka + roti + sabzi",
+    "code": "L3"
+   },
+   "dinner": {
+    "label": "Soya veg curry + roti",
+    "code": "D3"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 182,
+    "person2": 128
+   }
+  },
+  {
+   "day": 10,
+   "week": 2,
+   "breakfast": {
+    "label": "Oats dosa + chana sambar",
+    "code": "B9"
+   },
+   "lunch": {
+    "label": "Lobia curry + rice",
+    "code": "L8"
+   },
+   "dinner": {
+    "label": "Dal + palak sabzi + roti",
+    "code": "D5"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 178,
+    "person2": 125
+   }
+  },
+  {
+   "day": 11,
+   "week": 2,
+   "breakfast": {
+    "label": "Veg uttapam + chana dal",
+    "code": "B11"
+   },
+   "lunch": {
+    "label": "Chana palak + roti",
+    "code": "L10"
+   },
+   "dinner": {
+    "label": "Tofu bhurji + 2 roti",
+    "code": "D2"
+   },
+   "kcal": {
+    "person1": 2285,
+    "person2": 1570
+   },
+   "protein_g": {
+    "person1": 181,
+    "person2": 128
+   }
+  },
+  {
+   "day": 12,
+   "week": 2,
+   "breakfast": {
+    "label": "Masala oats + peanuts",
+    "code": "B3"
+   },
+   "lunch": {
+    "label": "Soya chunk curry + rice",
+    "code": "L4"
+   },
+   "dinner": {
+    "label": "Mushroom-peas + paneer bhurji + roti",
+    "code": "D10"
+   },
+   "kcal": {
+    "person1": 2305,
+    "person2": 1590
+   },
+   "protein_g": {
+    "person1": 185,
+    "person2": 131
+   }
+  },
+  {
+   "day": 13,
+   "week": 2,
+   "breakfast": {
+    "label": "Soya keema paratha + curd",
+    "code": "B12"
+   },
+   "lunch": {
+    "label": "Kala chana masala + roti",
+    "code": "L5"
+   },
+   "dinner": {
+    "label": "Chana dal + veg + roti",
+    "code": "D7"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 184,
+    "person2": 130
+   }
+  },
+  {
+   "day": 14,
+   "week": 2,
+   "breakfast": {
+    "label": "Protein smoothie + nuts",
+    "code": "B10"
+   },
+   "lunch": {
+    "label": "Sambar rice + veg",
+    "code": "L9"
+   },
+   "dinner": {
+    "label": "Sprout & grilled tofu bowl",
+    "code": "D12"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 180,
+    "person2": 127
+   }
+  },
+  {
+   "day": 15,
+   "week": 3,
+   "breakfast": {
+    "label": "Moong dal chilla + curd",
+    "code": "B1"
+   },
+   "lunch": {
+    "label": "Rajma + brown rice + salad",
+    "code": "L1"
+   },
+   "dinner": {
+    "label": "Tofu tikka masala + roti",
+    "code": "D8"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 184,
+    "person2": 130
+   }
+  },
+  {
+   "day": 16,
+   "week": 3,
+   "breakfast": {
+    "label": "Protein poha + sprouts",
+    "code": "B6"
+   },
+   "lunch": {
+    "label": "Dal tadka + roti + sabzi",
+    "code": "L3"
+   },
+   "dinner": {
+    "label": "Moong dal soup + grilled paneer salad",
+    "code": "D4"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 183,
+    "person2": 129
+   }
+  },
+  {
+   "day": 17,
+   "week": 3,
+   "breakfast": {
+    "label": "Idli + sambar + chutney",
+    "code": "B8"
+   },
+   "lunch": {
+    "label": "Tofu veg stir-fry + rice",
+    "code": "L11"
+   },
+   "dinner": {
+    "label": "Dal + palak sabzi + roti",
+    "code": "D5"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 181,
+    "person2": 128
+   }
+  },
+  {
+   "day": 18,
+   "week": 3,
+   "breakfast": {
+    "label": "Besan chilla + chutney + curd",
+    "code": "B2"
+   },
+   "lunch": {
+    "label": "Mixed dal + quinoa + salad",
+    "code": "L12"
+   },
+   "dinner": {
+    "label": "Soya veg curry + roti",
+    "code": "D3"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 182,
+    "person2": 129
+   }
+  },
+  {
+   "day": 19,
+   "week": 3,
+   "breakfast": {
+    "label": "Paneer bhurji + roti",
+    "code": "B4"
+   },
+   "lunch": {
+    "label": "Kala chana masala + roti",
+    "code": "L5"
+   },
+   "dinner": {
+    "label": "Tofu bhurji + 2 roti",
+    "code": "D2"
+   },
+   "kcal": {
+    "person1": 2305,
+    "person2": 1590
+   },
+   "protein_g": {
+    "person1": 187,
+    "person2": 133
+   }
+  },
+  {
+   "day": 20,
+   "week": 3,
+   "breakfast": {
+    "label": "Overnight oats + curd + PB",
+    "code": "B7"
+   },
+   "lunch": {
+    "label": "Lobia curry + rice",
+    "code": "L8"
+   },
+   "dinner": {
+    "label": "Lauki + moong dal + roti",
+    "code": "D11"
+   },
+   "kcal": {
+    "person1": 2285,
+    "person2": 1570
+   },
+   "protein_g": {
+    "person1": 178,
+    "person2": 125
+   }
+  },
+  {
+   "day": 21,
+   "week": 3,
+   "breakfast": {
+    "label": "Protein smoothie + nuts",
+    "code": "B10"
+   },
+   "lunch": {
+    "label": "Moong dal khichdi + curd",
+    "code": "L7"
+   },
+   "dinner": {
+    "label": "Light rajma + salad + curd",
+    "code": "D6"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 180,
+    "person2": 127
+   }
+  },
+  {
+   "day": 22,
+   "week": 4,
+   "breakfast": {
+    "label": "Masala oats + peanuts",
+    "code": "B3"
+   },
+   "lunch": {
+    "label": "Chole + jeera rice",
+    "code": "L2"
+   },
+   "dinner": {
+    "label": "Paneer tikka + veg + roti",
+    "code": "D1"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 184,
+    "person2": 130
+   }
+  },
+  {
+   "day": 23,
+   "week": 4,
+   "breakfast": {
+    "label": "Tofu scramble + toast",
+    "code": "B5"
+   },
+   "lunch": {
+    "label": "Chana palak + roti",
+    "code": "L10"
+   },
+   "dinner": {
+    "label": "Soya veg curry + roti",
+    "code": "D3"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 183,
+    "person2": 129
+   }
+  },
+  {
+   "day": 24,
+   "week": 4,
+   "breakfast": {
+    "label": "Oats dosa + chana sambar",
+    "code": "B9"
+   },
+   "lunch": {
+    "label": "Soya chunk curry + rice",
+    "code": "L4"
+   },
+   "dinner": {
+    "label": "Dal + palak sabzi + roti",
+    "code": "D5"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 182,
+    "person2": 128
+   }
+  },
+  {
+   "day": 25,
+   "week": 4,
+   "breakfast": {
+    "label": "Veg uttapam + chana dal",
+    "code": "B11"
+   },
+   "lunch": {
+    "label": "Dal tadka + roti + sabzi",
+    "code": "L3"
+   },
+   "dinner": {
+    "label": "Savory besan chilla + curd + salad",
+    "code": "D9"
+   },
+   "kcal": {
+    "person1": 2285,
+    "person2": 1570
+   },
+   "protein_g": {
+    "person1": 180,
+    "person2": 127
+   }
+  },
+  {
+   "day": 26,
+   "week": 4,
+   "breakfast": {
+    "label": "Besan chilla + chutney + curd",
+    "code": "B2"
+   },
+   "lunch": {
+    "label": "Paneer sabzi + roti",
+    "code": "L6"
+   },
+   "dinner": {
+    "label": "Chana dal + veg + roti",
+    "code": "D7"
+   },
+   "kcal": {
+    "person1": 2305,
+    "person2": 1590
+   },
+   "protein_g": {
+    "person1": 185,
+    "person2": 131
+   }
+  },
+  {
+   "day": 27,
+   "week": 4,
+   "breakfast": {
+    "label": "Soya keema paratha + curd",
+    "code": "B12"
+   },
+   "lunch": {
+    "label": "Rajma + brown rice + salad",
+    "code": "L1"
+   },
+   "dinner": {
+    "label": "Sprout & grilled tofu bowl",
+    "code": "D12"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 184,
+    "person2": 130
+   }
+  },
+  {
+   "day": 28,
+   "week": 4,
+   "breakfast": {
+    "label": "Protein smoothie + nuts",
+    "code": "B10"
+   },
+   "lunch": {
+    "label": "Sambar rice + veg",
+    "code": "L9"
+   },
+   "dinner": {
+    "label": "Tofu bhurji + 2 roti",
+    "code": "D2"
+   },
+   "kcal": {
+    "person1": 2290,
+    "person2": 1575
+   },
+   "protein_g": {
+    "person1": 181,
+    "person2": 128
+   }
+  },
+  {
+   "day": 29,
+   "week": 4,
+   "breakfast": {
+    "label": "Overnight oats + curd + PB",
+    "code": "B7"
+   },
+   "lunch": {
+    "label": "Kala chana masala + roti",
+    "code": "L5"
+   },
+   "dinner": {
+    "label": "Tofu tikka masala + roti",
+    "code": "D8"
+   },
+   "kcal": {
+    "person1": 2295,
+    "person2": 1580
+   },
+   "protein_g": {
+    "person1": 183,
+    "person2": 129
+   }
+  },
+  {
+   "day": 30,
+   "week": 4,
+   "breakfast": {
+    "label": "Idli + sambar + chutney",
+    "code": "B8"
+   },
+   "lunch": {
+    "label": "Mixed dal + quinoa + salad",
+    "code": "L12"
+   },
+   "dinner": {
+    "label": "Moong dal soup + grilled paneer salad",
+    "code": "D4"
+   },
+   "kcal": {
+    "person1": 2300,
+    "person2": 1585
+   },
+   "protein_g": {
+    "person1": 182,
+    "person2": 129
+   }
+  }
+ ],
+ "weeks": [
+  {
+   "week": 1,
+   "days": [
+    1,
+    7
+   ],
+   "title": "Week 1 (Days 1–7)",
+   "note": null
+  },
+  {
+   "week": 2,
+   "days": [
+    8,
+    14
+   ],
+   "title": "Week 2 (Days 8–14)",
+   "note": null
+  },
+  {
+   "week": 3,
+   "days": [
+    15,
+    21
+   ],
+   "title": "Week 3 (Days 15–21)",
+   "note": null
+  },
+  {
+   "week": 4,
+   "days": [
+    22,
+    30
+   ],
+   "title": "Week 4 (Days 22–30) — Diet steady through training deload",
+   "note": "Keep calories the same in Week 4. Training volume drops (deload) but protein stays high to protect muscle. If very hungry on rest days, add an extra bowl of salad or 150 g curd — free foods."
+  }
+ ],
+ "recipes": {
+  "B1": {
+   "code": "B1",
+   "meal": "breakfast",
+   "name": "Moong Dal Chilla + Curd",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 445,
+    "protein_g": 34,
+    "carbs_g": 46,
+    "fat_g": 12,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "yellow moong dal 1 cup (soaked 3 h), 1 green chilli, 1 inch ginger, ½ onion, handful coriander, ½ tsp cumin, salt; 2 tsp oil for cooking; 300 g curd on the side; add spinach/grated carrot into batter.",
+   "ingredients": [
+    {
+     "text": "yellow moong dal 1 cup (soaked 3 h)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "1 green chilli",
+     "qty": 1.0
+    },
+    {
+     "text": "1 inch ginger",
+     "qty": 1.0,
+     "unit": "inch"
+    },
+    {
+     "text": "½ onion",
+     "qty": 0.5
+    },
+    {
+     "text": "handful coriander"
+    },
+    {
+     "text": "½ tsp cumin",
+     "qty": 0.5,
+     "unit": "tsp"
+    },
+    {
+     "text": "salt"
+    },
+    {
+     "text": "2 tsp oil for cooking",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "300 g curd on the side",
+     "qty": 300.0,
+     "unit": "g"
+    },
+    {
+     "text": "add spinach/grated carrot into batter"
+    }
+   ],
+   "method": [
+    "Blend soaked dal with chilli, ginger and a little water to a pourable batter.",
+    "Mix in chopped onion, coriander, cumin, salt.",
+    "Heat a non-stick tawa, pour a ladle, spread thin, drizzle a little oil, cook both sides till golden.",
+    "Makes ~4 chillas.",
+    "Serve with curd."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey in water/milk after breakfast and 1 extra chilla",
+    "kcal": 120,
+    "protein_g": 24
+   },
+   "notes": [
+    {
+     "text": "Chilla ko patla failao taaki crispy bane.",
+     "lang": "hi"
+    }
+   ]
+  },
+  "B3": {
+   "code": "B3",
+   "meal": "breakfast",
+   "name": "Masala Oats with Peanuts",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 430,
+    "protein_g": 20,
+    "carbs_g": 52,
+    "fat_g": 15,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "rolled oats 1 cup, 400 ml milk + 200 ml water, onion, tomato, peas/carrot ½ cup, roasted peanuts 3 tbsp, turmeric, chilli, salt, 1 tsp oil, 200 g curd.",
+   "ingredients": [
+    {
+     "text": "rolled oats 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "400 ml milk + 200 ml water",
+     "qty": 400.0,
+     "unit": "ml"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "peas/carrot ½ cup",
+     "qty": 0.5,
+     "unit": "cup"
+    },
+    {
+     "text": "roasted peanuts 3 tbsp",
+     "qty": 3.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "salt"
+    },
+    {
+     "text": "1 tsp oil",
+     "qty": 1.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "200 g curd",
+     "qty": 200.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Sauté onion-tomato-veg in oil with spices; add oats, milk and water; simmer 4–5 min till creamy.",
+    "Top with peanuts.",
+    "Serve curd on side."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey blended into milk",
+    "kcal": 120,
+    "protein_g": 24
+   },
+   "notes": []
+  },
+  "B6": {
+   "code": "B6",
+   "meal": "breakfast",
+   "name": "Protein Poha with Sprouts & Peanuts",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 435,
+    "protein_g": 18,
+    "carbs_g": 58,
+    "fat_g": 13,
+    "fibre_g": 7
+   },
+   "batch_servings": 2,
+   "ingredients_text": "thick poha 1.5 cups (rinsed), moong sprouts 1 cup, roasted peanuts 3 tbsp, onion, curry leaves, mustard seeds, turmeric, green chilli, lemon, 2 tsp oil; 250 ml milk or 150 g curd on side for protein.",
+   "ingredients": [
+    {
+     "text": "thick poha 1.5 cups (rinsed)",
+     "qty": 1.5,
+     "unit": "cups"
+    },
+    {
+     "text": "moong sprouts 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "roasted peanuts 3 tbsp",
+     "qty": 3.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "curry leaves"
+    },
+    {
+     "text": "mustard seeds"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "green chilli"
+    },
+    {
+     "text": "lemon"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "250 ml milk or 150 g curd on side for protein",
+     "qty": 250.0,
+     "unit": "ml"
+    }
+   ],
+   "method": [
+    "Temper mustard, curry leaves, chilli, onion in oil; add turmeric and sprouts, cook 3 min; fold in poha and peanuts, squeeze lemon.",
+    "Serve with a glass of milk/curd."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey + a glass of milk",
+    "kcal": 150,
+    "protein_g": 26
+   },
+   "notes": []
+  },
+  "B4": {
+   "code": "B4",
+   "meal": "breakfast",
+   "name": "Paneer Bhurji + Multigrain Roti",
+   "paneer": true,
+   "base_serving": {
+    "kcal": 450,
+    "protein_g": 32,
+    "carbs_g": 34,
+    "fat_g": 20,
+    "fibre_g": 6
+   },
+   "batch_servings": 2,
+   "ingredients_text": "paneer 200 g (crumbled), onion, tomato, capsicum, ginger-garlic, turmeric, red chilli, garam masala, coriander, 2 tsp oil; 3 multigrain rotis total.",
+   "ingredients": [
+    {
+     "text": "paneer 200 g (crumbled)",
+     "qty": 200.0,
+     "unit": "g"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "red chilli"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "coriander"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3 multigrain rotis total",
+     "qty": 3.0
+    }
+   ],
+   "method": [
+    "Sauté onion-ginger-garlic, add tomato and spices, cook till soft; add capsicum, then crumbled paneer; toss 3–4 min.",
+    "Serve with roti."
+   ],
+   "person1_extra": {
+    "text": "+1 roti and +50 g paneer in the pan",
+    "kcal": 180,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "B2": {
+   "code": "B2",
+   "meal": "breakfast",
+   "name": "Besan Chilla + Mint Chutney + Curd",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 430,
+    "protein_g": 22,
+    "carbs_g": 40,
+    "fat_g": 17,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "besan 1 cup, onion, tomato, coriander, grated carrot, ajwain, turmeric, chilli, salt, water to batter; 2 tsp oil; mint-coriander chutney; 250 g curd.",
+   "ingredients": [
+    {
+     "text": "besan 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "coriander"
+    },
+    {
+     "text": "grated carrot"
+    },
+    {
+     "text": "ajwain"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "salt"
+    },
+    {
+     "text": "water to batter"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "mint-coriander chutney"
+    },
+    {
+     "text": "250 g curd",
+     "qty": 250.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Whisk besan with water and spices to a smooth batter; mix in chopped veg.",
+    "Cook like a pancake on a tawa with a little oil, both sides.",
+    "Serve with chutney and curd."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey",
+    "kcal": 120,
+    "protein_g": 24
+   },
+   "notes": []
+  },
+  "B8": {
+   "code": "B8",
+   "meal": "breakfast",
+   "name": "Idli + Sambar + Coconut Chutney (South Indian)",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 440,
+    "protein_g": 19,
+    "carbs_g": 66,
+    "fat_g": 11,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "6–8 idlis (ready batter or homemade), sambar made with toor dal ¾ cup + mixed veg (drumstick, carrot, pumpkin) + sambar powder + tamarind; coconut chutney (½ cup coconut, roasted chana dal, green chilli).",
+   "ingredients": [
+    {
+     "text": "6–8 idlis (ready batter or homemade)",
+     "qty": 6.0,
+     "qty_max": 8.0
+    },
+    {
+     "text": "sambar made with toor dal ¾ cup + mixed veg (drumstick, carrot, pumpkin) + sambar powder + tamarind",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "coconut chutney (½ cup coconut, roasted chana dal, green chilli)",
+     "qty": 0.5,
+     "unit": "cup"
+    }
+   ],
+   "method": [
+    "Steam idlis 10–12 min.",
+    "For sambar, pressure-cook dal, add cooked veg, tamarind water and sambar powder, temper with mustard and curry leaves.",
+    "Serve hot."
+   ],
+   "person1_extra": {
+    "text": "+2 idlis and +1 scoop whey after",
+    "kcal": 180,
+    "protein_g": 26
+   },
+   "notes": [
+    {
+     "text": "Sambar me dal thodi zyada rakho — protein badhta hai.",
+     "lang": "hi"
+    }
+   ]
+  },
+  "B10": {
+   "code": "B10",
+   "meal": "breakfast",
+   "name": "Protein Smoothie + Nuts",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 430,
+    "protein_g": 30,
+    "carbs_g": 45,
+    "fat_g": 14,
+    "fibre_g": 6
+   },
+   "batch_servings": 2,
+   "ingredients_text": "milk 500 ml, 1 banana, oats 4 tbsp, peanut butter 1 tbsp, 1 scoop whey (optional), cinnamon; a small handful almonds/walnuts to eat alongside.",
+   "ingredients": [
+    {
+     "text": "milk 500 ml",
+     "qty": 500.0,
+     "unit": "ml"
+    },
+    {
+     "text": "1 banana",
+     "qty": 1.0
+    },
+    {
+     "text": "oats 4 tbsp",
+     "qty": 4.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "peanut butter 1 tbsp",
+     "qty": 1.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "1 scoop whey (optional)",
+     "qty": 1.0,
+     "unit": "scoop"
+    },
+    {
+     "text": "cinnamon"
+    },
+    {
+     "text": "a small handful almonds/walnuts to eat alongside"
+    }
+   ],
+   "method": [
+    "Blend everything smooth.",
+    "Split into two glasses; eat nuts on the side."
+   ],
+   "person1_extra": {
+    "text": "extra ½ scoop whey + 1 tbsp peanut butter",
+    "kcal": 150,
+    "protein_g": 18
+   },
+   "notes": [
+    {
+     "text": "If no whey: use 200 g curd + extra oats instead.",
+     "lang": "en"
+    }
+   ]
+  },
+  "L1": {
+   "code": "L1",
+   "meal": "lunch",
+   "name": "Rajma + Brown Rice + Salad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 565,
+    "protein_g": 24,
+    "carbs_g": 82,
+    "fat_g": 12,
+    "fibre_g": 15
+   },
+   "batch_servings": 2,
+   "ingredients_text": "rajma 1 cup dry (soaked overnight), onion 2, tomato 3, ginger-garlic, rajma masala, cumin, 2 tsp oil; brown rice 1 cup dry; cucumber-onion-tomato salad + lemon; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "rajma 1 cup dry (soaked overnight)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion 2",
+     "qty": 2.0
+    },
+    {
+     "text": "tomato 3",
+     "qty": 3.0
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "rajma masala"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "brown rice 1 cup dry",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "cucumber-onion-tomato salad + lemon"
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook soaked rajma till soft.",
+    "Make onion-tomato-ginger-garlic masala in oil, add spices, add rajma with its water, simmer 15 min till thick.",
+    "Serve over cooked brown rice with salad and curd."
+   ],
+   "person1_extra": {
+    "text": "+½ cup extra rice + 150 g extra curd",
+    "kcal": 250,
+    "protein_g": 12
+   },
+   "notes": []
+  },
+  "L3": {
+   "code": "L3",
+   "meal": "lunch",
+   "name": "Dal Tadka + 2 Roti + Mixed Veg Sabzi",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 560,
+    "protein_g": 26,
+    "carbs_g": 74,
+    "fat_g": 15,
+    "fibre_g": 14
+   },
+   "batch_servings": 2,
+   "ingredients_text": "toor/masoor dal 1 cup, onion, tomato, garlic, cumin, turmeric, ghee 2 tsp for tadka; 4 rotis; mixed veg sabzi (beans, carrot, peas 2 cups) with 1 tsp oil; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "toor/masoor dal 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "garlic"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "ghee 2 tsp for tadka",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "4 rotis",
+     "qty": 4.0
+    },
+    {
+     "text": "mixed veg sabzi (beans, carrot, peas 2 cups) with 1 tsp oil",
+     "qty": 2.0,
+     "unit": "cups"
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook dal with turmeric and salt.",
+    "Prepare a garlic-cumin ghee tadka and pour over.",
+    "Stir-fry veg with light spices.",
+    "Serve with roti and curd."
+   ],
+   "person1_extra": {
+    "text": "+2 rotis + extra ladle of dal",
+    "kcal": 230,
+    "protein_g": 12
+   },
+   "notes": []
+  },
+  "L2": {
+   "code": "L2",
+   "meal": "lunch",
+   "name": "Chole + Jeera Rice + Salad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 575,
+    "protein_g": 22,
+    "carbs_g": 86,
+    "fat_g": 13,
+    "fibre_g": 14
+   },
+   "batch_servings": 2,
+   "ingredients_text": "kabuli chana 1 cup dry (soaked), onion, tomato, ginger-garlic, chole masala, tea bag (for colour, optional), 2 tsp oil; basmati 1 cup dry cooked with cumin; onion-lemon salad.",
+   "ingredients": [
+    {
+     "text": "kabuli chana 1 cup dry (soaked)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "chole masala"
+    },
+    {
+     "text": "tea bag (for colour, optional)"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "basmati 1 cup dry cooked with cumin",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion-lemon salad"
+    }
+   ],
+   "method": [
+    "Pressure-cook chana.",
+    "Make thick onion-tomato masala, add chole masala and chana, simmer 15 min.",
+    "Temper cumin in ghee for the rice.",
+    "Serve with salad."
+   ],
+   "person1_extra": {
+    "text": "+½ cup rice + 150 g curd",
+    "kcal": 240,
+    "protein_g": 11
+   },
+   "notes": []
+  },
+  "L4": {
+   "code": "L4",
+   "meal": "lunch",
+   "name": "Soya Chunk Curry + Rice",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 555,
+    "protein_g": 38,
+    "carbs_g": 66,
+    "fat_g": 12,
+    "fibre_g": 11
+   },
+   "batch_servings": 2,
+   "ingredients_text": "soya chunks 1.5 cups (boiled & squeezed), onion, tomato, ginger-garlic, peas, garam masala, turmeric, 2 tsp oil; rice 1 cup dry; salad.",
+   "ingredients": [
+    {
+     "text": "soya chunks 1.5 cups (boiled & squeezed)",
+     "qty": 1.5,
+     "unit": "cups"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "peas"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "rice 1 cup dry",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "salad"
+    }
+   ],
+   "method": [
+    "Boil soya chunks 5 min, squeeze out water.",
+    "Make onion-tomato gravy, add spices and soya, add a little water, simmer 10 min.",
+    "Serve with rice."
+   ],
+   "person1_extra": {
+    "text": "+½ cup soya chunks in the curry + ½ cup rice",
+    "kcal": 240,
+    "protein_g": 22
+   },
+   "notes": [
+    {
+     "text": "Soya ko dabakar paani nikaalo, warna kaccha lagta hai.",
+     "lang": "hi"
+    }
+   ]
+  },
+  "L5": {
+   "code": "L5",
+   "meal": "lunch",
+   "name": "Kala Chana Masala + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 560,
+    "protein_g": 25,
+    "carbs_g": 78,
+    "fat_g": 13,
+    "fibre_g": 16
+   },
+   "batch_servings": 2,
+   "ingredients_text": "kala chana 1 cup dry (soaked), onion, tomato, ginger-garlic, cumin, coriander powder, amchur, 2 tsp oil; 4 rotis; salad + 150 g curd.",
+   "ingredients": [
+    {
+     "text": "kala chana 1 cup dry (soaked)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "coriander powder"
+    },
+    {
+     "text": "amchur"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "4 rotis",
+     "qty": 4.0
+    },
+    {
+     "text": "salad + 150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook chana.",
+    "Sauté masala, add spices and chana, mash a few for thickness, simmer 10 min.",
+    "Serve with roti."
+   ],
+   "person1_extra": {
+    "text": "+2 rotis + extra curd",
+    "kcal": 230,
+    "protein_g": 11
+   },
+   "notes": []
+  },
+  "L6": {
+   "code": "L6",
+   "meal": "lunch",
+   "name": "Paneer Sabzi + Roti",
+   "paneer": true,
+   "base_serving": {
+    "kcal": 570,
+    "protein_g": 30,
+    "carbs_g": 52,
+    "fat_g": 24,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "paneer 200 g cubed, capsicum, onion, tomato, peas, ginger-garlic, garam masala, kasuri methi, 2 tsp oil; 4 rotis; salad.",
+   "ingredients": [
+    {
+     "text": "paneer 200 g cubed",
+     "qty": 200.0,
+     "unit": "g"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "peas"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "kasuri methi"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "4 rotis",
+     "qty": 4.0
+    },
+    {
+     "text": "salad"
+    }
+   ],
+   "method": [
+    "Make onion-tomato gravy with spices; add peas and capsicum; add paneer and kasuri methi; simmer 5 min (don't overcook paneer).",
+    "Serve with roti."
+   ],
+   "person1_extra": {
+    "text": "+2 rotis + 40 g extra paneer",
+    "kcal": 240,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "L7": {
+   "code": "L7",
+   "meal": "lunch",
+   "name": "Moong Dal Khichdi + Curd + Papad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 545,
+    "protein_g": 24,
+    "carbs_g": 78,
+    "fat_g": 12,
+    "fibre_g": 12
+   },
+   "batch_servings": 2,
+   "ingredients_text": "rice ½ cup + yellow moong dal ¾ cup, mixed veg (carrot, peas, beans) 1 cup, cumin, turmeric, ginger, 2 tsp ghee; 250 g curd; 2 roasted papads.",
+   "ingredients": [
+    {
+     "text": "rice ½ cup + yellow moong dal ¾ cup",
+     "qty": 0.5,
+     "unit": "cup"
+    },
+    {
+     "text": "mixed veg (carrot, peas, beans) 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "ginger"
+    },
+    {
+     "text": "2 tsp ghee",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "250 g curd",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "2 roasted papads",
+     "qty": 2.0
+    }
+   ],
+   "method": [
+    "Pressure-cook rice, dal, veg with turmeric, salt and 4 cups water (3–4 whistles).",
+    "Add a cumin-ginger ghee tadka.",
+    "Serve with curd and roasted papad."
+   ],
+   "person1_extra": {
+    "text": "+extra ladle khichdi + 150 g curd",
+    "kcal": 230,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "D2": {
+   "code": "D2",
+   "meal": "dinner",
+   "name": "Tofu Bhurji + 2 Roti + Salad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 530,
+    "protein_g": 34,
+    "carbs_g": 40,
+    "fat_g": 22,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "firm tofu 250 g (crumbled), onion, tomato, capsicum, ginger-garlic, turmeric, chilli, garam masala, coriander, 2 tsp oil; 3–4 rotis; salad.",
+   "ingredients": [
+    {
+     "text": "firm tofu 250 g (crumbled)",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "coriander"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3–4 rotis",
+     "qty": 3.0,
+     "qty_max": 4.0
+    },
+    {
+     "text": "salad"
+    }
+   ],
+   "method": [
+    "Sauté onion-ginger-garlic; add tomato and spices; add capsicum then crumbled tofu; toss 4–5 min.",
+    "Serve with roti and salad."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + 60 g extra tofu",
+    "kcal": 190,
+    "protein_g": 14
+   },
+   "notes": [
+    {
+     "text": "Tofu ko halka daba kar paani nikaalo phir bhuno.",
+     "lang": "hi"
+    }
+   ]
+  },
+  "D3": {
+   "code": "D3",
+   "meal": "dinner",
+   "name": "Soya Veg Curry + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 535,
+    "protein_g": 36,
+    "carbs_g": 46,
+    "fat_g": 16,
+    "fibre_g": 10
+   },
+   "batch_servings": 2,
+   "ingredients_text": "soya chunks 1.5 cups (boiled/squeezed), mixed veg, onion-tomato gravy, spices, 2 tsp oil; 3–4 rotis; salad.",
+   "ingredients": [
+    {
+     "text": "soya chunks 1.5 cups (boiled/squeezed)",
+     "qty": 1.5,
+     "unit": "cups"
+    },
+    {
+     "text": "mixed veg"
+    },
+    {
+     "text": "onion-tomato gravy"
+    },
+    {
+     "text": "spices"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3–4 rotis",
+     "qty": 3.0,
+     "qty_max": 4.0
+    },
+    {
+     "text": "salad"
+    }
+   ],
+   "method": [
+    "As L4 gravy but with added veg and less rice; serve with roti instead.",
+    "Simmer 10 min."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + extra soya",
+    "kcal": 180,
+    "protein_g": 18
+   },
+   "notes": []
+  },
+  "D5": {
+   "code": "D5",
+   "meal": "dinner",
+   "name": "Dal + Palak Sabzi + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 525,
+    "protein_g": 26,
+    "carbs_g": 52,
+    "fat_g": 16,
+    "fibre_g": 12
+   },
+   "batch_servings": 2,
+   "ingredients_text": "masoor/toor dal 1 cup; palak 1 bunch cooked with garlic and a little besan; 3–4 rotis; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "masoor/toor dal 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "palak 1 bunch cooked with garlic and a little besan",
+     "qty": 1.0,
+     "unit": "bunch"
+    },
+    {
+     "text": "3–4 rotis",
+     "qty": 3.0,
+     "qty_max": 4.0
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Cook dal with tadka.",
+    "Sauté garlic, add chopped spinach, cook down, season.",
+    "Serve with roti and curd."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + extra dal + curd",
+    "kcal": 200,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "D6": {
+   "code": "D6",
+   "meal": "dinner",
+   "name": "Light Rajma + Big Salad + Curd",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 500,
+    "protein_g": 25,
+    "carbs_g": 48,
+    "fat_g": 15,
+    "fibre_g": 15
+   },
+   "batch_servings": 2,
+   "ingredients_text": "rajma ¾ cup dry (cooked as L1 but no rice), large salad (cucumber, tomato, onion, carrot, sprouts) with lemon and roasted cumin, 250 g curd; 1 roti optional.",
+   "ingredients": [
+    {
+     "text": "rajma ¾ cup dry (cooked as L1 but no rice)",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "large salad (cucumber, tomato, onion, carrot, sprouts) with lemon and roasted cumin"
+    },
+    {
+     "text": "250 g curd",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "1 roti optional",
+     "qty": 1.0
+    }
+   ],
+   "method": [
+    "Make rajma as before; keep it a little soupy.",
+    "Pile the salad, dress with lemon-cumin.",
+    "Serve with curd.",
+    "Light carb dinner."
+   ],
+   "person1_extra": {
+    "text": "+2 rotis + extra curd",
+    "kcal": 230,
+    "protein_g": 13
+   },
+   "notes": []
+  },
+  "D8": {
+   "code": "D8",
+   "meal": "dinner",
+   "name": "Tofu Tikka Masala + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 535,
+    "protein_g": 34,
+    "carbs_g": 44,
+    "fat_g": 20,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "firm tofu 250 g cubed, marinated in curd + tikka spices; onion-tomato-cashew gravy (5 cashews), 2 tsp oil; 3–4 rotis; salad.",
+   "ingredients": [
+    {
+     "text": "firm tofu 250 g cubed",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "marinated in curd + tikka spices"
+    },
+    {
+     "text": "onion-tomato-cashew gravy (5 cashews)",
+     "qty": 5.0
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3–4 rotis",
+     "qty": 3.0,
+     "qty_max": 4.0
+    },
+    {
+     "text": "salad"
+    }
+   ],
+   "method": [
+    "Pan-roast marinated tofu till golden.",
+    "Make smooth onion-tomato-cashew gravy with tikka masala; fold in tofu; simmer 5 min.",
+    "Serve with roti."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + 60 g extra tofu",
+    "kcal": 190,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "D11": {
+   "code": "D11",
+   "meal": "dinner",
+   "name": "Lauki + Moong Dal + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 505,
+    "protein_g": 23,
+    "carbs_g": 54,
+    "fat_g": 13,
+    "fibre_g": 11
+   },
+   "batch_servings": 2,
+   "ingredients_text": "lauki (bottle gourd) 300 g cooked with yellow moong dal ¾ cup, tomato, cumin, ginger, turmeric, 2 tsp ghee; 3 rotis; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "lauki (bottle gourd) 300 g cooked with yellow moong dal ¾ cup",
+     "qty": 300.0,
+     "unit": "g"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "ginger"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "2 tsp ghee",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3 rotis",
+     "qty": 3.0
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook lauki and moong dal together with spices; finish with a cumin-ginger tadka.",
+    "Serve with roti and curd."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + extra dal + curd",
+    "kcal": 200,
+    "protein_g": 13
+   },
+   "notes": []
+  },
+  "D12": {
+   "code": "D12",
+   "meal": "dinner",
+   "name": "Sprout & Grilled Tofu Salad Bowl",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 500,
+    "protein_g": 34,
+    "carbs_g": 36,
+    "fat_g": 22,
+    "fibre_g": 12
+   },
+   "batch_servings": 2,
+   "ingredients_text": "mixed sprouts 1.5 cups (steamed), firm tofu 200 g (pan-grilled), cucumber, tomato, onion, capsicum, roasted peanuts 2 tbsp, lemon-olive oil-black salt dressing; 150 g curd/hung curd dip.",
+   "ingredients": [
+    {
+     "text": "mixed sprouts 1.5 cups (steamed)",
+     "qty": 1.5,
+     "unit": "cups"
+    },
+    {
+     "text": "firm tofu 200 g (pan-grilled)",
+     "qty": 200.0,
+     "unit": "g"
+    },
+    {
+     "text": "cucumber"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "roasted peanuts 2 tbsp",
+     "qty": 2.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "lemon-olive oil-black salt dressing"
+    },
+    {
+     "text": "150 g curd/hung curd dip",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Steam sprouts 5 min.",
+    "Pan-grill tofu cubes.",
+    "Toss everything with dressing and peanuts.",
+    "Serve with curd dip."
+   ],
+   "person1_extra": {
+    "text": "+80 g tofu + 1 roti or 2 tbsp extra peanuts",
+    "kcal": 200,
+    "protein_g": 15
+   },
+   "notes": []
+  },
+  "B5": {
+   "code": "B5",
+   "meal": "breakfast",
+   "name": "Tofu Scramble + Toast",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 435,
+    "protein_g": 28,
+    "carbs_g": 38,
+    "fat_g": 18,
+    "fibre_g": 7
+   },
+   "batch_servings": 2,
+   "ingredients_text": "firm tofu 250 g crumbled, onion, tomato, capsicum, turmeric, black salt (kala namak for egg-like taste), chilli, 2 tsp oil; 4 slices multigrain/brown bread; 200 ml milk.",
+   "ingredients": [
+    {
+     "text": "firm tofu 250 g crumbled",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "black salt (kala namak for egg-like taste)"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "4 slices multigrain/brown bread",
+     "qty": 4.0,
+     "unit": "slices"
+    },
+    {
+     "text": "200 ml milk",
+     "qty": 200.0,
+     "unit": "ml"
+    }
+   ],
+   "method": [
+    "Sauté onion, tomato, capsicum in oil; add turmeric, black salt, chilli; add crumbled tofu, cook 4 min.",
+    "Serve on toast with a glass of milk."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey + 1 slice toast",
+    "kcal": 150,
+    "protein_g": 25
+   },
+   "notes": []
+  },
+  "B7": {
+   "code": "B7",
+   "meal": "breakfast",
+   "name": "Overnight Oats (Greek Curd + Peanut Butter + Banana)",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 440,
+    "protein_g": 26,
+    "carbs_g": 52,
+    "fat_g": 14,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "rolled oats 1 cup, hung/Greek-style curd 250 g, milk 200 ml, 1 banana, peanut butter 1 tbsp, chia 1 tbsp, cinnamon, few berries/apple.",
+   "ingredients": [
+    {
+     "text": "rolled oats 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "hung/Greek-style curd 250 g",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "milk 200 ml",
+     "qty": 200.0,
+     "unit": "ml"
+    },
+    {
+     "text": "1 banana",
+     "qty": 1.0
+    },
+    {
+     "text": "peanut butter 1 tbsp",
+     "qty": 1.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "chia 1 tbsp",
+     "qty": 1.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "cinnamon"
+    },
+    {
+     "text": "few berries/apple"
+    }
+   ],
+   "method": [
+    "Mix oats, curd, milk, chia in a jar; refrigerate overnight.",
+    "Morning: top with banana, peanut butter, fruit."
+   ],
+   "person1_extra": {
+    "text": "+1 scoop whey mixed in + extra 1 tbsp PB",
+    "kcal": 180,
+    "protein_g": 26
+   },
+   "notes": []
+  },
+  "B9": {
+   "code": "B9",
+   "meal": "breakfast",
+   "name": "Oats Dosa + Chana Sambar (South Indian)",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 435,
+    "protein_g": 20,
+    "carbs_g": 60,
+    "fat_g": 12,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "instant oats-rava dosa batter (oats 1 cup + rava ½ cup + curd + water, thin), onion, chilli, curry leaves, 2 tsp oil; sambar with chana dal ¾ cup + veg; coconut chutney.",
+   "ingredients": [
+    {
+     "text": "instant oats-rava dosa batter (oats 1 cup + rava ½ cup + curd + water, thin)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "curry leaves"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "sambar with chana dal ¾ cup + veg",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "coconut chutney"
+    }
+   ],
+   "method": [
+    "Whisk a thin pourable batter, rest 15 min.",
+    "Pour on hot tawa in a lacy circle, drizzle oil, cook crisp.",
+    "Serve with chana-dal sambar and chutney."
+   ],
+   "person1_extra": {
+    "text": "+1 dosa + 1 scoop whey",
+    "kcal": 170,
+    "protein_g": 26
+   },
+   "notes": []
+  },
+  "B11": {
+   "code": "B11",
+   "meal": "breakfast",
+   "name": "Veg Uttapam + Chana Dal Side (South Indian)",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 445,
+    "protein_g": 21,
+    "carbs_g": 62,
+    "fat_g": 12,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "dosa/idli batter 2 cups, onion, tomato, capsicum, coriander topping, 2 tsp oil; boiled chana dal ½ cup mixed in batter for protein; coconut-mint chutney.",
+   "ingredients": [
+    {
+     "text": "dosa/idli batter 2 cups",
+     "qty": 2.0,
+     "unit": "cups"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "capsicum"
+    },
+    {
+     "text": "coriander topping"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "boiled chana dal ½ cup mixed in batter for protein",
+     "qty": 0.5,
+     "unit": "cup"
+    },
+    {
+     "text": "coconut-mint chutney"
+    }
+   ],
+   "method": [
+    "Stir cooked chana dal into batter.",
+    "Pour thick rounds on tawa, press chopped veg on top, drizzle oil, cook covered till base is golden, flip briefly.",
+    "Serve with chutney."
+   ],
+   "person1_extra": {
+    "text": "+1 uttapam + 1 scoop whey",
+    "kcal": 170,
+    "protein_g": 26
+   },
+   "notes": []
+  },
+  "B12": {
+   "code": "B12",
+   "meal": "breakfast",
+   "name": "Soya Keema Paratha + Curd",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 455,
+    "protein_g": 30,
+    "carbs_g": 48,
+    "fat_g": 15,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "soya granules ¾ cup (soaked, squeezed), onion, ginger-garlic, spices; whole-wheat dough for 3 parathas, 2 tsp oil; 250 g curd.",
+   "ingredients": [
+    {
+     "text": "soya granules ¾ cup (soaked, squeezed)",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "spices"
+    },
+    {
+     "text": "whole-wheat dough for 3 parathas",
+     "qty": 3.0
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "250 g curd",
+     "qty": 250.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Cook soya granules with onion-ginger-garlic and spices into a dry keema.",
+    "Stuff into rolled dough, roll gently, cook on tawa with a little oil.",
+    "Serve with curd."
+   ],
+   "person1_extra": {
+    "text": "+1 paratha + extra curd",
+    "kcal": 210,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "L8": {
+   "code": "L8",
+   "meal": "lunch",
+   "name": "Lobia (Black-Eyed Pea) Curry + Rice",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 560,
+    "protein_g": 24,
+    "carbs_g": 82,
+    "fat_g": 12,
+    "fibre_g": 15
+   },
+   "batch_servings": 2,
+   "ingredients_text": "lobia 1 cup dry (soaked), onion, tomato, ginger-garlic, cumin, coriander powder, garam masala, 2 tsp oil; rice 1 cup dry; salad + 150 g curd.",
+   "ingredients": [
+    {
+     "text": "lobia 1 cup dry (soaked)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "coriander powder"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "rice 1 cup dry",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "salad + 150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook lobia.",
+    "Make onion-tomato masala, add spices and lobia, simmer 12 min.",
+    "Serve with rice, salad, curd."
+   ],
+   "person1_extra": {
+    "text": "+½ cup rice + extra curd",
+    "kcal": 240,
+    "protein_g": 12
+   },
+   "notes": []
+  },
+  "L10": {
+   "code": "L10",
+   "meal": "lunch",
+   "name": "Chana Palak (Chickpea-Spinach) + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 555,
+    "protein_g": 25,
+    "carbs_g": 72,
+    "fat_g": 15,
+    "fibre_g": 15
+   },
+   "batch_servings": 2,
+   "ingredients_text": "kabuli chana 1 cup dry (soaked), palak 1 bunch puréed, onion, tomato, garlic, cumin, garam masala, 2 tsp oil; 4 rotis; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "kabuli chana 1 cup dry (soaked)",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "palak 1 bunch puréed",
+     "qty": 1.0,
+     "unit": "bunch"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "garlic"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "garam masala"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "4 rotis",
+     "qty": 4.0
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Cook chana.",
+    "Sauté garlic-onion-tomato, add spinach purée and spices, add chana, simmer 8 min.",
+    "Serve with roti and curd."
+   ],
+   "person1_extra": {
+    "text": "+2 rotis + extra curd",
+    "kcal": 230,
+    "protein_g": 12
+   },
+   "notes": []
+  },
+  "L9": {
+   "code": "L9",
+   "meal": "lunch",
+   "name": "Sambar Rice + Sautéed Veg (South Indian)",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 560,
+    "protein_g": 22,
+    "carbs_g": 84,
+    "fat_g": 12,
+    "fibre_g": 13
+   },
+   "batch_servings": 2,
+   "ingredients_text": "toor dal ¾ cup, mixed veg, tamarind, sambar powder, rice 1 cup dry, mustard-curry leaf tadka, 2 tsp oil/ghee; poriyal-style beans-carrot stir fry; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "toor dal ¾ cup",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "mixed veg"
+    },
+    {
+     "text": "tamarind"
+    },
+    {
+     "text": "sambar powder"
+    },
+    {
+     "text": "rice 1 cup dry",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "mustard-curry leaf tadka"
+    },
+    {
+     "text": "2 tsp oil/ghee",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "poriyal-style beans-carrot stir fry"
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Cook a hearty toor-dal sambar with veg; mix with cooked rice for sambar rice.",
+    "Stir-fry beans-carrot with coconut.",
+    "Serve with curd."
+   ],
+   "person1_extra": {
+    "text": "+½ cup rice + extra dal",
+    "kcal": 240,
+    "protein_g": 13
+   },
+   "notes": []
+  },
+  "D1": {
+   "code": "D1",
+   "meal": "dinner",
+   "name": "Paneer Tikka + Sautéed Veg + Roti",
+   "paneer": true,
+   "base_serving": {
+    "kcal": 540,
+    "protein_g": 32,
+    "carbs_g": 38,
+    "fat_g": 24,
+    "fibre_g": 7
+   },
+   "batch_servings": 2,
+   "ingredients_text": "paneer 200 g cubed, marinated in hung curd 100 g + tikka masala + ginger-garlic; capsicum & onion chunks; 1 tsp oil; sautéed veg (broccoli/beans); 2 rotis; mint chutney.",
+   "ingredients": [
+    {
+     "text": "paneer 200 g cubed",
+     "qty": 200.0,
+     "unit": "g"
+    },
+    {
+     "text": "marinated in hung curd 100 g + tikka masala + ginger-garlic",
+     "qty": 100.0,
+     "unit": "g"
+    },
+    {
+     "text": "capsicum & onion chunks"
+    },
+    {
+     "text": "1 tsp oil",
+     "qty": 1.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "sautéed veg (broccoli/beans)"
+    },
+    {
+     "text": "2 rotis",
+     "qty": 2.0
+    },
+    {
+     "text": "mint chutney"
+    }
+   ],
+   "method": [
+    "Marinate paneer 30 min.",
+    "Pan-grill/air-fry paneer and veg chunks till charred.",
+    "Serve with sautéed greens, roti and mint chutney."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + 50 g extra paneer",
+    "kcal": 200,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "D10": {
+   "code": "D10",
+   "meal": "dinner",
+   "name": "Mushroom-Peas + Paneer Bhurji + Roti",
+   "paneer": true,
+   "base_serving": {
+    "kcal": 535,
+    "protein_g": 30,
+    "carbs_g": 40,
+    "fat_g": 22,
+    "fibre_g": 8
+   },
+   "batch_servings": 2,
+   "ingredients_text": "paneer 150 g crumbled, mushrooms 200 g, green peas ½ cup, onion, tomato, ginger-garlic, spices, 2 tsp oil; 3 rotis.",
+   "ingredients": [
+    {
+     "text": "paneer 150 g crumbled",
+     "qty": 150.0,
+     "unit": "g"
+    },
+    {
+     "text": "mushrooms 200 g",
+     "qty": 200.0,
+     "unit": "g"
+    },
+    {
+     "text": "green peas ½ cup",
+     "qty": 0.5,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "ginger-garlic"
+    },
+    {
+     "text": "spices"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3 rotis",
+     "qty": 3.0
+    }
+   ],
+   "method": [
+    "Sauté onion-ginger-garlic, add mushrooms and peas, cook till water dries; add tomato and spices; fold in crumbled paneer, toss 3 min.",
+    "Serve with roti."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + 40 g extra paneer",
+    "kcal": 190,
+    "protein_g": 13
+   },
+   "notes": []
+  },
+  "D7": {
+   "code": "D7",
+   "meal": "dinner",
+   "name": "Chana Dal + Veg + Roti",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 520,
+    "protein_g": 26,
+    "carbs_g": 56,
+    "fat_g": 14,
+    "fibre_g": 13
+   },
+   "batch_servings": 2,
+   "ingredients_text": "chana dal 1 cup, bottle gourd/pumpkin 1 cup, onion, tomato, garlic, cumin, turmeric, 2 tsp ghee; 3 rotis; 150 g curd.",
+   "ingredients": [
+    {
+     "text": "chana dal 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "bottle gourd/pumpkin 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion"
+    },
+    {
+     "text": "tomato"
+    },
+    {
+     "text": "garlic"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "turmeric"
+    },
+    {
+     "text": "2 tsp ghee",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "3 rotis",
+     "qty": 3.0
+    },
+    {
+     "text": "150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook chana dal with veg and turmeric.",
+    "Add garlic-cumin tadka.",
+    "Serve with roti and curd."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + extra dal + curd",
+    "kcal": 200,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "D4": {
+   "code": "D4",
+   "meal": "dinner",
+   "name": "Moong Dal Soup + Grilled Paneer Salad",
+   "paneer": true,
+   "base_serving": {
+    "kcal": 500,
+    "protein_g": 34,
+    "carbs_g": 34,
+    "fat_g": 22,
+    "fibre_g": 10
+   },
+   "batch_servings": 2,
+   "ingredients_text": "yellow moong dal ¾ cup for a thin protein soup (ginger, garlic, turmeric, lemon, pepper); paneer 180 g cubed & pan-grilled; salad of lettuce/cucumber/tomato/onion/capsicum with olive oil-lemon dressing and roasted peanuts 1 tbsp.",
+   "ingredients": [
+    {
+     "text": "yellow moong dal ¾ cup for a thin protein soup (ginger, garlic, turmeric, lemon, pepper)",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "paneer 180 g cubed & pan-grilled",
+     "qty": 180.0,
+     "unit": "g"
+    },
+    {
+     "text": "salad of lettuce/cucumber/tomato/onion/capsicum with olive oil-lemon dressing and roasted peanuts 1 tbsp",
+     "qty": 1.0,
+     "unit": "tbsp"
+    }
+   ],
+   "method": [
+    "Cook moong dal soft, blend to a light soup, season with ginger-garlic and lemon.",
+    "Grill paneer cubes with a little salt-chilli.",
+    "Toss over salad.",
+    "Soup + salad = a light, high-protein dinner."
+   ],
+   "person1_extra": {
+    "text": "+1 roti + 50 g extra paneer",
+    "kcal": 210,
+    "protein_g": 14
+   },
+   "notes": []
+  },
+  "L11": {
+   "code": "L11",
+   "meal": "lunch",
+   "name": "Tofu Veg Stir-Fry + Rice",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 555,
+    "protein_g": 34,
+    "carbs_g": 62,
+    "fat_g": 16,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "firm tofu 250 g cubed, mixed veg (capsicum, beans, broccoli, carrot) 3 cups, garlic-ginger, soy sauce 1 tbsp, black pepper, 2 tsp oil; rice 1 cup dry (or brown rice).",
+   "ingredients": [
+    {
+     "text": "firm tofu 250 g cubed",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "mixed veg (capsicum, beans, broccoli, carrot) 3 cups",
+     "qty": 3.0,
+     "unit": "cups"
+    },
+    {
+     "text": "garlic-ginger"
+    },
+    {
+     "text": "soy sauce 1 tbsp",
+     "qty": 1.0,
+     "unit": "tbsp"
+    },
+    {
+     "text": "black pepper"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "rice 1 cup dry (or brown rice)",
+     "qty": 1.0,
+     "unit": "cup"
+    }
+   ],
+   "method": [
+    "Pan-fry tofu till golden, set aside.",
+    "Stir-fry veg on high heat with garlic-ginger, add soy sauce and pepper, return tofu.",
+    "Serve over rice."
+   ],
+   "person1_extra": {
+    "text": "+½ cup rice + 60 g extra tofu",
+    "kcal": 250,
+    "protein_g": 16
+   },
+   "notes": []
+  },
+  "L12": {
+   "code": "L12",
+   "meal": "lunch",
+   "name": "Mixed Dal + Quinoa + Salad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 555,
+    "protein_g": 27,
+    "carbs_g": 68,
+    "fat_g": 14,
+    "fibre_g": 14
+   },
+   "batch_servings": 2,
+   "ingredients_text": "mix of toor + masoor + moong dal 1 cup, onion-tomato-garlic tadka, cumin, 2 tsp ghee; quinoa ¾ cup dry; salad + 150 g curd.",
+   "ingredients": [
+    {
+     "text": "mix of toor + masoor + moong dal 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "onion-tomato-garlic tadka"
+    },
+    {
+     "text": "cumin"
+    },
+    {
+     "text": "2 tsp ghee",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "quinoa ¾ cup dry",
+     "qty": 0.75,
+     "unit": "cup"
+    },
+    {
+     "text": "salad + 150 g curd",
+     "qty": 150.0,
+     "unit": "g"
+    }
+   ],
+   "method": [
+    "Pressure-cook the dal mix; finish with tadka.",
+    "Cook quinoa (1:2 water) till fluffy.",
+    "Serve dal over quinoa with salad and curd."
+   ],
+   "person1_extra": {
+    "text": "+½ cup extra quinoa + extra curd",
+    "kcal": 230,
+    "protein_g": 13
+   },
+   "notes": []
+  },
+  "D9": {
+   "code": "D9",
+   "meal": "dinner",
+   "name": "Savoury Besan Chilla (Dinner) + Curd + Salad",
+   "paneer": false,
+   "base_serving": {
+    "kcal": 510,
+    "protein_g": 24,
+    "carbs_g": 42,
+    "fat_g": 20,
+    "fibre_g": 9
+   },
+   "batch_servings": 2,
+   "ingredients_text": "besan 1 cup, grated bottle gourd/carrot + spinach + onion, ajwain, ginger, chilli, salt, 2 tsp oil; 250 g curd; big salad.",
+   "ingredients": [
+    {
+     "text": "besan 1 cup",
+     "qty": 1.0,
+     "unit": "cup"
+    },
+    {
+     "text": "grated bottle gourd/carrot + spinach + onion"
+    },
+    {
+     "text": "ajwain"
+    },
+    {
+     "text": "ginger"
+    },
+    {
+     "text": "chilli"
+    },
+    {
+     "text": "salt"
+    },
+    {
+     "text": "2 tsp oil",
+     "qty": 2.0,
+     "unit": "tsp"
+    },
+    {
+     "text": "250 g curd",
+     "qty": 250.0,
+     "unit": "g"
+    },
+    {
+     "text": "big salad"
+    }
+   ],
+   "method": [
+    "Whisk besan with water and spices to a batter, mix in grated veg.",
+    "Cook 3–4 thin chillas on a tawa with minimal oil.",
+    "Serve with curd and salad — a light, high-protein dinner."
+   ],
+   "person1_extra": {
+    "text": "+1 chilla + extra curd",
+    "kcal": 200,
+    "protein_g": 14
+   },
+   "notes": []
+  }
+ },
+ "recipe_overrides": {},
+ "prep": {
+  "B1": [
+   {
+    "id": "soak-moong",
+    "when": "tonight",
+    "kind": "soak",
+    "text": "Plan the soak: 1 cup yellow moong dal must be soaked 3 h before you blend the batter (start tonight or early morning).",
+    "source": "yellow moong dal 1 cup (soaked 3 h)"
+   }
+  ],
+  "B6": [
+   {
+    "id": "sprouts",
+    "when": "tonight",
+    "kind": "check",
+    "text": "Check that 1 cup moong sprouts are ready.",
+    "source": "moong sprouts 1 cup"
+   }
+  ],
+  "B7": [
+   {
+    "id": "overnight-oats",
+    "when": "tonight",
+    "kind": "advance",
+    "text": "Mix 1 cup rolled oats, 250 g hung/Greek-style curd, 200 ml milk and 1 tbsp chia in a jar; refrigerate overnight.",
+    "source": "Mix oats, curd, milk, chia in a jar; refrigerate overnight."
+   },
+   {
+    "id": "overnight-oats-top",
+    "when": "tomorrow",
+    "kind": "cook",
+    "text": "Morning: top the oats with banana, peanut butter and fruit.",
+    "source": "Morning: top with banana, peanut butter, fruit."
+   }
+  ],
+  "B8": [
+   {
+    "id": "idli-batter",
+    "when": "tonight",
+    "kind": "check",
+    "text": "Check you have idli batter for 6–8 idlis (ready batter or homemade).",
+    "source": "6–8 idlis (ready batter or homemade)"
+   }
+  ],
+  "B9": [
+   {
+    "id": "rest-batter",
+    "when": "tomorrow",
+    "kind": "cook",
+    "text": "Whisk the oats-rava batter first and let it rest 15 min before cooking.",
+    "source": "Whisk a thin pourable batter, rest 15 min."
+   }
+  ],
+  "B11": [
+   {
+    "id": "uttapam-batter",
+    "when": "tonight",
+    "kind": "check",
+    "text": "Check you have 2 cups dosa/idli batter.",
+    "source": "dosa/idli batter 2 cups"
+   },
+   {
+    "id": "boil-chana-dal",
+    "when": "tonight",
+    "kind": "advance",
+    "text": "Can be done tonight: boil ½ cup chana dal (it is stirred into the batter).",
+    "source": "boiled chana dal ½ cup mixed in batter for protein"
+   }
+  ],
+  "B12": [
+   {
+    "id": "soak-soya-granules",
+    "when": "tomorrow",
+    "kind": "soak",
+    "unstated": true,
+    "text": "Soak ¾ cup soya granules, then squeeze them (the plan doesn't state how long to soak).",
+    "source": "soya granules ¾ cup (soaked, squeezed)"
+   }
+  ],
+  "L1": [
+   {
+    "id": "soak-rajma",
+    "when": "tonight",
+    "kind": "soak",
+    "text": "Soak 1 cup dry rajma overnight.",
+    "source": "rajma 1 cup dry (soaked overnight)"
+   }
+  ],
+  "L2": [
+   {
+    "id": "soak-chole",
+    "when": "tonight",
+    "kind": "soak",
+    "unstated": true,
+    "text": "Soak 1 cup dry kabuli chana (the recipe uses soaked chana; the plan doesn't state how long).",
+    "source": "kabuli chana 1 cup dry (soaked)"
+   }
+  ],
+  "L4": [
+   {
+    "id": "boil-soya",
+    "when": "tomorrow",
+    "kind": "cook",
+    "text": "Boil 1.5 cups soya chunks for 5 min, then squeeze out the water.",
+    "source": "Boil soya chunks 5 min, squeeze out water.",
+    "hindi": "Soya ko dabakar paani nikaalo, warna kaccha lagta hai."
+   }
+  ],
+  "L5": [
+   {
+    "id": "soak-kala-chana",
+    "when": "tonight",
+    "kind": "soak",
+    "unstated": true,
+    "text": "Soak 1 cup dry kala chana (the recipe uses soaked chana; the plan doesn't state how long).",
+    "source": "kala chana 1 cup dry (soaked)"
+   }
+  ],
+  "L8": [
+   {
+    "id": "soak-lobia",
+    "when": "tonight",
+    "kind": "soak",
+    "unstated": true,
+    "text": "Soak 1 cup dry lobia (the recipe uses soaked lobia; the plan doesn't state how long).",
+    "source": "lobia 1 cup dry (soaked)"
+   }
+  ],
+  "L10": [
+   {
+    "id": "soak-chole",
+    "when": "tonight",
+    "kind": "soak",
+    "unstated": true,
+    "text": "Soak 1 cup dry kabuli chana (the recipe uses soaked chana; the plan doesn't state how long).",
+    "source": "kabuli chana 1 cup dry (soaked)"
+   }
+  ],
+  "D1": [
+   {
+    "id": "marinate-paneer",
+    "when": "tomorrow",
+    "kind": "advance",
+    "text": "Marinate 200 g paneer in 100 g hung curd + tikka masala + ginger-garlic for 30 min before cooking.",
+    "source": "Marinate paneer 30 min."
+   }
+  ],
+  "D2": [
+   {
+    "id": "press-tofu",
+    "when": "tomorrow",
+    "kind": "cook",
+    "text": "Press the tofu lightly to remove water before cooking.",
+    "source": "Tofu ko halka daba kar paani nikaalo phir bhuno."
+   }
+  ],
+  "D3": [
+   {
+    "id": "boil-soya",
+    "when": "tomorrow",
+    "kind": "cook",
+    "text": "Boil and squeeze 1.5 cups soya chunks.",
+    "source": "soya chunks 1.5 cups (boiled/squeezed)"
+   }
+  ],
+  "D6": [
+   {
+    "id": "soak-rajma",
+    "when": "tonight",
+    "kind": "soak",
+    "text": "Soak ¾ cup dry rajma overnight (it is cooked as in L1).",
+    "source": "rajma ¾ cup dry (cooked as L1 but no rice); L1: rajma 1 cup dry (soaked overnight)"
+   }
+  ],
+  "D8": [
+   {
+    "id": "marinate-tofu",
+    "when": "tomorrow",
+    "kind": "advance",
+    "unstated": true,
+    "text": "Marinate 250 g firm tofu in curd + tikka spices (the plan doesn't state for how long).",
+    "source": "firm tofu 250 g cubed, marinated in curd + tikka spices"
+   }
+  ],
+  "D12": [
+   {
+    "id": "sprouts",
+    "when": "tonight",
+    "kind": "check",
+    "text": "Check that 1.5 cups mixed sprouts are ready.",
+    "source": "mixed sprouts 1.5 cups (steamed)"
+   }
+  ]
+ },
+ "groceries": {
+  "note": "Quantities are for both people for one week and include Person 1's extra portions. Buy fresh vegetables twice a week. Staples like oil, salt and whole spices are assumed to be in the kitchen; a master spice list is at the end. Adjust up/down slightly to taste.",
+  "weeks": [
+   {
+    "week": 1,
+    "categories": [
+     {
+      "category": "Pulses / legumes",
+      "items": [
+       {
+        "id": "w1-rajma",
+        "text": "Rajma 300 g",
+        "name": "Rajma",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-kabuli-chana",
+        "text": "kabuli chana (chole) 250 g",
+        "name": "Kabuli chana",
+        "quantity": "(chole) 250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-kala-chana",
+        "text": "kala chana 200 g",
+        "name": "Kala chana",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-yellow-moong-dal",
+        "text": "yellow moong dal 500 g",
+        "name": "Yellow moong dal",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-toor-dal",
+        "text": "toor dal 400 g",
+        "name": "Toor dal",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-masoor-dal",
+        "text": "masoor dal 250 g",
+        "name": "Masoor dal",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-besan",
+        "text": "besan 500 g",
+        "name": "Besan",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Soya / tofu / paneer",
+      "items": [
+       {
+        "id": "w1-soya-chunks",
+        "text": "Soya chunks 250 g",
+        "name": "Soya chunks",
+        "quantity": "250 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w1-firm-tofu",
+        "text": "firm tofu 600 g",
+        "name": "Firm tofu",
+        "quantity": "600 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w1-paneer",
+        "text": "paneer 450 g",
+        "name": "Paneer",
+        "quantity": "450 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Grains",
+      "items": [
+       {
+        "id": "w1-brown-rice",
+        "text": "Brown rice 500 g",
+        "name": "Brown rice",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-basmati-rice",
+        "text": "basmati rice 500 g",
+        "name": "Basmati rice",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-rolled-oats",
+        "text": "rolled oats 500 g",
+        "name": "Rolled oats",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-poha",
+        "text": "poha 250 g",
+        "name": "Poha",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-whole-wheat-atta",
+        "text": "whole-wheat atta 2 kg",
+        "name": "Whole-wheat atta",
+        "quantity": "2 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-idli-dosa-batter",
+        "text": "idli/dosa batter 1 kg (or rice+urad to make)",
+        "name": "Idli/dosa batter",
+        "quantity": "1 kg (or rice+urad to make)",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-multigrain-bread",
+        "text": "multigrain bread 1 loaf",
+        "name": "Multigrain bread",
+        "quantity": "1 loaf",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Dairy",
+      "items": [
+       {
+        "id": "w1-milk",
+        "text": "Milk 5 L",
+        "name": "Milk",
+        "quantity": "5 L",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w1-curd",
+        "text": "curd 1.5 kg (set fresh through week)",
+        "name": "Curd",
+        "quantity": "1.5 kg (set fresh through week)",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w1-hung-greek-style-curd-if-available",
+        "text": "1 pack hung/Greek-style curd if available",
+        "name": "Hung/Greek-style curd if available",
+        "quantity": "1 pack",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Vegetables",
+      "items": [
+       {
+        "id": "w1-onions",
+        "text": "Onions 2 kg",
+        "name": "Onions",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-tomatoes",
+        "text": "tomatoes 2 kg",
+        "name": "Tomatoes",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-potatoes",
+        "text": "potatoes 500 g",
+        "name": "Potatoes",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-capsicum",
+        "text": "capsicum 500 g",
+        "name": "Capsicum",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-carrots",
+        "text": "carrots 500 g",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-beans",
+        "text": "beans 400 g",
+        "name": "Beans",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-peas",
+        "text": "peas 400 g",
+        "name": "Peas",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-spinach",
+        "text": "spinach (palak) 2 bunches",
+        "name": "Spinach",
+        "quantity": "(palak) 2 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-bottle-gourd",
+        "text": "bottle gourd (lauki) 1",
+        "name": "Bottle gourd",
+        "quantity": "(lauki) 1",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-cucumber",
+        "text": "cucumber 1 kg",
+        "name": "Cucumber",
+        "quantity": "1 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-lemon",
+        "text": "lemon 10",
+        "name": "Lemon",
+        "quantity": "10",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-ginger",
+        "text": "ginger 200 g",
+        "name": "Ginger",
+        "quantity": "200 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-garlic",
+        "text": "garlic 200 g",
+        "name": "Garlic",
+        "quantity": "200 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-green-chilli",
+        "text": "green chilli 100 g",
+        "name": "Green chilli",
+        "quantity": "100 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-coriander",
+        "text": "coriander 3 bunches",
+        "name": "Coriander",
+        "quantity": "3 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-mint",
+        "text": "mint 1 bunch",
+        "name": "Mint",
+        "quantity": "1 bunch",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-drumstick-mixed-sambar-veg",
+        "text": "drumstick/mixed sambar veg 500 g",
+        "name": "Drumstick/mixed sambar veg",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-curry-leaves",
+        "text": "curry leaves 1 sprig-pack",
+        "name": "Curry leaves",
+        "quantity": "1 sprig-pack",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Sprouts",
+      "items": [
+       {
+        "id": "w1-moong-for-sprouting",
+        "text": "Moong for sprouting 250 g (or ready sprouts 400 g)",
+        "name": "Moong for sprouting",
+        "quantity": "250 g (or ready sprouts 400 g)",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Fruit",
+      "items": [
+       {
+        "id": "w1-bananas",
+        "text": "Bananas 7",
+        "name": "Bananas",
+        "quantity": "7",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w1-berries-1-apple-4",
+        "text": "1 pack berries/1 apple ×4",
+        "name": "Berries/1 apple ×4",
+        "quantity": "1 pack",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Nuts / seeds / fats",
+      "items": [
+       {
+        "id": "w1-roasted-peanuts",
+        "text": "Roasted peanuts 300 g",
+        "name": "Roasted peanuts",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-almonds",
+        "text": "almonds 150 g",
+        "name": "Almonds",
+        "quantity": "150 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-walnuts",
+        "text": "walnuts 100 g",
+        "name": "Walnuts",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-peanut-butter",
+        "text": "peanut butter 1 jar",
+        "name": "Peanut butter",
+        "quantity": "1 jar",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-chia-seeds",
+        "text": "chia seeds 100 g",
+        "name": "Chia seeds",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-cooking-oil",
+        "text": "cooking oil",
+        "name": "Cooking oil",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-ghee",
+        "text": "ghee 250 g",
+        "name": "Ghee",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-cashews-for-gravy",
+        "text": "5 cashews for gravy",
+        "name": "Cashews for gravy",
+        "quantity": "5",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w1-coconut",
+        "text": "coconut (fresh/desiccated) 200 g",
+        "name": "Coconut",
+        "quantity": "(fresh/desiccated) 200 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Optional supplement",
+      "items": [
+       {
+        "id": "w1-whey-protein",
+        "text": "Whey protein (see Section 6) — ~14 scoops/week if used by both",
+        "name": "Whey protein",
+        "quantity": "(see Section 6) — ~14 scoops/week if used by both",
+        "grocery_category": "other"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "week": 2,
+    "categories": [
+     {
+      "category": "Pulses / legumes",
+      "items": [
+       {
+        "id": "w2-kabuli-chana",
+        "text": "Kabuli chana 250 g",
+        "name": "Kabuli chana",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-kala-chana",
+        "text": "kala chana 200 g",
+        "name": "Kala chana",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-lobia",
+        "text": "lobia (black-eyed peas) 250 g",
+        "name": "Lobia",
+        "quantity": "(black-eyed peas) 250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-toor-dal",
+        "text": "toor dal 400 g",
+        "name": "Toor dal",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-masoor-dal",
+        "text": "masoor dal 250 g",
+        "name": "Masoor dal",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-moong-dal",
+        "text": "moong dal 300 g",
+        "name": "Moong dal",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-chana-dal",
+        "text": "chana dal 400 g",
+        "name": "Chana dal",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-besan",
+        "text": "besan 250 g",
+        "name": "Besan",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Soya / tofu / paneer",
+      "items": [
+       {
+        "id": "w2-soya-chunks",
+        "text": "Soya chunks 200 g",
+        "name": "Soya chunks",
+        "quantity": "200 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w2-soya-granules",
+        "text": "soya granules 200 g",
+        "name": "Soya granules",
+        "quantity": "200 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w2-firm-tofu",
+        "text": "firm tofu 750 g",
+        "name": "Firm tofu",
+        "quantity": "750 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w2-paneer",
+        "text": "paneer 350 g",
+        "name": "Paneer",
+        "quantity": "350 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Grains",
+      "items": [
+       {
+        "id": "w2-basmati-rice",
+        "text": "Basmati rice 500 g",
+        "name": "Basmati rice",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-oats",
+        "text": "oats 500 g",
+        "name": "Oats",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-atta",
+        "text": "atta 2 kg",
+        "name": "Atta",
+        "quantity": "2 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-rava-sooji",
+        "text": "rava/sooji 250 g",
+        "name": "Rava/sooji",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-idli-dosa-batter",
+        "text": "idli/dosa batter 1.5 kg",
+        "name": "Idli/dosa batter",
+        "quantity": "1.5 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-multigrain-bread",
+        "text": "multigrain bread 1 loaf",
+        "name": "Multigrain bread",
+        "quantity": "1 loaf",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-quinoa",
+        "text": "quinoa 250 g (optional)",
+        "name": "Quinoa",
+        "quantity": "250 g (optional)",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Dairy",
+      "items": [
+       {
+        "id": "w2-milk",
+        "text": "Milk 5 L",
+        "name": "Milk",
+        "quantity": "5 L",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w2-curd",
+        "text": "curd 1.5 kg",
+        "name": "Curd",
+        "quantity": "1.5 kg",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w2-hung-greek-curd",
+        "text": "hung/Greek curd 500 g",
+        "name": "Hung/Greek curd",
+        "quantity": "500 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Vegetables",
+      "items": [
+       {
+        "id": "w2-onions",
+        "text": "Onions 2 kg",
+        "name": "Onions",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-tomatoes",
+        "text": "tomatoes 2 kg",
+        "name": "Tomatoes",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-capsicum",
+        "text": "capsicum 500 g",
+        "name": "Capsicum",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-mushrooms",
+        "text": "mushrooms 200 g",
+        "name": "Mushrooms",
+        "quantity": "200 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-peas",
+        "text": "peas 400 g",
+        "name": "Peas",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-spinach",
+        "text": "spinach 3 bunches",
+        "name": "Spinach",
+        "quantity": "3 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-carrots",
+        "text": "carrots 500 g",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-beans",
+        "text": "beans 400 g",
+        "name": "Beans",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-cucumber",
+        "text": "cucumber 1 kg",
+        "name": "Cucumber",
+        "quantity": "1 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-sambar-veg",
+        "text": "sambar veg 500 g",
+        "name": "Sambar veg",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-ginger",
+        "text": "ginger 200 g",
+        "name": "Ginger",
+        "quantity": "200 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-garlic",
+        "text": "garlic 200 g",
+        "name": "Garlic",
+        "quantity": "200 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-green-chilli",
+        "text": "green chilli",
+        "name": "Green chilli",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-coriander",
+        "text": "coriander 3 bunches",
+        "name": "Coriander",
+        "quantity": "3 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-mint",
+        "text": "mint 1 bunch",
+        "name": "Mint",
+        "quantity": "1 bunch",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-curry-leaves",
+        "text": "curry leaves",
+        "name": "Curry leaves",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-lemon",
+        "text": "lemon 10",
+        "name": "Lemon",
+        "quantity": "10",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Sprouts",
+      "items": [
+       {
+        "id": "w2-mixed-sprouts",
+        "text": "Mixed sprouts 400 g",
+        "name": "Mixed sprouts",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Fruit",
+      "items": [
+       {
+        "id": "w2-bananas",
+        "text": "Bananas 7",
+        "name": "Bananas",
+        "quantity": "7",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w2-apples-berries",
+        "text": "apples/berries ×4",
+        "name": "Apples/berries",
+        "quantity": "×4",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Nuts / seeds / fats",
+      "items": [
+       {
+        "id": "w2-peanuts",
+        "text": "Peanuts 250 g",
+        "name": "Peanuts",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-almonds",
+        "text": "almonds 100 g",
+        "name": "Almonds",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-peanut-butter",
+        "text": "peanut butter (top up)",
+        "name": "Peanut butter",
+        "quantity": "(top up)",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-chia",
+        "text": "chia 50 g",
+        "name": "Chia",
+        "quantity": "50 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-ghee-oil-top-up",
+        "text": "ghee/oil top-up",
+        "name": "Ghee/oil top-up",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w2-coconut-for-chutney-sambar",
+        "text": "coconut for chutney/sambar 200 g",
+        "name": "Coconut for chutney/sambar",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "week": 3,
+    "categories": [
+     {
+      "category": "Pulses / legumes",
+      "items": [
+       {
+        "id": "w3-rajma",
+        "text": "Rajma 300 g",
+        "name": "Rajma",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-kala-chana",
+        "text": "kala chana 200 g",
+        "name": "Kala chana",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-lobia",
+        "text": "lobia 250 g",
+        "name": "Lobia",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-moong-dal",
+        "text": "moong dal 500 g",
+        "name": "Moong dal",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-toor-dal",
+        "text": "toor dal 300 g",
+        "name": "Toor dal",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-masoor-dal",
+        "text": "masoor dal 250 g",
+        "name": "Masoor dal",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-chana-dal",
+        "text": "chana dal 200 g",
+        "name": "Chana dal",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-besan",
+        "text": "besan 300 g",
+        "name": "Besan",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Soya / tofu / paneer",
+      "items": [
+       {
+        "id": "w3-soya-chunks",
+        "text": "Soya chunks 200 g",
+        "name": "Soya chunks",
+        "quantity": "200 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w3-firm-tofu",
+        "text": "firm tofu 750 g",
+        "name": "Firm tofu",
+        "quantity": "750 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w3-paneer",
+        "text": "paneer 350 g",
+        "name": "Paneer",
+        "quantity": "350 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Grains",
+      "items": [
+       {
+        "id": "w3-brown-rice",
+        "text": "Brown rice 500 g",
+        "name": "Brown rice",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-basmati",
+        "text": "basmati 400 g",
+        "name": "Basmati",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-quinoa",
+        "text": "quinoa 300 g",
+        "name": "Quinoa",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-oats",
+        "text": "oats 500 g",
+        "name": "Oats",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-atta",
+        "text": "atta 2 kg",
+        "name": "Atta",
+        "quantity": "2 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-rava",
+        "text": "rava 150 g",
+        "name": "Rava",
+        "quantity": "150 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-idli-dosa-batter",
+        "text": "idli/dosa batter 1 kg",
+        "name": "Idli/dosa batter",
+        "quantity": "1 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-bread",
+        "text": "bread 1 loaf",
+        "name": "Bread",
+        "quantity": "1 loaf",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Dairy",
+      "items": [
+       {
+        "id": "w3-milk",
+        "text": "Milk 5 L",
+        "name": "Milk",
+        "quantity": "5 L",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w3-curd",
+        "text": "curd 1.5 kg",
+        "name": "Curd",
+        "quantity": "1.5 kg",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w3-hung-greek-curd",
+        "text": "hung/Greek curd 500 g",
+        "name": "Hung/Greek curd",
+        "quantity": "500 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Vegetables",
+      "items": [
+       {
+        "id": "w3-onions",
+        "text": "Onions 2 kg",
+        "name": "Onions",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-tomatoes",
+        "text": "tomatoes 2 kg",
+        "name": "Tomatoes",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-spinach",
+        "text": "spinach 3 bunches",
+        "name": "Spinach",
+        "quantity": "3 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-capsicum",
+        "text": "capsicum 500 g",
+        "name": "Capsicum",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-broccoli",
+        "text": "broccoli 300 g",
+        "name": "Broccoli",
+        "quantity": "300 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-beans",
+        "text": "beans 400 g",
+        "name": "Beans",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-carrots",
+        "text": "carrots 500 g",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-peas",
+        "text": "peas 300 g",
+        "name": "Peas",
+        "quantity": "300 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-bottle-gourd",
+        "text": "bottle gourd 1",
+        "name": "Bottle gourd",
+        "quantity": "1",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-lettuce",
+        "text": "lettuce 1",
+        "name": "Lettuce",
+        "quantity": "1",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-cucumber",
+        "text": "cucumber 1 kg",
+        "name": "Cucumber",
+        "quantity": "1 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-sambar-veg",
+        "text": "sambar veg 500 g",
+        "name": "Sambar veg",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-ginger-garlic",
+        "text": "ginger-garlic 200 g each",
+        "name": "Ginger-garlic",
+        "quantity": "200 g each",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-chilli",
+        "text": "chilli",
+        "name": "Chilli",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-coriander",
+        "text": "coriander",
+        "name": "Coriander",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-mint",
+        "text": "mint",
+        "name": "Mint",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-curry-leaves",
+        "text": "curry leaves",
+        "name": "Curry leaves",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-lemon",
+        "text": "lemon 10",
+        "name": "Lemon",
+        "quantity": "10",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Sprouts / fruit",
+      "items": [
+       {
+        "id": "w3-mixed-sprouts",
+        "text": "Mixed sprouts 300 g",
+        "name": "Mixed sprouts",
+        "quantity": "300 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-bananas",
+        "text": "bananas 7",
+        "name": "Bananas",
+        "quantity": "7",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w3-apples-berries",
+        "text": "apples/berries ×4",
+        "name": "Apples/berries",
+        "quantity": "×4",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Nuts / seeds / fats",
+      "items": [
+       {
+        "id": "w3-peanuts",
+        "text": "Peanuts 250 g",
+        "name": "Peanuts",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-almonds",
+        "text": "almonds 100 g",
+        "name": "Almonds",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-walnuts",
+        "text": "walnuts 100 g",
+        "name": "Walnuts",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-peanut-butter-top-up",
+        "text": "peanut butter top-up",
+        "name": "Peanut butter top-up",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-chia",
+        "text": "chia 50 g",
+        "name": "Chia",
+        "quantity": "50 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-cashews",
+        "text": "cashews",
+        "name": "Cashews",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-ghee-oil-top-up",
+        "text": "ghee/oil top-up",
+        "name": "Ghee/oil top-up",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w3-coconut",
+        "text": "coconut 150 g",
+        "name": "Coconut",
+        "quantity": "150 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "week": 4,
+    "categories": [
+     {
+      "category": "Pulses / legumes",
+      "items": [
+       {
+        "id": "w4-rajma",
+        "text": "Rajma 250 g",
+        "name": "Rajma",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-kabuli-chana",
+        "text": "kabuli chana 250 g",
+        "name": "Kabuli chana",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-kala-chana",
+        "text": "kala chana 200 g",
+        "name": "Kala chana",
+        "quantity": "200 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-moong-dal",
+        "text": "moong dal 400 g",
+        "name": "Moong dal",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-toor-dal",
+        "text": "toor dal 400 g",
+        "name": "Toor dal",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-masoor-dal",
+        "text": "masoor dal 250 g",
+        "name": "Masoor dal",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-chana-dal",
+        "text": "chana dal 300 g",
+        "name": "Chana dal",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-besan",
+        "text": "besan 500 g",
+        "name": "Besan",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Soya / tofu / paneer",
+      "items": [
+       {
+        "id": "w4-soya-chunks",
+        "text": "Soya chunks 200 g",
+        "name": "Soya chunks",
+        "quantity": "200 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w4-soya-granules",
+        "text": "soya granules 200 g",
+        "name": "Soya granules",
+        "quantity": "200 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w4-firm-tofu",
+        "text": "firm tofu 700 g",
+        "name": "Firm tofu",
+        "quantity": "700 g",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w4-paneer",
+        "text": "paneer 400 g",
+        "name": "Paneer",
+        "quantity": "400 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Grains",
+      "items": [
+       {
+        "id": "w4-brown-rice",
+        "text": "Brown rice 400 g",
+        "name": "Brown rice",
+        "quantity": "400 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-basmati",
+        "text": "basmati 500 g",
+        "name": "Basmati",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-quinoa",
+        "text": "quinoa 250 g",
+        "name": "Quinoa",
+        "quantity": "250 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-oats",
+        "text": "oats 500 g",
+        "name": "Oats",
+        "quantity": "500 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-atta",
+        "text": "atta 2 kg",
+        "name": "Atta",
+        "quantity": "2 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-rava",
+        "text": "rava 150 g",
+        "name": "Rava",
+        "quantity": "150 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-idli-dosa-batter",
+        "text": "idli/dosa batter 1.5 kg",
+        "name": "Idli/dosa batter",
+        "quantity": "1.5 kg",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-bread",
+        "text": "bread 1 loaf",
+        "name": "Bread",
+        "quantity": "1 loaf",
+        "grocery_category": "pantry"
+       }
+      ]
+     },
+     {
+      "category": "Dairy",
+      "items": [
+       {
+        "id": "w4-milk",
+        "text": "Milk 5 L",
+        "name": "Milk",
+        "quantity": "5 L",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w4-curd",
+        "text": "curd 1.5 kg",
+        "name": "Curd",
+        "quantity": "1.5 kg",
+        "grocery_category": "dairy"
+       },
+       {
+        "id": "w4-hung-greek-curd",
+        "text": "hung/Greek curd 500 g",
+        "name": "Hung/Greek curd",
+        "quantity": "500 g",
+        "grocery_category": "dairy"
+       }
+      ]
+     },
+     {
+      "category": "Vegetables",
+      "items": [
+       {
+        "id": "w4-onions",
+        "text": "Onions 2 kg",
+        "name": "Onions",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-tomatoes",
+        "text": "tomatoes 2 kg",
+        "name": "Tomatoes",
+        "quantity": "2 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-spinach",
+        "text": "spinach 3 bunches",
+        "name": "Spinach",
+        "quantity": "3 bunches",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-capsicum",
+        "text": "capsicum 500 g",
+        "name": "Capsicum",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-carrots",
+        "text": "carrots 500 g",
+        "name": "Carrots",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-beans",
+        "text": "beans 400 g",
+        "name": "Beans",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-peas",
+        "text": "peas 400 g",
+        "name": "Peas",
+        "quantity": "400 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-bottle-gourd",
+        "text": "bottle gourd 1",
+        "name": "Bottle gourd",
+        "quantity": "1",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-cucumber",
+        "text": "cucumber 1 kg",
+        "name": "Cucumber",
+        "quantity": "1 kg",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-lettuce",
+        "text": "lettuce 1",
+        "name": "Lettuce",
+        "quantity": "1",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-sambar-veg",
+        "text": "sambar veg 500 g",
+        "name": "Sambar veg",
+        "quantity": "500 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-ginger-garlic",
+        "text": "ginger-garlic 200 g each",
+        "name": "Ginger-garlic",
+        "quantity": "200 g each",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-chilli",
+        "text": "chilli",
+        "name": "Chilli",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-coriander",
+        "text": "coriander",
+        "name": "Coriander",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-mint",
+        "text": "mint",
+        "name": "Mint",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-curry-leaves",
+        "text": "curry leaves",
+        "name": "Curry leaves",
+        "quantity": null,
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-lemon",
+        "text": "lemon 10",
+        "name": "Lemon",
+        "quantity": "10",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Sprouts / fruit",
+      "items": [
+       {
+        "id": "w4-mixed-sprouts",
+        "text": "Mixed sprouts 300 g",
+        "name": "Mixed sprouts",
+        "quantity": "300 g",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-bananas",
+        "text": "bananas 7",
+        "name": "Bananas",
+        "quantity": "7",
+        "grocery_category": "produce"
+       },
+       {
+        "id": "w4-apples-berries",
+        "text": "apples/berries ×4",
+        "name": "Apples/berries",
+        "quantity": "×4",
+        "grocery_category": "produce"
+       }
+      ]
+     },
+     {
+      "category": "Nuts / seeds / fats",
+      "items": [
+       {
+        "id": "w4-peanuts",
+        "text": "Peanuts 300 g",
+        "name": "Peanuts",
+        "quantity": "300 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-almonds",
+        "text": "almonds 100 g",
+        "name": "Almonds",
+        "quantity": "100 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-peanut-butter-top-up",
+        "text": "peanut butter top-up",
+        "name": "Peanut butter top-up",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-chia",
+        "text": "chia 50 g",
+        "name": "Chia",
+        "quantity": "50 g",
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-ghee-oil-top-up",
+        "text": "ghee/oil top-up",
+        "name": "Ghee/oil top-up",
+        "quantity": null,
+        "grocery_category": "pantry"
+       },
+       {
+        "id": "w4-coconut",
+        "text": "coconut 150 g",
+        "name": "Coconut",
+        "quantity": "150 g",
+        "grocery_category": "pantry"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "pantry": "Master spice & pantry list (buy once, refill as needed): salt, black salt (kala namak), turmeric, red chilli powder, coriander powder, cumin seeds & powder, garam masala, chole masala, rajma masala, sambar powder, mustard seeds, ajwain, kasuri methi, bay leaf, tamarind, soy sauce, baking-safe oil (mustard/sunflower), papad, tea bag (chole colour).",
+  "pantry_hindi": "Ye masale ek baar le lo, mahine bhar chalega."
+ },
+ "context": {
+  "targets": {
+   "method": "Maintenance calories are estimated with the Mifflin–St Jeor equation and an activity factor for 4 training days plus daily walking. A moderate calorie deficit is used so that fat is lost while muscle is protected by high protein and hard training.",
+   "rows": [
+    [
+     "Body stats",
+     "32 yr • 178 cm • 85 kg",
+     "32 yr • 160 cm • 70 kg"
+    ],
+    [
+     "BMR (resting burn)",
+     "~1,808 kcal",
+     "~1,379 kcal"
+    ],
+    [
+     "Maintenance (TDEE)",
+     "~2,800 kcal",
+     "~2,000 kcal"
+    ],
+    [
+     "Target (fat-loss)",
+     "~2,300 kcal (≈500 deficit)",
+     "~1,600 kcal (≈400 deficit)"
+    ],
+    [
+     "Protein target",
+     "180 g/day (~2.1 g/kg)",
+     "130 g/day (~1.85 g/kg)"
+    ],
+    [
+     "Carbohydrate target",
+     "~235 g/day",
+     "~145 g/day"
+    ],
+    [
+     "Fat target",
+     "~70 g/day",
+     "~55 g/day"
+    ],
+    [
+     "Fibre target",
+     "30–38 g/day",
+     "25–30 g/day"
+    ],
+    [
+     "Rate of loss (expected)",
+     "0.4–0.6 kg/week",
+     "0.3–0.5 kg/week"
+    ]
+   ],
+   "before_you_start": "Weigh yourself once at the beginning and then weekly (same time, morning, after toilet, before eating). Judge progress over 2–3 weeks, not day to day — water weight fluctuates. If a woman is pregnant, breastfeeding, or anyone has a medical condition, check with a doctor before starting a deficit or new training."
+  },
+  "training": {
+   "person1": {
+    "title": "Person 1 (Male, Intermediate) — Upper / Lower (4 days)",
+    "why": "For an intermediate lifter who wants to keep strength while losing fat, an Upper/Lower split is the best fit. Each muscle is trained twice a week, which is ideal for building/keeping muscle, and it's simple to run in a normal gym.",
+    "days": {
+     "mon": "Upper A (Bench focus)",
+     "tue": "Lower A (Squat focus)",
+     "thu": "Upper B (Row / Overhead focus)",
+     "fri": "Lower B (Deadlift focus)"
+    },
+    "rest": "Wed, Sat, Sun off (or light walk)",
+    "warmup": "5 min easy cardio (bike/incline walk) → arm circles, leg swings, band pull-aparts 2×15 → then for your first main lift do 2 light ramp-up sets: empty bar ×10, then ~50% of working weight ×5.",
+    "warmup_hindi": "Pehle halka set lagao, phir working weight — chot nahi lagegi.",
+    "rules": [
+     "RPE = how hard a set feels. RPE 7 ≈ 3 reps left in the tank, RPE 8 ≈ 2 left, RPE 9 ≈ 1 left, RPE 10 = failure.",
+     "Weekly intensity: Week 1 = RPE 7 (leave 3 reps), Week 2 = RPE 8, Week 3 = RPE 8.5–9 (hardest), Week 4 = Deload (~60% weight, half the sets).",
+     "When to increase WEIGHT: if you hit the top of the rep range on all sets with good form and it still felt like the target RPE (or easier), add weight next time — +2.5 kg on upper-body lifts, +5 kg on squat/deadlift.",
+     "When to increase REPS: if you can't add weight yet, keep the weight and add 1 rep per set until you reach the top of the range, then add weight.",
+     "After failing a set (missed reps / form broke): rack it — don't grind ugly reps. Rest a bit longer, drop the weight ~10% and finish your remaining sets at target reps. Keep the same weight next session and try again. Only lower the program weight if you miss it 2 sessions in a row.",
+     "Double progression rule: stay at a weight until you hit the top of the rep range on every set, then jump up."
+    ],
+    "notation": "Sets × Reps @RPE. Tempo shown as e.g. 3-0-1 = 3 s down, 0 pause, 1 s up. Rest in minutes.",
+    "week1": {
+     "Upper A": [
+      [
+       "Barbell Bench Press",
+       "4 × 6–8 @7",
+       "2.5 min",
+       "3-0-1",
+       "~47.5 kg"
+      ],
+      [
+       "Seated Cable Row",
+       "4 × 8–10 @7",
+       "2 min",
+       "2-1-1",
+       "moderate"
+      ],
+      [
+       "Incline Dumbbell Press",
+       "3 × 8–10 @7",
+       "2 min",
+       "3-0-1",
+       "moderate"
+      ],
+      [
+       "Lat Pulldown",
+       "3 × 10–12 @7",
+       "90 s",
+       "2-1-1",
+       "moderate"
+      ],
+      [
+       "Dumbbell Lateral Raise",
+       "3 × 12–15 @7",
+       "60 s",
+       "2-0-1",
+       "light"
+      ],
+      [
+       "Triceps Rope Pushdown",
+       "3 × 12–15 @7",
+       "60 s",
+       "2-0-1",
+       "light"
+      ]
+     ],
+     "Lower A": [
+      [
+       "Barbell Back Squat",
+       "4 × 6–8 @7",
+       "3 min",
+       "3-0-1",
+       "~55 kg"
+      ],
+      [
+       "Romanian Deadlift",
+       "3 × 8–10 @7",
+       "2.5 min",
+       "3-1-1",
+       "moderate"
+      ],
+      [
+       "Leg Press",
+       "3 × 10–12 @7",
+       "2 min",
+       "2-0-1",
+       "moderate"
+      ],
+      [
+       "Seated Leg Curl",
+       "3 × 12–15 @7",
+       "90 s",
+       "2-1-1",
+       "moderate"
+      ],
+      [
+       "Standing Calf Raise",
+       "4 × 12–15 @7",
+       "60 s",
+       "2-1-1",
+       "moderate"
+      ]
+     ],
+     "Upper B": [
+      [
+       "Overhead Barbell Press",
+       "4 × 6–8 @7",
+       "2.5 min",
+       "2-0-1",
+       "moderate"
+      ],
+      [
+       "Barbell Bent-Over Row",
+       "4 × 8–10 @7",
+       "2 min",
+       "2-1-1",
+       "moderate"
+      ],
+      [
+       "Flat Dumbbell Press",
+       "3 × 8–10 @7",
+       "2 min",
+       "3-0-1",
+       "moderate"
+      ],
+      [
+       "Chin-up (or Assisted)",
+       "3 × 6–10 @7",
+       "2 min",
+       "2-0-1",
+       "bodyweight"
+      ],
+      [
+       "Face Pull",
+       "3 × 15 @7",
+       "60 s",
+       "2-1-1",
+       "light"
+      ],
+      [
+       "Dumbbell Biceps Curl",
+       "3 × 10–12 @7",
+       "60 s",
+       "2-0-1",
+       "moderate"
+      ]
+     ],
+     "Lower B": [
+      [
+       "Conventional Deadlift",
+       "4 × 4–6 @7",
+       "3 min",
+       "2-0-1",
+       "~90 kg"
+      ],
+      [
+       "Front Squat or Goblet Squat",
+       "3 × 8–10 @7",
+       "2.5 min",
+       "3-0-1",
+       "moderate"
+      ],
+      [
+       "Walking Lunges",
+       "3 × 10/leg @7",
+       "2 min",
+       "2-0-1",
+       "light DBs"
+      ],
+      [
+       "Leg Extension",
+       "3 × 12–15 @7",
+       "90 s",
+       "2-1-1",
+       "moderate"
+      ],
+      [
+       "Hanging Knee Raise",
+       "3 × 12–15 @7",
+       "60 s",
+       "2-0-1",
+       "bodyweight"
+      ]
+     ]
+    },
+    "week1_columns": [
+     "Exercise",
+     "Sets × Reps",
+     "Rest",
+     "Tempo",
+     "Start weight"
+    ],
+    "weeks": {
+     "1": "Week 1 — RPE 7 (technique + base)",
+     "2": "Week 2 — RPE 8 (add load). Same exercises and rep ranges. Push to RPE 8 (leave ~2 reps). Add +2.5 kg to upper lifts and +5 kg to squat/deadlift wherever you hit the top of the range last week. Big lifts approx: Bench ~50 kg, Squat ~60 kg, Deadlift ~95 kg, aiming for the same rep targets. Optional: add 1 set to Bench and Squat if recovery is good.",
+     "3": "Week 3 — RPE 8.5–9 (peak, hardest week). Heaviest, most demanding week. Reps live at the lower end of each range but heavier. Leave only ~1 rep in the tank on top sets. Big lifts approx: Bench ~52.5 kg, Squat ~65 kg, Deadlift ~100 kg (adjust to feel, not ego). Rest an extra 30–60 s on main lifts. If a set drops below the min reps, that's your ceiling — hold it, don't force.",
+     "4": "Week 4 — DELOAD (recover & grow). Use ~60% of your Week-3 weights, drop to 2 sets per exercise, stop every set at RPE 5–6 (easy). Skip the smallest isolation moves (lateral raise, face pull, calf, curl, ab work if tired). Keep protein and steps high. Goal: move well, feel fresh by Sunday."
+    }
+   },
+   "person2": {
+    "title": "Person 2 (Female, Beginner) — Upper / Lower (4 days, beginner-friendly)",
+    "why": "Same simple Upper/Lower layout, but with machines and easy-to-learn movements first. The focus for Weeks 1–2 is learning good form with light weight, then adding load.",
+    "days": {
+     "mon": "Lower A",
+     "tue": "Upper A",
+     "thu": "Lower B",
+     "fri": "Upper B"
+    },
+    "rest": "Wed, Sat, Sun off (walk/yoga)",
+    "warmup": "5 min brisk walk/bike → 10 bodyweight squats, 10 glute bridges, arm circles, band pull-aparts 2×15. On your first machine, do 1 light set of 12 to groove the movement.",
+    "warmup_hindi": "Pehle bina weight ke movement practice karo.",
+    "rules": [
+     "RPE feel: Week 1 = RPE 6–7 (very doable, 3–4 reps left), Week 2 = RPE 7, Week 3 = RPE 8 (2 left), Week 4 = Deload (easy).",
+     "Increase reps first: start at the bottom of the range; each session try to add 1–2 reps until you reach the top of the range on all sets.",
+     "Then increase weight: once you hit the top of the range on all sets with good form, add the smallest jump — +1–2.5 kg (machines/dumbbells) or the next pin — and drop back to the bottom of the range.",
+     "After failing a set: no problem — rack it, rest, lower the weight a little, and finish your reps. Repeat the same weight next time.",
+     "Form beats weight. A clean rep with lighter weight grows more muscle than a sloppy heavy one."
+    ],
+    "week1": {
+     "Lower A": [
+      [
+       "Goblet Squat (dumbbell)",
+       "3 × 10–12 @6–7",
+       "90 s",
+       "Chest up, sit back, knees track over toes"
+      ],
+      [
+       "Leg Press (machine)",
+       "3 × 12 @6–7",
+       "90 s",
+       "Don't lock knees hard at top"
+      ],
+      [
+       "Glute Bridge / Hip Thrust",
+       "3 × 12–15 @6–7",
+       "75 s",
+       "Squeeze glutes at top, ribs down"
+      ],
+      [
+       "Seated Leg Curl",
+       "3 × 12–15 @6–7",
+       "75 s",
+       "Slow and controlled"
+      ],
+      [
+       "Standing Calf Raise",
+       "3 × 15 @6–7",
+       "45 s",
+       "Full stretch at bottom"
+      ]
+     ],
+     "Upper A": [
+      [
+       "Lat Pulldown",
+       "3 × 10–12 @6–7",
+       "90 s",
+       "Pull elbows down, don't lean back much"
+      ],
+      [
+       "Chest Press (machine)",
+       "3 × 10–12 @6–7",
+       "90 s",
+       "Shoulders back, smooth press"
+      ],
+      [
+       "Seated Cable Row",
+       "3 × 12 @6–7",
+       "75 s",
+       "Squeeze shoulder blades"
+      ],
+      [
+       "Dumbbell Shoulder Press",
+       "2 × 12 @6–7",
+       "75 s",
+       "Don't arch the back"
+      ],
+      [
+       "Dumbbell Lateral Raise",
+       "2 × 15 @6–7",
+       "45 s",
+       "Light weight, lead with elbows"
+      ]
+     ],
+     "Lower B": [
+      [
+       "Leg Press (higher reps)",
+       "3 × 15 @6–7",
+       "90 s",
+       "Feet shoulder-width"
+      ],
+      [
+       "Dumbbell Romanian Deadlift",
+       "3 × 10–12 @6–7",
+       "90 s",
+       "Slight knee bend, push hips back, flat back"
+      ],
+      [
+       "Walking Lunges (bodyweight)",
+       "2 × 10/leg @6–7",
+       "75 s",
+       "Big step, torso tall"
+      ],
+      [
+       "Cable/Machine Glute Kickback",
+       "3 × 12/leg @6–7",
+       "60 s",
+       "Controlled squeeze"
+      ],
+      [
+       "Plank",
+       "3 × 20–30 s",
+       "45 s",
+       "Straight line, brace core"
+      ]
+     ],
+     "Upper B": [
+      [
+       "Assisted Pull-up (machine)",
+       "3 × 8–10 @6–7",
+       "90 s",
+       "Full hang to chin over bar"
+      ],
+      [
+       "Incline Dumbbell Press",
+       "3 × 10–12 @6–7",
+       "90 s",
+       "Elbows ~45°"
+      ],
+      [
+       "Machine Row",
+       "3 × 12 @6–7",
+       "75 s",
+       "Chest on pad, pull to ribs"
+      ],
+      [
+       "Face Pull",
+       "3 × 15 @6–7",
+       "60 s",
+       "Pull to forehead, elbows high"
+      ],
+      [
+       "Dumbbell Biceps Curl",
+       "2 × 12 @6–7",
+       "45 s",
+       "No swinging"
+      ]
+     ]
+    },
+    "week1_columns": [
+     "Exercise",
+     "Sets × Reps",
+     "Rest",
+     "Form tip"
+    ],
+    "weeks": {
+     "1": "Week 1 — RPE 6–7 (learn the movements)",
+     "2": "Week 2 — RPE 7 (add a little). Same workouts. Add 1–2 reps per set where you can; when you reach the top of a range on all sets, add the smallest weight jump (+1–2.5 kg or next pin). Sets stay the same. Keep tempo controlled — still learning.",
+     "3": "Week 3 — RPE 8 (challenge week). Leave about 2 reps in the tank on your last set of each exercise. Add the +1 set option to Goblet Squat, Chest Press and Lat Pulldown if you feel good. If a set feels wobbly, that's your top weight for now.",
+     "4": "Week 4 — DELOAD (recover). Use ~60% of Week-3 weights, 2 sets per exercise, stop well short of hard (RPE 5–6). Drop the small isolation moves (lateral raise, face pull, curls, plank) if tired. Focus on smooth form, walking and sleep."
+    }
+   },
+   "cardio": "You don't need much. On 1–2 rest days, do 20–30 min of easy incline walking or cycling. The daily step goal already covers most of the fat-loss cardio. Keep intense cardio low so it doesn't eat into gym recovery."
+  },
+  "recovery": {
+   "sleep": [
+    "Aim for 7–9 hours a night, at a consistent time.",
+    "Fixed sleep and wake time, even on weekends (±30 min).",
+    "No screens 30–45 min before bed; dim the lights.",
+    "Last big meal 2–3 hours before bed; caffeine before 3 pm only.",
+    "Cool, dark, quiet room. A short 10–20 min nap is fine if nights are short."
+   ],
+   "hydration": [
+    "Person 1: ~3.5–4 litres water/day. Person 2: ~2.5–3 litres/day. Add ~500 ml for every hour of training or hot weather.",
+    "Drink 500 ml on waking and 500 ml around the workout (before + during).",
+    "Urine should be pale yellow. Dark = drink more.",
+    "On heavy sweat days, a pinch of salt + lemon in water (or coconut water) replaces electrolytes. Limit sugary drinks and juices — they add hidden calories."
+   ],
+   "steps": {
+    "person1": [
+     "8,000 steps/day (Weeks 1–2)",
+     "10,000 steps/day (Weeks 3–4)"
+    ],
+    "person2": [
+     "7,000 steps/day (Weeks 1–2)",
+     "8,000–9,000 steps/day (Weeks 3–4)"
+    ],
+    "note": "Post-dinner 15–20 min walks also help digestion and blood sugar.",
+    "hindi": "Khaane ke baad walk zaroor karo."
+   },
+   "stretching": [
+    "Chest/doorway stretch — 30 s each side",
+    "Hamstring stretch (seated reach) — 30 s each leg",
+    "Hip-flexor lunge stretch — 30 s each side",
+    "Quad stretch (standing) — 30 s each",
+    "Child's pose + cat-cow — 1 min",
+    "Neck & shoulder rolls — 30 s"
+   ],
+   "mobility": [
+    "90/90 hip rotations — 8 each side",
+    "Deep bodyweight squat hold — 3 × 30 s",
+    "Ankle rocks against wall — 10 each",
+    "Thoracic (upper-back) rotations — 8 each side",
+    "Band shoulder dislocates / pass-throughs — 10 reps",
+    "Glute bridges — 15 (also a good warm-up)"
+   ],
+   "tips": [
+    "Take rest days seriously — muscle grows on off days, not just in the gym.",
+    "Hit your protein every day; it's the #1 recovery tool alongside sleep.",
+    "Manage stress (10 min breathing/walk) — high stress slows fat loss and recovery.",
+    "If a joint hurts (sharp pain, not normal soreness), swap the exercise and don't push through.",
+    "Deload weeks (Week 4) are non-negotiable — they prevent burnout and injury.",
+    "Normal muscle soreness for 1–2 days is fine; light movement helps it fade."
+   ]
+  },
+  "supplements": {
+   "intro": "Supplements are a small bonus on top of food, never a replacement. Only these have strong evidence and are worth considering:",
+   "rows": [
+    [
+     "Whey protein (veg-friendly)",
+     "1 scoop (~24 g P) as needed to hit protein target",
+     "Convenience only — helps reach 130–180 g protein. Skip if you already hit it from food. Vegans can use soy/pea protein."
+    ],
+    [
+     "Creatine monohydrate",
+     "3–5 g every day (any time)",
+     "Best-studied supplement for strength & muscle; safe long-term. Especially useful for vegetarians. Drink extra water."
+    ],
+    [
+     "Vitamin D3",
+     "1,000–2,000 IU/day (check blood level)",
+     "Common deficiency in India, esp. indoors; supports bone/muscle. Ideally test first."
+    ],
+    [
+     "Vitamin B12",
+     "As per label / doctor",
+     "Often low on vegetarian diets — worth monitoring and supplementing if low."
+    ],
+    [
+     "Caffeine (coffee)",
+     "~100–200 mg pre-workout (optional)",
+     "Mild performance and focus boost. Not after 3 pm."
+    ]
+   ],
+   "outro": "Everything else (fat burners, BCAAs, test boosters) is unnecessary here. Consult a doctor before starting supplements, particularly Vitamin D dosing."
+  },
+  "meal_prep": [
+   "Sunday batch (60–90 min): soak & pressure-cook the week's beans (rajma, chole, kala chana, lobia) and freeze in meal-size boxes; boil and squeeze soya chunks; roast peanuts; make a jar of mint-coriander chutney.",
+   "Twice-weekly: chop onions, tomatoes, ginger-garlic paste and store airtight; wash and store greens. Cut prep time to minutes on busy days.",
+   "Grains ahead: cook a batch of brown rice/quinoa; refrigerate 3–4 days. Knead atta fresh or store 2 days.",
+   "Curd & sprouts: set curd every 2 days; start a sprout jar so a batch is always ready.",
+   "Portion as you cook: plate Person 2's base serving first, then add Person 1's extras to the pan/plate — keeps macros on track without weighing every day.",
+   "Keep protein visible: pre-portion whey scoops, keep roasted chana/peanuts handy so hitting the protein target is easy."
+  ],
+  "meal_prep_hindi": "Ek din pehle taiyari karo — poora hafta easy ho jaata hai.",
+  "monthly_adjust": "If weight isn't moving after 2–3 weeks and steps + protein are on point, drop ~150 kcal (e.g. one less roti/rice serving). If you feel weak or gym numbers crash, you may be cutting too hard — add ~150 kcal back. Re-check body weight and lifts at the end of the month and set up the next block."
+ }
+}
