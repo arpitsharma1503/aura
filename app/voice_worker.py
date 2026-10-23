@@ -53,19 +53,35 @@ class Endpointer:
     or after ``no_speech_s`` if nobody speaks at all.
     """
     silence_s: float = 1.2
-    no_speech_s: float = 5.0
+    no_speech_s: float = 6.0
     min_speech_s: float = 0.25
     floor: float | None = None
     frames: int = 0
     speech_frames: int = 0
     quiet_frames: int = 0
+    peak: float = 0.0
     calib: list[float] = field(default_factory=list)
 
     def threshold(self) -> float:
-        return max((self.floor or 100) * 3.0, 350)
+        # Relative to the room: a cheap USB mic a metre or two away gives speech only a few
+        # times louder than a quiet room (measured: room ~35 RMS), so no high fixed minimum.
+        floor = self.floor if self.floor is not None else 60
+        return max(floor * 2.5, floor + 80, 120)
+
+    @property
+    def maybe_speech(self) -> bool:
+        """Clearly louder than the room at some point, even if not for long enough to
+        count as speech. Such clips get a second opinion from Whisper's own VAD."""
+        floor = self.floor if self.floor is not None else 60
+        return self.peak >= max(floor * 1.8, floor + 40, 90)
+
+    def levels(self) -> dict:
+        return {"floor_dbfs": dbfs(self.floor or 0), "peak_dbfs": dbfs(self.peak), "threshold_dbfs": dbfs(self.threshold())}
 
     def feed(self, rms: float) -> Literal["continue", "done", "no_speech"]:
         self.frames += 1
+        if self.floor is not None or len(self.calib) >= 3:
+            self.peak = max(self.peak, rms)            # skip the first frames: the mic's switch-on click
         if self.floor is None:
             self.calib.append(rms)
             if len(self.calib) >= 10:
@@ -125,13 +141,22 @@ class SpeechToText:
                           if missing else f"speech model failed to load: {type(exc).__name__}")
             log.warning("STT %s: %s", self.state, exc)
 
-    def transcribe(self, pcm: bytes) -> str:
+    def transcribe(self, pcm: bytes, vad: bool = False) -> str:
         import numpy as np
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
+        peak = float(np.max(np.abs(audio))) if audio.size else 0.0
+        if 0 < peak < 0.5:
+            audio = audio * min(0.9 / peak, 20.0)       # quiet, distant speech: bring it up to a normal level
         segments, _info = self._model.transcribe(
-            audio, language="en", beam_size=1, vad_filter=False, condition_on_previous_text=False,
+            audio, language="en", beam_size=1, vad_filter=vad, condition_on_previous_text=False,
             initial_prompt="Aura, weather, rain, umbrella, commute, office, traffic, calendar, birthday, groceries.")
-        return " ".join(s.text.strip() for s in segments).strip()
+        text = " ".join(s.text.strip() for s in segments).strip()
+        if vad and text.lower().strip(" .!?") in HALLUCINATIONS:
+            return ""                                     # Whisper's usual words for noise, not speech
+        return text
+
+
+HALLUCINATIONS = {"", "you", "thank you", "thanks", "thanks for watching", "thank you for watching", "bye", "okay"}
 
 
 class TextToSpeech:
@@ -189,6 +214,7 @@ class Clip:
     pcm: bytes
     created: float
     seconds: float
+    uncertain: bool = False          # quiet: let Whisper's VAD decide whether it is speech
 
 
 class Recorder:
@@ -325,14 +351,17 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
         t0 = time.monotonic()
         pcm, ep, reason = await rec.record(body.max_seconds)
         secs = round(len(pcm) / 2 / RATE, 2)
+        levels = ep.levels()
         if reason == "cancelled":
-            return {"clip_id": None, "reason": reason, "seconds": secs}
-        if not ep.heard_speech and reason in ("no_speech", "max", "stopped"):
-            return {"clip_id": None, "reason": "no_speech", "seconds": secs}
+            return {"clip_id": None, "reason": reason, "seconds": secs, "levels": levels}
+        uncertain = not ep.heard_speech
+        if uncertain and not ep.maybe_speech:
+            return {"clip_id": None, "reason": "no_speech", "seconds": secs, "levels": levels}
         sweep()
         cid = secrets.token_urlsafe(9)
-        clips[cid] = Clip(pcm, time.monotonic(), secs)
-        return {"clip_id": cid, "reason": reason, "seconds": secs, "record_ms": int((time.monotonic() - t0) * 1000)}
+        clips[cid] = Clip(pcm, time.monotonic(), secs, uncertain=uncertain)
+        return {"clip_id": cid, "reason": reason, "seconds": secs, "levels": levels, "uncertain": uncertain,
+                "record_ms": int((time.monotonic() - t0) * 1000)}
 
     @app.post("/stop")
     async def stop() -> dict:
@@ -353,7 +382,7 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
             raise HTTPException(503, f"Speech recognition isn't ready: {stt.error or stt.state}.")
         t0 = time.monotonic()
         async with busy:
-            text = await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, clip.pcm)
+            text = await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, clip.pcm, clip.uncertain)
         del clip
         return {"text": text, "stt_ms": int((time.monotonic() - t0) * 1000)}
 

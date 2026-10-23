@@ -105,11 +105,15 @@ class VoiceSession:
             self._set("listening", max_seconds=max_seconds)
             try:
                 rec = await self.voice.record(max_seconds)
+                lv = rec.get("levels") or {}
+                log.info("listen: %s after %.1fs (room %s dBFS, loudest %s dBFS, speech above %s dBFS%s)",
+                         rec.get("reason"), rec.get("seconds") or 0, lv.get("floor_dbfs"), lv.get("peak_dbfs"),
+                         lv.get("threshold_dbfs"), ", quiet: checked by Whisper" if rec.get("uncertain") else "")
                 if not rec.get("clip_id"):
                     if rec.get("reason") == "cancelled":
                         self._set("idle")
                         return None
-                    raise VoiceError("I didn't hear anything. Press the microphone and try again.",
+                    raise VoiceError("I didn't hear anything. Speak within about a metre of the Pi's microphone and try again.",
                                      status=422)
                 self._set("processing")
                 t1 = time.monotonic()
