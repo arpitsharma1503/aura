@@ -102,3 +102,21 @@ def test_setting_change_is_pushed_to_the_worker(tmp_path):
     worker.calls.clear()
     c.patch("/api/settings/assistant", json={"wake_word": True})
     assert "/wake" in worker.calls
+
+
+def test_misheard_wake_words_and_routing():
+    assert split_wake("Biora.") == "" and split_wake("AYORA.") == ""
+    assert split_wake("Hey Ora, what groceries do I need?") == "what groceries do I need?"
+    from app.assistant import route
+    assert route("Order the weather.").name == "weather"          # misheard "What's the weather"
+    assert route("Delete all my groceries").name == "action"      # changes are still refused
+
+
+def test_button_question_with_wake_phrase_is_stripped(tmp_path):
+    from test_assistant import api, FakeWorker
+    c, _ = api(tmp_path, FakeWorker(text="Hey Aura, what groceries do I need?"))
+    turn = c.post("/api/assistant/listen").json()
+    assert turn["question"] == "what groceries do I need?" and turn["answer"]["intent"] == "groceries"
+    c2, _ = api(tmp_path, FakeWorker(text="Biora."))
+    turn = c2.post("/api/assistant/listen").json()
+    assert turn["question"] == "Hey Aura" and turn["answer"]["intent"] == "greeting"

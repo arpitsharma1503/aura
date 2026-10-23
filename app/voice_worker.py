@@ -74,7 +74,7 @@ class SpeechToText:
         if 0 < peak < 0.5:
             audio = audio * min(0.9 / peak, 20.0)       # quiet, distant speech: bring it up to a normal level
         segments, _info = self._model.transcribe(
-            audio, language="en", beam_size=1, vad_filter=vad, condition_on_previous_text=False,
+            audio, language="en", beam_size=5, vad_filter=vad, condition_on_previous_text=False,
             initial_prompt=prompt or "Aura, weather, rain, umbrella, commute, office, traffic, calendar, birthday, groceries.")
         text = " ".join(s.text.strip() for s in segments).strip()
         if vad and text.lower().strip(" .!?") in HALLUCINATIONS:
@@ -257,8 +257,13 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
         if stt.state != "ready":
             raise RuntimeError("speech recognition not ready")
         prompt = "Hey Aura." if wake_check else None      # helps Whisper with a short, isolated "Hey Aura"
+        t0 = time.monotonic()
         async with busy:
-            return await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, pcm, vad, prompt)
+            t1 = time.monotonic()
+            text = await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, pcm, vad, prompt)
+        log.info("transcribed %.1fs of audio in %d ms (waited %d ms)%s", len(pcm) / 2 / RATE,
+                 (time.monotonic() - t1) * 1000, (t1 - t0) * 1000, " [wake check]" if wake_check else "")
+        return text
 
     async def notify(event: dict) -> None:
         if not notify_url["url"]:
@@ -355,7 +360,10 @@ def create_worker(settings: Settings, load_models: bool = True) -> FastAPI:
             raise HTTPException(503, f"Speech recognition isn't ready: {stt.error or stt.state}.")
         t0 = time.monotonic()
         async with busy:
+            t1 = time.monotonic()
             text = await asyncio.get_running_loop().run_in_executor(None, stt.transcribe, clip.pcm, clip.uncertain)
+        log.info("transcribed %.1fs of audio in %d ms (waited %d ms)", clip.seconds, (time.monotonic() - t1) * 1000,
+                 (t1 - t0) * 1000)
         del clip
         return {"text": text, "stt_ms": int((time.monotonic() - t0) * 1000)}
 

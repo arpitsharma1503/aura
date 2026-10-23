@@ -38,7 +38,7 @@ PRE_ROLL = 0.35                               # keep a little audio before the w
 MIN_CONF = 0.8
 FILLERS = {"uh", "um", "er", "oh", "so", "okay", "ok", "well", "hmm", "and"}
 WAKE_RE = re.compile(
-    r"^(?P<pre>.*?)\b(?:(?:hey|hi|hay|a|okay|ok)\W+)?(?:aura|aora|ora|aurora|aara|orah|oura|aurah|auro)\b[\s,.!?:;-]*",
+    r"^(?P<pre>.*?)\b(?:(?:hey|hi|hay|a|okay|ok)\W+)?(?:aura|aora|ora|aurora|aara|orah|oura|aurah|auro|biora|ayora|aiora|ayura|heyora|hiora)\b[\s,.!?:;-]*",
     re.IGNORECASE)
 
 

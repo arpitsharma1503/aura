@@ -19,6 +19,7 @@ from typing import Literal
 import httpx
 
 from .assistant import Assistant, Turn
+from .wake import split_wake
 
 log = logging.getLogger("aura.voice")
 
@@ -123,6 +124,9 @@ class VoiceSession:
                 t1 = time.monotonic()
                 result = await self.voice.transcribe(rec["clip_id"])
                 text = (result.get("text") or "").strip()
+                rest = split_wake(text)           # "Hey Aura, ..." said after pressing the button
+                if rest is not None:
+                    text = rest or "Hey Aura"     # only the wake phrase: answer with the greeting
                 if not text:
                     raise VoiceError("I couldn't make out any words. Please try again.", status=422)
                 turn = await self.assistant.ask(text, source="voice", timings={

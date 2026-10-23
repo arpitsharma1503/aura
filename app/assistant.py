@@ -307,7 +307,7 @@ class Tool:
 # Order matters: more specific intents first.
 TOOLS: tuple[Tool, ...] = (
     Tool("action", action_tool, (r"^(please )?(add|remove|delete|clear|turn|switch|set|change|disable|enable|"
-                                 r"buy|order|call|text|send|play|open|unlock|lock|reboot|restart|shut)\b",)),
+                                 r"call|text|send|play|open|unlock|lock|reboot|restart|shut)\b",)),
     Tool("help", help_tool, (r"what can you do", r"\bhelp\b", r"what can i ask")),
     # Short greetings only ("Hello", "Hey there", "Are you listening?"), so real questions still route.
     Tool("greeting", greeting_tool, (r"^((hi|hello|hey|hiya|bye)( there| aura)? ?)+$", r"^good (morning|afternoon|evening)$",
