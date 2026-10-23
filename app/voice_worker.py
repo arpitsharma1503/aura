@@ -13,6 +13,7 @@ Privacy:
 from __future__ import annotations
 
 import argparse
+import re
 import array
 import asyncio
 import io
@@ -75,14 +76,28 @@ class SpeechToText:
             audio = audio * min(0.9 / peak, 20.0)       # quiet, distant speech: bring it up to a normal level
         segments, _info = self._model.transcribe(
             audio, language="en", beam_size=5, vad_filter=vad, condition_on_previous_text=False,
+            temperature=0.0,            # one pass: no slow retries when the audio is unclear
+            no_repeat_ngram_size=3,     # don't loop on a phrase ("I'm sorry, I'm sorry, ...")
             initial_prompt=prompt or "Aura, weather, rain, umbrella, commute, office, traffic, calendar, birthday, groceries.")
         text = " ".join(s.text.strip() for s in segments).strip()
         if vad and text.lower().strip(" .!?") in HALLUCINATIONS:
             return ""                                     # Whisper's usual words for noise, not speech
+        if looks_invented(text):
+            return ""
         return text
 
 
 HALLUCINATIONS = {"", "you", "thank you", "thanks", "thanks for watching", "thank you for watching", "bye", "okay"}
+
+
+def looks_invented(text: str) -> bool:
+    """Whisper on noise tends to repeat one short phrase ("I'm sorry, I'm sorry, ...")."""
+    words = re.findall(r"[a-z']+", text.lower())
+    if len(words) < 6:
+        return False
+    phrases = [" ".join(words[i:i + 2]) for i in range(len(words) - 1)]
+    top = max(phrases.count(p) for p in set(phrases))
+    return top >= 3 and top / len(phrases) >= 0.3
 
 
 class TextToSpeech:

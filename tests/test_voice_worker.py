@@ -59,3 +59,12 @@ def test_very_quiet_speech_gets_a_second_opinion():
 def test_switch_on_click_is_ignored():
     state, ep, _ = run([3000, 2500] + room(7))
     assert not ep.maybe_speech
+
+
+def test_invented_repetition_is_dropped():
+    from app.voice_worker import looks_invented
+    assert looks_invented("I'm sorry, I'm sorry. I'm sorry, I'm sorry.")
+    assert looks_invented("Thank you. Thank you. Thank you. Thank you.")
+    assert not looks_invented("What's the weather today?")
+    assert not looks_invented("Summarize my day.")
+    assert not looks_invented("What is on my calendar today and what is on it tomorrow?")
