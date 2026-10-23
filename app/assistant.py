@@ -279,6 +279,10 @@ async def network_tool(c: Ctx) -> Answer:
                        "This may become available after network protection is installed.")
 
 
+async def greeting_tool(c: Ctx) -> Answer:
+    return Answer(intent="greeting", text="Hi, I'm listening. " + HELP)
+
+
 async def help_tool(c: Ctx) -> Answer:
     return Answer(intent="help", text=HELP)
 
@@ -305,6 +309,9 @@ TOOLS: tuple[Tool, ...] = (
     Tool("action", action_tool, (r"^(please )?(add|remove|delete|clear|turn|switch|set|change|disable|enable|"
                                  r"buy|order|call|text|send|play|open|unlock|lock|reboot|restart|shut)\b",)),
     Tool("help", help_tool, (r"what can you do", r"\bhelp\b", r"what can i ask")),
+    # Short greetings only ("Hello", "Hey there", "Are you listening?"), so real questions still route.
+    Tool("greeting", greeting_tool, (r"^((hi|hello|hey|hiya|bye)( there| aura)? ?)+$", r"^good (morning|afternoon|evening)$",
+                                     r"\bare you (there|listening|awake|on)\b")),
     Tool("network", network_tool, (r"\bdevices?\b.*\b(network|wifi|wi fi|connected|online)\b",
                                    r"\b(who|what)('s| is)? (is )?(connected|on (the|my) (network|wifi))")),
     Tool("summary", summary_tool, (r"\bsummar", r"\bmy day\b", r"\bbriefing\b", r"\bbrief me\b",

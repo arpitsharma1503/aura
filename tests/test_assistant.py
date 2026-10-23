@@ -112,6 +112,12 @@ def ask(q, **kw):
     ("Delete all my groceries", "action"),
     ("Turn off the Wi-Fi", "action"),
     ("Restart the Pi", "action"),
+    ("Hello", "greeting"),
+    ("Hey.", "greeting"),
+    ("Bye, are you listening? Hello?", "greeting"),
+    ("Good morning", "greeting"),
+    ("Hey, what's the weather today?", "weather"),
+    ("Good morning, summarize my day", "summary"),
 ])
 def test_routing(q, intent):
     tool = route(q)
@@ -126,8 +132,8 @@ def test_unknown_requests_fail_safely():
 
 
 def test_tools_are_a_fixed_read_only_allowlist():
-    assert {t.name for t in TOOLS} == {"action", "help", "network", "summary", "rain", "calendar", "commute",
-                                        "groceries", "weather", "time"}
+    assert {t.name for t in TOOLS} == {"action", "help", "greeting", "network", "summary", "rain", "calendar",
+                                        "commute", "groceries", "weather", "time"}
 
 
 # ---------------------------------------------------------------- grounded answers
