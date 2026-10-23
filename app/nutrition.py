@@ -114,7 +114,7 @@ def _num(s: str) -> float:
 
 def _fmt(x: float, unit: str | None) -> str:
     if unit in ("g", "ml"):
-        step = 5 if x < 200 else 10 if x < 1000 else 50
+        step = 5 if x < 1000 else 50
         return f"{round(x / step) * step:g}"
     if unit in ("kg", "L", "l"):
         return f"{round(x, 2):g}"
@@ -151,6 +151,11 @@ def ingredient_name(text: str) -> str:
     s = re.sub(r"\b(dry|on the side|for cooking|to eat alongside|total|cubed|crumbled|boiled|squeezed)\b", " ", s)
     s = re.sub(r"\s+", " ", s).strip(" ,.-+")
     return (s[:1].upper() + s[1:]) if s else text
+
+
+def grocery_key(name: str) -> str:
+    """Compare shopping-list names without brackets or case: 'Lobia (black-eyed peas)' == 'lobia'."""
+    return re.sub(r"\s+", " ", re.sub(r"\([^)]*\)", "", name)).strip().casefold()
 
 
 def aggregate(items: list[dict]) -> list[dict]:
@@ -223,7 +228,7 @@ def prep_tasks(plan: dict, target: date) -> list[dict]:
                               "Person 1's add-ons. Check you have enough, or set curd tonight.",
                       "source": "Curd & sprouts: set curd every 2 days", "unstated": False, "hindi": None})
     key = re.compile(r"\b(paneer|tofu|soya|rajma|chana|lobia|dal|besan|oats|poha|quinoa|batter|bread|mushrooms?)\b", re.I)
-    needed = [r for r in ingredients_for(plan, codes) if key.search(r["name"]) and not r["staple"]]
+    needed = [r for r in ingredients_for(plan, codes) if key.search(r["name"]) and not r["staple"] and r["quantity"]]
     if needed:
         listing = "; ".join(f"{r['name']} {r['quantity']}" if r["quantity"] else r["name"] for r in needed)
         tasks.append({"id": "check:key-ingredients", "meal": None, "recipe": None, "when": "tonight", "kind": "check",

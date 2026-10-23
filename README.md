@@ -792,6 +792,46 @@ provider) bypass Pi-hole. Guests' devices are filtered too while on your Wi-Fi.
 If the Pi is off, devices that follow the router have no DNS until it is back
 or the router is rolled back.
 
+## Meal plan
+
+The **Today's meals** tile and the meal plan view come from the household's
+“1-Month Body Recomposition Plan” PDF (vegetarian, two people, shared cooking).
+
+- **Which day:** the 1st of every month is **Day 1**, the 2nd is Day 2 … the
+  30th and 31st both use **Day 30**, and the next month starts again at Day 1
+  (February simply ends early). The date is taken in the home time zone, and open
+  screens move to the new day at midnight on their own.
+- **Today:** breakfast, lunch and dinner with recipe codes, each person's daily
+  calories/protein from the plan, and portions for **Person 1**, **Person 2** or
+  **Both · shared cooking** (Person 2 eats the base plate; Person 1 adds the
+  extras listed for that recipe). Tick meals as eaten per person.
+- **Prepare for tomorrow:** tomorrow's meals plus tasks for *tonight* and *tomorrow
+  before cooking*, taken only from the recipes' own instructions — e.g. “soak rajma
+  overnight” (L1), overnight oats (B7), “rest the batter 15 min” (B9). Where the
+  PDF doesn't give a soak time (chole, kala chana, lobia, soya granules) the task
+  says so. Ticks are saved for that date.
+- **Recipes:** all 36 (B1–B12, L1–L12, D1–D12) with ingredients, method, macros per
+  base serving, Person 1 extras and the Hindi notes. A servings stepper scales the
+  written amounts (times like “soaked 3 h” are left alone; per-serving nutrition
+  doesn't change). Prep times aren't in the PDF and aren't shown.
+- **Groceries:** the PDF's list for the current plan week (Days 1–7 = Week 1 …
+  Days 22–30 = Week 4) with bought ticks per month, plus the exact ingredients of
+  tomorrow's recipes (same ingredient + unit added up; different units kept apart).
+  **Add** puts items on the shared shopping list; anything already there is skipped,
+  so nothing is ever added twice.
+- **Plan & training:** targets, both training programmes (by week), recovery,
+  hydration, supplements and meal-prep tips from the PDF.
+- **Settings → Meal plan:** turn it off, set display names for Person 1/2, and the
+  default portion view.
+
+The plan data lives in `app/data/meal_plan.json` (version 1, with the PDF's
+SHA-256). It is rebuilt with `.venv/bin/python tools/extract_meal_plan.py <pdf>`:
+recipes are parsed from the PDF text, and the schedule, daily figures and grocery
+lists are checked row by row against the PDF; the build stops on any mismatch.
+Daily records (eaten, prep, groceries, notes) are stored per calendar date in
+`data/aura.db`, so a new month never erases the previous one. Nutrition figures
+are the plan's estimates, not medical advice.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after

@@ -24,6 +24,7 @@ window.AuraDetail = (() => {
     calendar: { title: "Calendar", render: renderCalendar },
     protection: { title: "Network protection", render: renderProtection },
     system: { title: "System", render: renderSystem },
+    meals: { title: "Meal plan", render: () => window.AuraMeals.view() },
   };
 
   // ---------- tiny DOM helper (text only; never innerHTML with data) ----------
@@ -51,7 +52,7 @@ window.AuraDetail = (() => {
   // ---------- open / close with history ----------
 
   function parseHash(hash) {
-    const m = /^#\/(clock|weather|advice|commute|assistant|calendar|protection|system)(?:\/([a-z]+))?$/.exec(hash || "");
+    const m = /^#\/(clock|weather|advice|commute|assistant|calendar|protection|system|meals)(?:\/([a-z]+))?$/.exec(hash || "");
     return m ? { view: m[1], section: m[2] || null } : null;
   }
 

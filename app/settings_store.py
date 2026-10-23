@@ -155,9 +155,10 @@ class GrocerySettings(_Strict):
         return out
 
 
-TileId = Literal["weather", "commute", "advice", "calendar", "groceries", "assistant", "protection", "system"]
+TileId = Literal["weather", "commute", "advice", "calendar", "groceries", "assistant", "protection", "system", "meals"]
 # Default order; on the entrance screen it packs into exactly three rows of four columns.
-TILES: tuple[str, ...] = ("weather", "commute", "advice", "groceries", "calendar", "assistant", "protection", "system")
+TILES: tuple[str, ...] = ("weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "protection",
+                          "system")
 
 
 def _label(raw: Any, field: str, max_len: int) -> str:
@@ -206,7 +207,7 @@ class Room(_Strict):
 def _default_rooms() -> list[Room]:
     return [
         Room(id="entrance", name="Entrance", tiles=["weather", "advice", "commute", "calendar", "assistant"]),
-        Room(id="kitchen", name="Kitchen", tiles=["groceries"]),
+        Room(id="kitchen", name="Kitchen", tiles=["meals", "groceries"]),
         Room(id="network", name="Network & system", tiles=["protection", "system"]),
     ]
 
@@ -214,7 +215,8 @@ def _default_rooms() -> list[Room]:
 class HomeSettings(_Strict):
     name: str = "Home"
     tile_order: list[TileId] = Field(default_factory=lambda: list(TILES))
-    hidden_tiles: list[TileId] = []
+    hidden_tiles: list[TileId] = []                          # hidden everywhere (rooms too)
+    overview_hidden: list[TileId] = Field(default_factory=lambda: ["system"])   # not on the Overview tab
     rooms: list[Room] = Field(default_factory=_default_rooms, max_length=8)
 
     @field_validator("name", mode="before")
@@ -228,7 +230,7 @@ class HomeSettings(_Strict):
         order = _unique_tiles(v)
         return order + [t for t in TILES if t not in order]     # tiles added later still appear
 
-    @field_validator("hidden_tiles", mode="before")
+    @field_validator("hidden_tiles", "overview_hidden", mode="before")
     @classmethod
     def _hidden(cls, v):
         return _unique_tiles(v)
@@ -242,6 +244,19 @@ class HomeSettings(_Strict):
         if "overview" in ids:
             raise ValueError("'overview' is reserved for the whole-home view")
         return self
+
+
+class MealSettings(_Strict):
+    """Monthly meal plan. Names are only display labels for the plan's Person 1 / Person 2."""
+    enabled: bool = True
+    person1_name: str = "Person 1"
+    person2_name: str = "Person 2"
+    default_person: Literal["both", "person1", "person2"] = "both"
+
+    @field_validator("person1_name", "person2_name", mode="before")
+    @classmethod
+    def _names(cls, v):
+        return _label(v, "name", 20)
 
 
 class AssistantSettings(_Strict):
@@ -263,8 +278,9 @@ SECTIONS: dict[str, type[_Strict]] = {
     "groceries": GrocerySettings,
     "assistant": AssistantSettings,
     "home": HomeSettings,
+    "meals": MealSettings,
 }
-Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant", "home"]
+Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant", "home", "meals"]
 
 
 def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
@@ -299,6 +315,7 @@ def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
         "groceries": {},
         "assistant": {"enabled": env.voice_enabled},
         "home": {},
+        "meals": {},
     }
 
 
@@ -378,6 +395,8 @@ class SettingsStore:
     def assistant(self) -> AssistantSettings: return self._cache["assistant"]  # noqa: E704
     @property
     def home(self) -> HomeSettings: return self._cache["home"]  # noqa: E704
+    @property
+    def meals(self) -> MealSettings: return self._cache["meals"]  # noqa: E704
 
     def customized(self, section: str) -> list[str]:
         return sorted(self._overrides(section))

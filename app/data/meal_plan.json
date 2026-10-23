@@ -3216,10 +3216,10 @@
         "grocery_category": "pantry"
        },
        {
-        "id": "w1-kabuli-chana",
+        "id": "w1-kabuli-chana-chole",
         "text": "kabuli chana (chole) 250 g",
-        "name": "Kabuli chana",
-        "quantity": "(chole) 250 g",
+        "name": "Kabuli chana (chole)",
+        "quantity": "250 g",
         "grocery_category": "pantry"
        },
        {
@@ -3418,17 +3418,17 @@
         "grocery_category": "produce"
        },
        {
-        "id": "w1-spinach",
+        "id": "w1-spinach-palak",
         "text": "spinach (palak) 2 bunches",
-        "name": "Spinach",
-        "quantity": "(palak) 2 bunches",
+        "name": "Spinach (palak)",
+        "quantity": "2 bunches",
         "grocery_category": "produce"
        },
        {
-        "id": "w1-bottle-gourd",
+        "id": "w1-bottle-gourd-lauki",
         "text": "bottle gourd (lauki) 1",
-        "name": "Bottle gourd",
-        "quantity": "(lauki) 1",
+        "name": "Bottle gourd (lauki)",
+        "quantity": "1",
         "grocery_category": "produce"
        },
        {
@@ -3519,10 +3519,10 @@
         "grocery_category": "produce"
        },
        {
-        "id": "w1-berries-1-apple-4",
+        "id": "w1-1-pack-berries-1-apple",
         "text": "1 pack berries/1 apple ×4",
-        "name": "Berries/1 apple ×4",
-        "quantity": "1 pack",
+        "name": "1 pack berries/1 apple",
+        "quantity": "×4",
         "grocery_category": "produce"
        }
       ]
@@ -3587,10 +3587,10 @@
         "grocery_category": "pantry"
        },
        {
-        "id": "w1-coconut",
+        "id": "w1-coconut-fresh-desiccated",
         "text": "coconut (fresh/desiccated) 200 g",
-        "name": "Coconut",
-        "quantity": "(fresh/desiccated) 200 g",
+        "name": "Coconut (fresh/desiccated)",
+        "quantity": "200 g",
         "grocery_category": "pantry"
        }
       ]
@@ -3599,10 +3599,10 @@
       "category": "Optional supplement",
       "items": [
        {
-        "id": "w1-whey-protein",
+        "id": "w1-whey-protein-see-section-6",
         "text": "Whey protein (see Section 6) — ~14 scoops/week if used by both",
-        "name": "Whey protein",
-        "quantity": "(see Section 6) — ~14 scoops/week if used by both",
+        "name": "Whey protein (see Section 6)",
+        "quantity": "~14 scoops/week if used by both",
         "grocery_category": "other"
        }
       ]
@@ -3630,10 +3630,10 @@
         "grocery_category": "pantry"
        },
        {
-        "id": "w2-lobia",
+        "id": "w2-lobia-black-eyed-peas",
         "text": "lobia (black-eyed peas) 250 g",
-        "name": "Lobia",
-        "quantity": "(black-eyed peas) 250 g",
+        "name": "Lobia (black-eyed peas)",
+        "quantity": "250 g",
         "grocery_category": "pantry"
        },
        {
@@ -3959,10 +3959,10 @@
         "grocery_category": "pantry"
        },
        {
-        "id": "w2-peanut-butter",
+        "id": "w2-peanut-butter-top-up",
         "text": "peanut butter (top up)",
-        "name": "Peanut butter",
-        "quantity": "(top up)",
+        "name": "Peanut butter (top up)",
+        "quantity": null,
         "grocery_category": "pantry"
        },
        {

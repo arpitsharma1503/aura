@@ -235,11 +235,15 @@ _QTY_TAIL = __import__("re").compile(
 
 
 def _split(text: str) -> tuple[str, str | None]:
+    """'lobia (black-eyed peas) 250 g' -> ('lobia (black-eyed peas)', '250 g'); brackets stay with the name."""
     import re
-    m = re.match(r"^(?P<name>[^\d(×~]+?)\s+(?P<qty>[~\d(×].*)$", text)
-    if m:
-        return m["name"].strip(), m["qty"].strip()
-    m = re.match(r"^(?P<qty>\d+(?:\s+pack)?)\s+(?P<name>.+)$", text)       # "5 cashews for gravy", "1 pack hung..."
+    depth = 0
+    for i, ch in enumerate(text):
+        depth += ch == "("
+        depth -= ch == ")"
+        if depth == 0 and i > 0 and ch in "0123456789×~" and text[i - 1] == " ":
+            return text[:i].strip().rstrip(" —-").strip(), text[i:].strip()
+    m = re.match(r"^(?P<qty>\d+(?:\s+pack)?)\s+(?P<name>.+)$", text)     # "5 cashews for gravy", "1 pack hung..."
     if m:
         return m["name"].strip(), m["qty"].strip()
     return text.strip(), None

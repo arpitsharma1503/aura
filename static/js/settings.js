@@ -9,8 +9,8 @@
   const $ = (id) => document.getElementById(id);
   const state = { settings: null, info: null, snapshot: {}, canEdit: false, canAdmin: false, scan: [], target: null };
   const LABELS = { network: "Network", locations: "Locations", weather: "Weather", commute: "Commute",
-    display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms" };
-  const TILE_NAMES = { weather: "Weather", commute: "Commute", advice: "Before you go", groceries: "Groceries",
+    display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms", meals: "Meal plan" };
+  const TILE_NAMES = { weather: "Weather", commute: "Commute", meals: "Today's meals", advice: "Before you go", groceries: "Groceries",
     calendar: "Calendar", assistant: "Ask AURA", protection: "Network protection", system: "System" };
 
   // ---------- API ----------
@@ -288,7 +288,7 @@
   function renderTileEditor(order) {
     $("tile-editor").replaceChildren(...order.map((id) => {
       const li = el("li", { class: "s-row", "data-value": id });
-      const box = el("input", { type: "checkbox", checked: true, "aria-label": `Show ${TILE_NAMES[id] || id}` });
+      const box = el("input", { type: "checkbox", checked: true, "aria-label": `Show ${TILE_NAMES[id] || id} on the Overview` });
       li.append(el("label", { class: "s-row__main" }, box, el("span", {}, TILE_NAMES[id] || id)), ...moveButtons(li, TILE_NAMES[id] || id));
       return li;
     }));

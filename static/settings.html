@@ -30,6 +30,7 @@
 
     <nav class="s-nav" aria-label="Settings sections">
       <a href="#home">Home &amp; rooms</a>
+      <a href="#meals">Meal plan</a>
       <a href="#locations">Locations</a>
       <a href="#weather">Weather</a>
       <a href="#commute">Commute</a>
@@ -62,8 +63,9 @@
         <div class="s-field">
           <span id="tiles-label">Tiles on the Overview</span>
           <ol class="s-list" id="tile-editor" data-field="tile_order" data-type="tiles" aria-labelledby="tiles-label"></ol>
-          <span data-field="hidden_tiles" data-type="hidden-tiles" hidden></span>
-          <small class="s-help">Switch a tile off to hide it everywhere. The arrows change the order on the Overview.</small>
+          <span data-field="overview_hidden" data-type="hidden-tiles" hidden></span>
+          <small class="s-help">Ticked tiles appear on the Overview, in this order. Rooms show their own tiles. The entrance
+            screen fits 12 spaces: wide tiles take 2.</small>
         </div>
         <div class="s-field">
           <span id="rooms-label">Rooms</span>
@@ -74,6 +76,25 @@
           </div>
           <small class="s-help">Up to 8 rooms. Pick which tiles each room shows; the Overview always shows every visible tile.</small>
         </div>
+      </form>
+
+      <form class="s-card" id="meals" data-section="meals" aria-labelledby="meals-h" novalidate>
+        <header class="s-card__head"><h2 id="meals-h">Meal plan</h2></header>
+        <p class="s-help">From your “1-Month Body Recomposition Plan”. Day 1 is always the 1st of the month; the 30th and 31st
+          use Day 30, and the plan restarts on the next 1st. Ticks for meals, preparation and groceries are kept per date.</p>
+        <label class="s-switch"><input type="checkbox" data-field="enabled">
+          <span>Show the meal plan <small>Today's meals tile and the meal plan view</small></span></label>
+        <div class="s-row">
+          <label class="s-field"><span>Name for Person 1</span>
+            <input class="sheet__input" data-field="person1_name" maxlength="20" autocomplete="off"></label>
+          <label class="s-field"><span>Name for Person 2</span>
+            <input class="sheet__input" data-field="person2_name" maxlength="20" autocomplete="off"></label>
+        </div>
+        <label class="s-field"><span>Show portions for</span>
+          <select class="sheet__input" data-field="default_person">
+            <option value="both">Both · shared cooking</option><option value="person1">Person 1</option>
+            <option value="person2">Person 2</option></select></label>
+        <small class="s-help">Each screen remembers the last choice; this is the starting point.</small>
       </form>
 
       <form class="s-card" id="locations" data-section="locations" aria-labelledby="locations-h" novalidate>

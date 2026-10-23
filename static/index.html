@@ -12,6 +12,7 @@
   <script src="/static/js/weather-scene.js" defer></script>
   <script src="/static/js/detail.js" defer></script>
   <script src="/static/js/assistant.js" defer></script>
+  <script src="/static/js/meals.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
 <body data-phase="night" data-sky="clear">
@@ -113,7 +114,14 @@
         <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
-      <article class="tile tile--wide card advice" id="advice" data-tile="advice" data-tone="amber" aria-labelledby="advice-title" data-open="advice">
+      <article class="tile tile--wide card meals" id="meals-tile" data-tile="meals" data-tone="lime" aria-labelledby="meals-title" data-open="meals" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="bowl" aria-hidden="true"></span><h2 class="tile__title" id="meals-title">Today's meals</h2><span class="tile__aside" id="meals-day"></span></header>
+        <ul class="meals__list" id="meals-list" aria-label="Today's meals"></ul>
+        <p class="meals__prep" id="meals-prep"></p>
+        <button type="button" class="tile-arrow" data-open="meals" aria-haspopup="dialog" aria-label="Meal plan details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card advice" id="advice" data-tile="advice" data-tone="amber" aria-labelledby="advice-title" data-open="advice">
         <header class="tile__head"><span class="tile__icon" data-icon="compass" aria-hidden="true"></span><h2 class="tile__title" id="advice-title">Before you go</h2></header>
         <ul class="advice__list" id="advice-list" data-state="loading">
           <li class="skeleton skeleton--row"></li>

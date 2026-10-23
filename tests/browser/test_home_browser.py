@@ -44,7 +44,7 @@ def test_room_tabs_filter_tiles(chrome, srv):
     assert tabs == [["Overview", "true"], ["Entrance", "false"], ["Kitchen", "false"], ["Network & system", "false"]]
     assert len(p.js(VISIBLE)) == 8
     p.js("document.querySelector('.room-tab[data-room=kitchen]').click()")
-    assert p.js(VISIBLE) == ["groceries"]
+    assert sorted(p.js(VISIBLE)) == ["groceries", "meals"]
     p.js("document.querySelector('.room-tab[data-room=network]').click()")
     assert sorted(p.js(VISIBLE)) == ["protection", "system"]
     assert p.js("document.querySelector('.room-tab[data-room=network]').getAttribute('aria-selected')") == "true"
@@ -72,7 +72,7 @@ def test_hidden_tiles_order_and_custom_room(chrome, srv):
     p = dashboard(chrome, srv)
     assert p.text("#home-name") == "Sharma home"
     visible = p.js(VISIBLE)
-    assert "system" not in visible and len(visible) == 7
+    assert "system" not in visible and len(visible) == 8
     first = p.js("[...document.querySelectorAll('#tiles [data-tile]:not([hidden])')].sort((a, b) => a.style.order - b.style.order)[0].dataset.tile")
     assert first == "groceries"
     p.js("document.querySelector('.room-tab[data-room=living-room]').click()")
@@ -164,7 +164,7 @@ def test_settings_home_editor_round_trip(chrome, srv, artifacts):
     p.goto(f"{srv.url}/settings#home")
     p.wait_for("!document.getElementById('s-main').hidden && document.querySelectorAll('#room-editor > li').length === 3", timeout=15)
     # hide System, move Groceries to the top, add a room with two tiles, rename Kitchen
-    p.js("document.querySelector('#tile-editor li[data-value=system] input').click()")
+    p.js("document.querySelector('#tile-editor li[data-value=advice] input').click()")   # off the Overview
     for _ in range(3):
         p.js("document.querySelector('#tile-editor li[data-value=groceries] .s-move').click()")
     p.js("document.getElementById('room-new').value = 'Living room'; document.getElementById('room-add').click()")
@@ -178,7 +178,8 @@ def test_settings_home_editor_round_trip(chrome, srv, artifacts):
     p.wait_for("document.querySelector('#home .s-status').dataset.kind === 'ok'")
     status, body = srv.api("GET", "/api/config")
     home = body["home"]
-    assert home["tile_order"][0] == "groceries" and home["hidden_tiles"] == ["system"]
+    assert home["tile_order"][0] == "groceries" and home["overview_hidden"] == ["advice", "system"]
+    assert home["hidden_tiles"] == []
     assert {"id": "living-room", "name": "Living room", "tiles": ["weather", "calendar"]} in home["rooms"]
     assert any(r["name"] == "Kitchen & dining" for r in home["rooms"])
     # duplicate room names are refused in the editor

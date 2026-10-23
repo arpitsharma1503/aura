@@ -7,9 +7,10 @@ import dataclasses
 import io
 import logging
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from datetime import time as dtime
 from types import SimpleNamespace
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -26,6 +27,7 @@ from . import sysinfo
 from .agenda import AgendaResponse, AgendaService, parse_feeds
 from .assistant import Assistant, Sources, Turn
 from .dnsfilter import DnsFilterMonitor, DnsFilterStatus
+from . import nutrition
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -84,6 +86,34 @@ class WifiConnect(BaseModel):
     password: str = Field(default="", max_length=64)
     confirm: bool = False
     allow_disconnect: bool = False
+
+
+class MealMark(BaseModel):
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    meal: Literal["breakfast", "lunch", "dinner"]
+    person: Literal["person1", "person2"]
+    done: bool
+
+
+class PrepMark(BaseModel):
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")       # the date the preparation is for
+    task: str = Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9:_-]+$")
+    done: bool
+
+
+class PlanGroceryMark(BaseModel):
+    week: str = Field(pattern=r"^\d{4}-\d{2}-w[1-4]$")
+    item: str = Field(min_length=1, max_length=60, pattern=r"^[a-z0-9-]+$")
+    purchased: bool
+
+
+class PlanGroceryAdd(BaseModel):
+    items: list[ItemIn] = Field(min_length=1, max_length=60)
+
+
+class DayNote(BaseModel):
+    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$")
+    text: str = Field(max_length=500)
 
 
 class AskIn(BaseModel):
@@ -213,6 +243,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         temperature_unit=lambda: prefs.display.temperature_unit,
         travel_window_hours=lambda: prefs.weather.travel_window_hours,
     ))
+    meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
     voice = VoiceClient(settings.voice_port, transport=voice_transport)
     voice_session = VoiceSession(voice, assistant, broker.publish)
     dns_filter = dnsfilter or DnsFilterMonitor(
@@ -242,7 +273,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             broker.publish("commute", {})
         if section in ("weather", "locations"):
             weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
-        if section in ("display", "weather", "locations", "groceries", "home"):
+        if section in ("display", "weather", "locations", "groceries", "home", "meals"):
             broker.publish("location", {})        # dashboards re-read /api/config and refresh
         if section == "groceries":
             await auto_clear()
@@ -255,7 +286,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                 "display": "Open dashboards update within a few seconds.",
                 "groceries": "Phones and the dashboard use the new settings now.",
                 "assistant": "The assistant uses the new settings now.",
-                "home": "Open dashboards show the new rooms and tiles within a few seconds."}.get(section, "")
+                "home": "Open dashboards show the new rooms and tiles within a few seconds.",
+                "meals": "Open dashboards use the new meal-plan settings within a few seconds."}.get(section, "")
 
     async def auto_clear() -> None:
         days = prefs.groceries.auto_clear_purchased_days
@@ -323,6 +355,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         await voice.aclose()
         await dns_filter.aclose()
         groceries.close()
+        meal_log.close()
         prefs.close()
 
     app = FastAPI(
@@ -341,6 +374,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.assistant = assistant
     app.state.voice = voice_session
     app.state.dns_filter = dns_filter
+    app.state.meal_log = meal_log
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -376,6 +410,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "location": location.public().model_dump(mode="json"),
             "home": prefs.home.model_dump(mode="json"),
             "assistant_enabled": prefs.assistant.enabled,
+            "meals_enabled": prefs.meals.enabled,
         }
 
     # ----- session / access -----
@@ -744,6 +779,135 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         except VoiceError as exc:
             return voice_failure(exc)
         return Response(wav, media_type="audio/wav")
+
+    # ----- meal plan -----
+
+    def meals_on() -> dict:
+        if not prefs.meals.enabled:
+            raise HTTPException(status_code=404, detail="The meal plan is turned off in Settings → Meal plan.")
+        try:
+            return nutrition.load_plan()
+        except (OSError, ValueError) as exc:
+            raise HTTPException(status_code=503, detail=f"The meal plan data couldn't be loaded: {exc}") from exc
+
+    def plan_date(value: str | None) -> date:
+        if value is None:
+            return nutrition.local_today(timezone())
+        try:
+            return date.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Use a date like 2026-11-01.") from None
+
+    def meal_names() -> dict:
+        m = prefs.meals
+        return {"person1": m.person1_name, "person2": m.person2_name, "default_person": m.default_person}
+
+    @app.get("/api/meals/day")
+    async def meals_day(date_: str | None = Query(default=None, alias="date")) -> dict:
+        plan = meals_on()
+        d = plan_date(date_)
+        return {**nutrition.day_view(plan, meal_log, d), "today": nutrition.local_today(timezone()).isoformat(),
+                "timezone": timezone(), "people": meal_names(), "portion_rule": plan["portion_rule"],
+                "disclaimer": plan["disclaimer"]}
+
+    @app.get("/api/meals/recipes")
+    async def meals_recipes() -> list[dict]:
+        plan = meals_on()
+        return [{"code": c, "name": r["name"], "meal": r["meal"], "paneer": r["paneer"],
+                 "base_serving": r["base_serving"], "used_on_days": nutrition.used_on_days(plan, c)}
+                for c, r in plan["recipes"].items()]
+
+    @app.get("/api/meals/recipe/{code}")
+    async def meals_recipe(code: str, servings: float = Query(default=2, ge=1, le=12)) -> dict:
+        plan = meals_on()
+        if code not in plan["recipes"]:
+            raise HTTPException(status_code=404, detail=f"Recipe {code} isn't in the plan.")
+        return {**nutrition.recipe_view(plan, code, servings), "people": meal_names(),
+                "portion_rule": plan["portion_rule"]}
+
+    @app.post("/api/meals/eaten", dependencies=[Depends(editor)])
+    async def meals_eaten(body: MealMark) -> dict:
+        plan = meals_on()
+        d = plan_date(body.date)
+        entry = nutrition.day_entry(plan, d)
+        meal_log.set_meal(d, body.meal, body.person, body.done, entry["day"], entry[body.meal]["code"])
+        broker.publish("meals", {"date": d.isoformat()})
+        return {"eaten": meal_log.meals(d)}
+
+    @app.post("/api/meals/prep", dependencies=[Depends(editor)])
+    async def meals_prep(body: PrepMark) -> dict:
+        plan = meals_on()
+        d = plan_date(body.date)
+        valid = {t["id"] for t in nutrition.prep_tasks(plan, d)}
+        if body.task not in valid:
+            raise HTTPException(status_code=422, detail="That task isn't part of this day's preparation.")
+        meal_log.set_prep(d, body.task, body.done)
+        broker.publish("meals", {"date": d.isoformat()})
+        return {"done": meal_log.prep(d)}
+
+    @app.post("/api/meals/note", dependencies=[Depends(editor)])
+    async def meals_note(body: DayNote) -> dict:
+        meals_on()
+        d = plan_date(body.date)
+        meal_log.set_note(d, body.text)
+        return {"note": meal_log.note(d)}
+
+    @app.get("/api/meals/groceries")
+    async def meals_groceries(date_: str | None = Query(default=None, alias="date")) -> dict:
+        plan = meals_on()
+        d = plan_date(date_)
+        week = nutrition.plan_week(nutrition.plan_day(d))
+        key = nutrition.week_key(d)
+        bought = meal_log.groceries(key)
+        on_list = {nutrition.grocery_key(i.name) for i in groceries.load().items if not i.purchased}
+        wk = next(w for w in plan["groceries"]["weeks"] if w["week"] == week)
+        tomorrow = d + timedelta(days=1)
+        t_entry = nutrition.day_entry(plan, tomorrow)
+        t_codes = [t_entry[m]["code"] for m in nutrition.MEALS]
+        return {
+            "date": d.isoformat(), "week": week, "week_key": key, "note": plan["groceries"]["note"],
+            "pantry": plan["groceries"]["pantry"], "pantry_hindi": plan["groceries"]["pantry_hindi"],
+            "categories": [{"category": c["category"], "items": [
+                {**i, "purchased": bought.get(i["id"], False), "on_list": nutrition.grocery_key(i["name"]) in on_list}
+                for i in c["items"]]} for c in wk["categories"]],
+            "tomorrow": {"date": tomorrow.isoformat(), "plan_day": t_entry["day"], "recipes": t_codes,
+                         "items": [{**i, "on_list": nutrition.grocery_key(i["name"]) in on_list}
+                                   for i in nutrition.ingredients_for(plan, t_codes)]},
+        }
+
+    @app.post("/api/meals/groceries/check", dependencies=[Depends(editor)])
+    async def meals_grocery_check(body: PlanGroceryMark) -> dict:
+        meals_on()
+        meal_log.set_grocery(body.week, body.item, body.purchased)
+        return {"purchased": meal_log.groceries(body.week)}
+
+    @app.post("/api/meals/groceries/add", dependencies=[Depends(editor)])
+    async def meals_grocery_add(body: PlanGroceryAdd) -> dict:
+        """Add to the shared shopping list. Idempotent: items already on the list are skipped."""
+        meals_on()
+        added, skipped = [], []
+        open_keys = {nutrition.grocery_key(i.name) for i in groceries.load().items if not i.purchased}
+        for item in body.items:
+            if nutrition.grocery_key(item.name) in open_keys:     # "Lobia (black-eyed peas)" vs "Lobia"
+                skipped.append(item.name)
+                continue
+            try:
+                added.append(groceries.add(item).name)
+                open_keys.add(nutrition.grocery_key(item.name))
+            except DuplicateItem:
+                skipped.append(item.name)
+            except ListFull as exc:
+                raise HTTPException(status_code=409, detail=str(exc)) from exc
+        if added:
+            groceries_changed()
+        return {"added": added, "skipped": skipped}
+
+    @app.get("/api/meals/plan")
+    async def meals_plan() -> dict:
+        plan = meals_on()
+        return {"schedule": plan["schedule"], "weeks": plan["weeks"], "context": plan["context"],
+                "people": meal_names(), "people_info": plan["people"], "source": plan["source"],
+                "disclaimer": plan["disclaimer"], "today": nutrition.local_today(timezone()).isoformat()}
 
     # ----- groceries -----
 

@@ -30,6 +30,7 @@
     system: null,           // last /api/system/info response
     network: null,          // last /api/system/network response
     room: "overview",       // selected room tab
+    meals: null,            // last /api/meals/day response (today)
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -136,6 +137,12 @@
     const { hour } = zonedParts(now);
     const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 22 ? "Good evening" : "Good night";
     if ($("greeting").textContent !== greeting) $("greeting").textContent = greeting;
+    // The meal plan (and "Today" in the calendar) roll over at local midnight, no reload needed.
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: tz() }).format(now);
+    if (state.meals && state.meals.today !== today && !state.mealsRolling) {
+      state.mealsRolling = true;
+      Promise.all([loadMeals(), loadCalendar()]).finally(() => { state.mealsRolling = false; });
+    }
   }
 
   function startClock() {
@@ -884,6 +891,61 @@
     } catch { /* keep what's shown */ }
   }
 
+  // ---------- meal plan ----------
+
+  const MEAL_LABEL = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner" };
+
+  async function loadMeals() {
+    const tile = $("meals-tile");
+    if (state.config?.meals_enabled === false) { state.meals = null; return; }
+    try {
+      state.meals = await fetchJSON("/api/meals/day");
+      renderMeals(state.meals);
+    } catch (err) {
+      if (!state.meals) {
+        tile.dataset.state = "error";
+        $("meals-list").replaceChildren();
+        $("meals-prep").textContent = err.status === 404 ? "The meal plan is turned off." : "Couldn't load today's meals.";
+      }
+    }
+    window.AuraMeals?.refresh();
+  }
+
+  function renderMeals(d) {
+    const tile = $("meals-tile");
+    tile.dataset.state = "ok";
+    const date = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })
+      .format(new Date(`${d.date}T12:00:00Z`));
+    $("meals-day").textContent = `Day ${d.plan_day} · ${date}`;
+    $("meals-list").replaceChildren(...d.meals.map((m) => {
+      const li = document.createElement("li");
+      li.className = "meals__item";
+      const eaten = d.eaten[m.meal];
+      const both = eaten.person1 && eaten.person2, some = eaten.person1 || eaten.person2;
+      li.dataset.done = both ? "all" : some ? "some" : "none";
+      li.innerHTML = `<span class="meals__when"></span><span class="meals__name"></span><span class="meals__check" aria-hidden="true">${icon("check", 2.6)}</span>`;
+      li.querySelector(".meals__when").textContent = MEAL_LABEL[m.meal];
+      li.querySelector(".meals__name").textContent = m.label;
+      li.title = `${m.name} (${m.code})` + (some ? ` · eaten: ${[eaten.person1 && d.people.person1, eaten.person2 && d.people.person2].filter(Boolean).join(", ")}` : "");
+      return li;
+    }));
+    const tonight = d.tomorrow.tasks.filter((t) => t.when === "tonight");
+    const open = tonight.filter((t) => !t.done && t.recipe);
+    const prep = $("meals-prep");
+    prep.replaceChildren();
+    const b = document.createElement("b");
+    if (open.length) {
+      b.textContent = "Tonight: ";
+      prep.append(b, open[0].text + (open.length > 1 ? ` (+${open.length - 1} more)` : ""));
+      prep.dataset.kind = "todo";
+    } else {
+      b.textContent = "Tonight: ";
+      prep.append(b, tonight.some((t) => t.recipe) ? "all preparation for tomorrow is done."
+        : `nothing to soak or prepare for tomorrow (${d.tomorrow.meals.map((m) => m.code).join(", ")}).`);
+      prep.dataset.kind = "ok";
+    }
+  }
+
   // ---------- network protection (read-only Pi-hole status) ----------
 
   async function loadProtection() {
@@ -1031,8 +1093,10 @@
     if (!home) return;
     $("home-name").textContent = home.name;
     document.title = `AURA · ${home.name}`;
-    const rooms = [{ id: "overview", name: "Overview", tiles: home.tile_order.filter((t) => !home.hidden_tiles.includes(t)) },
-      ...home.rooms.map((r) => ({ ...r, tiles: r.tiles.filter((t) => !home.hidden_tiles.includes(t)) }))];
+    const off = [...home.hidden_tiles, ...(state.config.meals_enabled === false ? ["meals"] : [])];
+    const overviewOff = [...off, ...(home.overview_hidden || [])];
+    const rooms = [{ id: "overview", name: "Overview", tiles: home.tile_order.filter((t) => !overviewOff.includes(t)) },
+      ...home.rooms.map((r) => ({ ...r, tiles: r.tiles.filter((t) => !off.includes(t)) }))];
     if (!rooms.some((r) => r.id === state.room)) state.room = "overview";
     const nav = $("rooms");
     nav.replaceChildren(...(rooms.length > 1 ? rooms : []).map((r) => {
@@ -1102,9 +1166,10 @@
         if (revision !== state.groceryRevision) loadGroceries();
       } catch { loadGroceries(); }
     });
-    es.addEventListener("location", () => { loadConfig(); });
+    es.addEventListener("location", () => { loadConfig().then(loadMeals); });
     es.addEventListener("commute", () => { loadCommute(); });
     es.addEventListener("calendar", () => { loadCalendar(); });
+    es.addEventListener("meals", () => { loadMeals(); });
     es.addEventListener("assistant", (e) => {
       try { window.AuraAssistant.onEvent(JSON.parse(e.data)); } catch { /* ignore malformed */ }
     });
@@ -1183,6 +1248,7 @@
     system: () => state.system,
     network: () => state.network,
     reloadProtection: () => loadProtection(),
+    reloadMeals: () => loadMeals(),
     calendarTime: (item, tzName) => calTime(item, tzName),
     calendarDay: (isoDate, today) => dayLabel(isoDate, today),
     icon,
@@ -1205,6 +1271,7 @@
         .format(new Date(`${isoDate}T12:00:00Z`));
     },
   });
+  window.AuraMeals.init({ icon });
   window.AuraAssistant.init({ icon, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather?.visual || null);
   loadConfig().then(async () => {
@@ -1215,6 +1282,7 @@
     loadCalendar();
     loadProtection();
     loadSystem();
+    loadMeals();
     refreshQr();
     connectEvents();
   });
@@ -1228,6 +1296,7 @@
   }, GROCERY_POLL_MS);
   setInterval(refreshQr, QR_REFRESH_MS);
   setInterval(loadProtection, 60_000);
+  setInterval(loadMeals, 5 * 60_000);
   setInterval(loadSystem, 60_000);
   setInterval(shiftPixels, BURN_IN_SHIFT_MS);
 })();
