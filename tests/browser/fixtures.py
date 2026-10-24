@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
+from app.astronomy import astronomy_for
 from app.main import WeatherPayload
 from app.recommendations import build_recommendations
 from app.weather import MockWeatherProvider, WeatherResponse, describe_code, visual_for
@@ -21,7 +22,8 @@ SCENE_CODES = {
 }
 
 
-def weather_payload(code: int, hour: int, status: str = "ok", is_mock: bool = False) -> dict:
+def weather_payload(code: int, hour: int, status: str = "ok", is_mock: bool = False,
+                    latitude: float = 12.97, moon_at: datetime | None = None) -> dict:
     """A live-looking Open-Meteo-shaped payload for a weather code at a local hour."""
     snap = asyncio.run(MockWeatherProvider().fetch(SimpleNamespace(city="Bengaluru"), "Asia/Kolkata"))
     cond, desc = describe_code(code)
@@ -38,8 +40,11 @@ def weather_payload(code: int, hour: int, status: str = "ok", is_mock: bool = Fa
     resp = WeatherResponse(status=status, is_mock=is_mock, data=snap,
                            message="Weather service unavailable" if status == "stale" else None)
     recs = build_recommendations(snap, now=now, limit=50)
+    astro = astronomy_for(now, "Asia/Kolkata", latitude, snap)
+    if moon_at is not None:   # a specific lunar phase, keeping today's Sun
+        astro.moon = astronomy_for(moon_at, "Asia/Kolkata", latitude).moon
     payload = WeatherPayload(**resp.model_dump(), recommendations=recs[:4], recommendations_all=recs,
-                             travel_window_hours=6, visual=visual_for(resp, now))
+                             travel_window_hours=6, visual=visual_for(resp, now), astronomy=astro)
     return payload.model_dump(mode="json")
 
 

@@ -57,6 +57,7 @@ from .recommendations import Recommendation, build_recommendations
 from .security import LanOnlyMiddleware
 from .settings_store import SECTIONS, SettingsError, SettingsStore
 from .voice import VoiceClient, VoiceError, VoiceSession
+from .astronomy import Astronomy, astronomy_for
 from .weather import (
     MockWeatherProvider,
     WeatherProvider,
@@ -75,6 +76,7 @@ class WeatherPayload(WeatherResponse):
     recommendations_all: list[Recommendation] = []      # every applicable tip, for the detail view
     travel_window_hours: int | None = None
     visual: WeatherVisual | None = None
+    astronomy: Astronomy | None = None                  # Sun & Moon; None without a home location
 
 
 class LocationChoice(BaseModel):
@@ -577,7 +579,21 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         return WeatherPayload(
             **result.model_dump(), recommendations=recs[:4], recommendations_all=recs,
             travel_window_hours=prefs.weather.travel_window_hours, visual=visual_for(result),
+            astronomy=astronomy_now(result),
         )
+
+    def astronomy_now(result: WeatherResponse) -> Astronomy | None:
+        """Moon phase is pure maths for the home latitude; the Sun part uses the
+        provider's sunrise/sunset and is left out when there is no weather data."""
+        loc = weather_location()
+        if loc is None:
+            return None
+        tz_name = result.data.timezone if result.data else (loc.timezone or timezone())
+        try:
+            return astronomy_for(datetime.now(ZoneInfo(tz_name)), tz_name, loc.latitude, result.data)
+        except Exception:  # never let the extra break the weather card
+            logging.getLogger("aura").exception("Sun & Moon computation failed")
+            return None
 
     # ----- calendar -----
 

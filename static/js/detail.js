@@ -118,7 +118,7 @@ window.AuraDetail = (() => {
     $("detail-sub").textContent = "";
     const body = $("detail-body");
     const keep = body.scrollTop;
-    body.replaceChildren(...[].concat(v.render() || []));
+    body.replaceChildren(...[].concat(v.render() || []).filter(Boolean));
     body.scrollTop = keep;
     $("detail").dataset.view = current.view;
   }
@@ -299,13 +299,63 @@ window.AuraDetail = (() => {
     return h("p", { class: "dstatus" }, parts);
   }
 
+  // ----- sun & moon -----
+  const hm = (min) => { min = Math.max(0, Math.round(min)); const hh = Math.floor(min / 60), mm = min % 60;
+    return hh ? `${hh} h${mm ? ` ${mm} min` : ""}` : `${mm} min`; };
+
+  function sunCard(a) {
+    const s = a.sun;
+    if (!s) {
+      return h("div", { class: "dsky__card dsky__sun", id: "dsky-sun" },
+        h("h4", { class: "dsky__title" }, "Sun"),
+        note("Sunrise and sunset appear when weather data is available.", "dnote--muted"));
+    }
+    const now = new Date(a.computed_at);
+    const rise = new Date(s.sunrise), set = new Date(s.sunset);
+    const t = (d) => ctx.formatTime(d);
+    const status = s.status === "before_sunrise" ? ["Before sunrise", `Sunrise in ${hm((rise - now) / 60000)}`]
+      : s.status === "day" ? ["Daytime", `${hm((set - now) / 60000)} of daylight left`]
+      : ["After sunset", s.next_sunrise ? `Sunrise tomorrow ${t(new Date(s.next_sunrise))}` : `Sun set at ${t(set)}`];
+    return h("div", { class: "dsky__card dsky__sun", id: "dsky-sun", "data-status": s.status },
+      h("h4", { class: "dsky__title" }, "Sun"),
+      h("p", { class: "dsky__status" }, h("strong", {}, status[0]), ` · ${status[1]}`),
+      h("div", { class: "dsky__arc", html: window.AuraSky.sunArc(s) }),
+      h("div", { class: "dsky__ends" }, h("span", {}, "Sunrise ", h("b", {}, t(rise))), h("span", {}, "Sunset ", h("b", {}, t(set)))),
+      h("dl", { class: "dmetrics dmetrics--tight" }, metric("Daylight", hm(s.daylight_minutes))));
+  }
+
+  function moonCard(a) {
+    const m = a.moon;
+    const day = (iso) => new Intl.DateTimeFormat("en-GB", { timeZone: a.timezone, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso));
+    return h("div", { class: "dsky__card dsky__moon", id: "dsky-moon", "data-phase": m.phase_name },
+      h("h4", { class: "dsky__title" }, "Moon"),
+      h("div", { class: "dsky__moonrow" },
+        h("div", { class: "dsky__disc", html: window.AuraSky.moon(m) }),
+        h("div", { class: "dsky__moontext" },
+          h("div", { class: "dsky__phase" }, m.phase_name),
+          h("dl", { class: "dmetrics dmetrics--tight" },
+            metric("Illumination", `${m.illumination_pct}%`),
+            metric("Age", `${m.age_days.toFixed(1)} days`, m.waxing ? "waxing" : "waning")))),
+      h("ol", { class: "dsky__next" }, m.next_phases.map((e) =>
+        h("li", {}, h("span", {}, e.name), h("b", {}, day(e.at))))));
+  }
+
+  function skySection(p) {
+    const a = p?.astronomy;
+    if (!a) return null;
+    return section("astro", "Sun & Moon",
+      h("div", { class: "dsky" }, sunCard(a), moonCard(a)),
+      note(`Moon computed on the Pi (Meeus, Astronomical Algorithms) and drawn as seen from the ${a.moon.hemisphere}ern hemisphere; the real crescent tilts with the hour.`
+        + (a.sun ? ` Sunrise and sunset: ${a.sun.source}.` : ""), "dnote--muted"));
+  }
+
   function weatherUnavailable(p) {
     const title = p?.reason === "no_location" ? "Set your home location"
       : p?.reason === "disabled" ? "Weather is turned off"
       : p ? "Weather couldn't be loaded" : "Loading weather…";
     const text = p?.message || (p ? "" : "Fetching the latest data.");
     return [h("div", { class: "dempty" }, h("span", { html: ctx.icon(p ? "cloudOff" : "info") }),
-      h("div", {}, h("strong", {}, title), text ? h("p", {}, text) : null))];
+      h("div", {}, h("strong", {}, title), text ? h("p", {}, text) : null)), skySection(p)];
   }
 
   function renderWeather() {
@@ -364,6 +414,7 @@ window.AuraDetail = (() => {
     return [
       hero, weatherStatusLine(p),
       section("metrics", "Right now", h("dl", { class: "dmetrics" }, metrics)),
+      skySection(p),
       section("hourly", "Next 24 hours", hourly),
       section("daily", `${(w.daily || []).length}-day forecast`, daily.children.length ? daily : note("No daily forecast available.")),
       section("advice", "Before you go", adviceList(p)),

@@ -22,6 +22,7 @@ aura/
 │   ├── location.py          home location: IP detection, city search, persistence
 │   ├── weather.py           weather models, mock provider, caching service
 │   ├── open_meteo.py        Open-Meteo provider (live weather + air quality)
+│   ├── astronomy.py         Sun & Moon: lunar phase maths (Meeus), Sun's arc from provider times
 │   ├── recommendations.py   "Before you go" rules (pure functions)
 │   ├── commute.py           weekday commute monitor (TomTom), schedule, history
 │   ├── groceries.py         shared grocery list (SQLite), validation, conflicts
@@ -37,6 +38,7 @@ aura/
 │   ├── index.html           entrance dashboard
 │   ├── groceries.html       phone grocery page (/groceries)
 │   ├── settings.html        Settings Center (/settings)
+│   ├── js/sky.js            Sun & Moon drawings (inline SVG)
 │   └── js/weather-scene.js  animated weather backdrop (CSS, no libraries)
 ├── data/                    aura.db (groceries + commute history), location.json, weather_cache.json, session.key
 ├── logs/                    aura.log (rotating, 1 MB × 3)
@@ -263,7 +265,7 @@ Each view has its own address, so `/#/commute` opens straight to it.
 | Tile | Opens |
 |---|---|
 | Clock and date | Live time with seconds, full date, timezone and UTC offset, the device's time if it differs, sunrise, sunset and daylight. *Events and birthdays: no calendar is connected yet, so it says so.* |
-| Weather (also the hourly row, 5-day row and metrics) | Current conditions with the animated scene; feels-like, humidity, wind and gusts, UV (now and today's maximum), rain chance, precipitation, air quality (US AQI, PM2.5), sunrise and sunset; 24-hour table; 7-day forecast; every *Before you go* tip; provider, update time, stale or sample labels |
+| Weather (also the hourly row, 5-day row, metrics and the moon in its header) | Current conditions with the animated scene; feels-like, humidity, wind and gusts, UV (now and today's maximum), rain chance, precipitation, air quality (US AQI, PM2.5), sunrise and sunset; Sun & Moon (Sun's arc, day length, moon phase, illumination, age, next phases); 24-hour table; 7-day forecast; every *Before you go* tip; provider, update time, stale or sample labels |
 | Before you go | Every applicable tip with its explanation and priority, the forecast window used, and the data source |
 | Commute | Best departure, journey and arrival, traffic and delay, free-flow time, distance; leave-now (live); a table of every departure slot (journey, arrival, traffic, source, when checked); schedule, provider, requests used, last problem; what *Live*, *Forecast*, *Your history* and *No data* mean |
 | Groceries | The full grocery page (add, edit, delete, purchase, undo, filters), with a **Dashboard** button to return |
@@ -549,6 +551,37 @@ The dashboard shows:
 - the next 5 days, with highs, lows and rain probability
 
 It uses the home location's timezone for all times.
+
+### Sun & Moon
+
+The weather card's header shows tonight's Moon (a small drawing, the phase name and
+how much of it is lit). Tap it, or open the weather details, for the **Sun & Moon**
+section:
+
+- **Sun:** before sunrise / daytime / after sunset, the Sun's place on a
+  sunrise → sunset arc, sunrise, sunset and day length, and tomorrow's sunrise after
+  dark. Sunrise and sunset come from Open-Meteo for the home location; AURA only
+  works out the rest. Without weather data the Sun part says so instead of guessing.
+- **Moon:** phase name (8 phases), illumination %, age in days since the new moon,
+  and the dates of the next four principal phases.
+
+The Moon is computed on the Pi in `app/astronomy.py` (no library, no network), from
+Jean Meeus, *Astronomical Algorithms*: phase instants from chapter 49 (with the
+periodic and planetary corrections), illumination from the phase angle (eq. 48.4),
+waxing/waning from the Moon's and Sun's ecliptic longitudes (chapters 47 and 25).
+It reproduces the book's worked examples and published 2026 tables to within a
+couple of minutes (e.g. new moon 10 Oct 2026 15:50 UTC, full moon 26 Oct 04:12 UTC).
+The four principal phases are named for the whole local day on which they happen,
+like an almanac; other days are waxing/waning crescent or gibbous. The phase name
+follows the date, so it changes at local midnight (the dashboard refreshes weather
+every minute).
+
+The drawing is phase-accurate: the lit limb is a semicircle and the terminator is
+half an ellipse with x-radius r·|cos i| (i = phase angle). **Limitation:** it uses
+the simple hemisphere rule (waxing lit on the right in the northern hemisphere,
+mirrored in the southern, from the home latitude). It does not rotate the disc by
+the bright-limb/parallactic angle, so near the equator the real crescent looks
+tilted ("boat-shaped") compared with the picture. Moonrise/moonset are not shown.
 
 ### Caching and failures
 
@@ -905,6 +938,11 @@ Coverage:
   - weather code → animation scene for every code, day/night from sunrise and
     sunset, still scenes for stale or sample data
   - location detection, fallback, persistence and manual override
+  - Sun & Moon: Meeus worked examples and published 2026 phase times, all eight
+    phase names, illumination and age, waxing/waning orientation and the
+    southern-hemisphere mirror, the Sun before sunrise / by day / after sunset,
+    the midnight rollover; in the browser the drawn terminator geometry, the tile
+    header and detail section at 1920×1080, 1600×900, 1366×768 and 1280×720
 - **Commute:**
   - the Mon–Fri window and its 6:45/7:00/11:00 boundaries
   - holidays and timezone handling, the 17 slots

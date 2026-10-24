@@ -100,3 +100,27 @@ def test_config_has_build_id_that_changes_on_restart(tmp_path):
     first = make_client(tmp_path).get("/api/config").json()["build"]
     second = make_client(tmp_path).get("/api/config").json()["build"]
     assert first and second and first != second
+
+
+# --- Sun & Moon ---
+
+def test_weather_includes_sun_and_moon(tmp_path):
+    save_location(tmp_path)
+    body = make_client(tmp_path, weather_provider="mock").get("/api/weather").json()
+    a = body["astronomy"]
+    assert a["timezone"] == "Asia/Kolkata" and a["latitude"] == 18.52
+    assert a["moon"]["hemisphere"] == "north" and 0 <= a["moon"]["illumination_pct"] <= 100
+    assert len(a["moon"]["next_phases"]) == 4
+    assert a["sun"]["status"] in ("before_sunrise", "day", "after_sunset")
+    assert a["sun"]["sunrise"] == body["data"]["sunrise"]
+
+
+def test_moon_without_weather_data_and_nothing_without_location(tmp_path):
+    save_location(tmp_path, latitude=-33.87, timezone="Australia/Sydney", city="Sydney")
+    body = make_client(tmp_path).get("/api/weather").json()        # weather disabled
+    assert body["data"] is None
+    assert body["astronomy"]["sun"] is None                           # no provider times: no Sun
+    assert body["astronomy"]["moon"]["hemisphere"] == "south"
+    other = tmp_path / "none"
+    other.mkdir()
+    assert make_client(other, weather_provider="open_meteo").get("/api/weather").json()["astronomy"] is None

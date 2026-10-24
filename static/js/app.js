@@ -364,6 +364,24 @@
 
   function setWeatherState(name) { $("weather").dataset.state = name; }
 
+  // Compact moon in the tile header; the full Sun & Moon section is in the detail view.
+  function renderMoon(payload) {
+    const el = $("weather-moon");
+    const m = payload?.astronomy?.moon;
+    el.hidden = !m;
+    if (!m) { el.replaceChildren(); return; }
+    el.innerHTML = window.AuraSky.moon(m, { label: false });
+    const name = document.createElement("span");
+    name.className = "weather__moon-name";
+    name.textContent = m.phase_name;
+    const pct = document.createElement("span");
+    pct.className = "weather__moon-pct";
+    pct.textContent = `${m.illumination_pct}%`;
+    el.append(name, pct);
+    el.title = `${m.phase_name} · ${m.illumination_pct}% lit · ${m.age_days.toFixed(1)} days old`;
+    el.setAttribute("aria-label", `Moon: ${el.title}`);
+  }
+
   function renderScene(visual) {
     const root = $("wx-scene");
     // Settings → Display → "Animated weather" off: show the scene, but still.
@@ -487,6 +505,7 @@
     try {
       const payload = await fetchJSON("/api/weather");
       state.weatherPayload = payload;
+      renderMoon(payload);
       Detail.refresh();
       if ((payload.status === "ok" || payload.status === "stale") && payload.data) {
         state.weather = payload;

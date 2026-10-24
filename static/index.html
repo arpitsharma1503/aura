@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/css/style.css">
   <script src="/static/js/icons.js" defer></script>
   <script src="/static/js/weather-scene.js" defer></script>
+  <script src="/static/js/sky.js" defer></script>
   <script src="/static/js/detail.js" defer></script>
   <script src="/static/js/assistant.js" defer></script>
   <script src="/static/js/meals.js" defer></script>
@@ -74,7 +75,7 @@
 
       <article class="tile tile--wide card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
         <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
-        <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2></header>
+        <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2><span class="tile__aside weather__moon" id="weather-moon" data-open="weather#astro" hidden></span></header>
         <div class="weather__loading">
           <div class="skeleton skeleton--icon"></div>
           <div class="skeleton-stack"><div class="skeleton skeleton--xl"></div><div class="skeleton skeleton--md"></div></div>
