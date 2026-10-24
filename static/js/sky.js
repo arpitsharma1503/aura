@@ -101,5 +101,47 @@ window.AuraSky = (() => {
     </svg>`;
   }
 
-  return { moon, moonAt, sunAt, sunArc, litPath };
+  // ---------- one decision for the tile and the detail view ----------
+  // Day or night comes from one clock: the page's own (the same one the clock
+  // and greeting use), against the provider's sunrise/sunset in `astronomy.sun`.
+
+  /** Where the Sun is now: { status, progress, sunrise, sunset } or null without provider times. */
+  function sunNow(sun, now = Date.now()) {
+    if (!sun?.sunrise || !sun?.sunset) return null;
+    const rise = new Date(sun.sunrise).getTime(), set = new Date(sun.sunset).getTime();
+    if (!(set > rise)) return null;
+    const t = typeof now === "number" ? now : now.getTime();
+    const status = t < rise ? "before_sunrise" : t >= set ? "after_sunset" : "day";
+    const progress = status === "day" ? (t - rise) / (set - rise) : status === "after_sunset" ? 1 : 0;
+    return { status, progress, sunrise: sun.sunrise, sunset: sun.sunset };
+  }
+
+  const CELESTIAL_SKIES = ["clear", "partly_cloudy", "cloudy"];
+
+  /** The big weather picture: the real Sun by day or the phase-accurate Moon at
+      night for clear and cloudy skies; rain, storms, fog and snow keep their
+      condition art; without Sun & Moon data, the plain condition icon.
+      Returns { html, kind: "sun" | "moon" | "icon", day }. */
+  function picture(payload, now = Date.now()) {
+    const weatherArt = window.AuraIcons.weather;
+    const c = payload.data.current, a = payload.astronomy;
+    const sun = sunNow(a?.sun, now);
+    if (!sun || !a.moon) {
+      const day = payload.visual ? payload.visual.is_day : c.is_day;
+      return { html: weatherArt(c.condition, day), kind: "icon", day };
+    }
+    const day = sun.status === "day";
+    if (!CELESTIAL_SKIES.includes(c.condition)) return { html: weatherArt(c.condition, day), kind: "icon", day };
+    const draw = day ? (cx, cy, r) => sunAt(cx, cy, r) : (cx, cy, r) => moonAt(a.moon, cx, cy, r);
+    return { html: weatherArt(c.condition, day, draw), kind: day ? "sun" : "moon", day };
+  }
+
+  /** The server's animation scene, with its day/night half set from the same decision. */
+  function visualFor(payload, day) {
+    const v = payload?.visual;
+    if (!v || day == null) return v || null;
+    return { ...v, is_day: day, scene: v.scene.replace(/-(day|night)$/, day ? "-day" : "-night") };
+  }
+
+  return { moon, moonAt, sunAt, sunArc, sunNow, picture, visualFor, litPath };
 })();

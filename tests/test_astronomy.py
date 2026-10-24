@@ -169,7 +169,7 @@ def test_sun_after_sunset_offers_tomorrows_sunrise():
     tomorrow = at("2026-10-25T06:23")
     s = A.sun_info(at("2026-10-24T20:00"), RISE, SET, next_sunrise=tomorrow)
     assert s.status == "after_sunset" and s.progress == 1 and s.next_sunrise == tomorrow
-    assert A.sun_info(at("2026-10-24T12:00"), RISE, SET, next_sunrise=tomorrow).next_sunrise is None
+    assert A.sun_info(at("2026-10-24T12:00"), RISE, SET, next_sunrise=tomorrow).next_sunrise == tomorrow
 
 
 def test_sun_missing_or_bad_data_is_none():

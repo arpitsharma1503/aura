@@ -26,9 +26,12 @@ def srv(make_server):
     return s
 
 
-def dashboard(chrome, srv, w=1920, h=1080, touch=False, weather=None, commute=None, path="/"):
+def dashboard(chrome, srv, w=1920, h=1080, touch=False, weather=None, commute=None, path="/", at=None):
+    """`at`: a datetime for the page's clock (to match a weather fixture's hour)."""
     p = chrome.new_page()
     p.viewport(w, h, mobile=touch)
+    if at is not None:
+        p.clock(at.timestamp() * 1000)
     p.fixture("/api/weather", weather or weather_payload(63, 12))
     p.fixture("/api/commute", commute or commute_payload("active"))
     p.goto(f"{srv.url}{path}")

@@ -303,6 +303,8 @@ window.AuraDetail = (() => {
   const hm = (min) => { min = Math.max(0, Math.round(min)); const hh = Math.floor(min / 60), mm = min % 60;
     return hh ? `${hh} h${mm ? ` ${mm} min` : ""}` : `${mm} min`; };
 
+  const localDate = (d, tz) => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(d);
+
   function sunCard(a) {
     const s = a.sun;
     if (!s) {
@@ -310,16 +312,20 @@ window.AuraDetail = (() => {
         h("h4", { class: "dsky__title" }, "Sun"),
         note("Sunrise and sunset appear when weather data is available.", "dnote--muted"));
     }
-    const now = new Date(a.computed_at);
+    // The page's clock, like the tile's picture and the greeting (not the time the server answered).
+    const now = new Date();
+    const pos = window.AuraSky.sunNow(s, now);
     const rise = new Date(s.sunrise), set = new Date(s.sunset);
     const t = (d) => ctx.formatTime(d);
-    const status = s.status === "before_sunrise" ? ["Before sunrise", `Sunrise in ${hm((rise - now) / 60000)}`]
-      : s.status === "day" ? ["Daytime", `${hm((set - now) / 60000)} of daylight left`]
-      : ["After sunset", s.next_sunrise ? `Sunrise tomorrow ${t(new Date(s.next_sunrise))}` : `Sun set at ${t(set)}`];
-    return h("div", { class: "dsky__card dsky__sun", id: "dsky-sun", "data-status": s.status },
+    const next = s.next_sunrise ? new Date(s.next_sunrise) : null;
+    const status = pos.status === "before_sunrise" ? ["Before sunrise", `Sunrise in ${hm((rise - now) / 60000)}`]
+      : pos.status === "day" ? ["Daytime", `${hm((set - now) / 60000)} of daylight left`]
+      : ["After sunset", next && next > now
+          ? `Sunrise${ctx.dayName(localDate(next, a.timezone)) === "Today" ? "" : " tomorrow"} ${t(next)}` : `Sun set at ${t(set)}`];
+    return h("div", { class: "dsky__card dsky__sun", id: "dsky-sun", "data-status": pos.status },
       h("h4", { class: "dsky__title" }, "Sun"),
       h("p", { class: "dsky__status" }, h("strong", {}, status[0]), ` · ${status[1]}`),
-      h("div", { class: "dsky__arc", html: window.AuraSky.sunArc(s) }),
+      h("div", { class: "dsky__arc", html: window.AuraSky.sunArc(pos) }),
       h("div", { class: "dsky__ends" }, h("span", {}, "Sunrise ", h("b", {}, t(rise))), h("span", {}, "Sunset ", h("b", {}, t(set)))),
       h("dl", { class: "dmetrics dmetrics--tight" }, metric("Daylight", hm(s.daylight_minutes))));
   }
@@ -365,10 +371,13 @@ window.AuraDetail = (() => {
     const t = (iso) => ctx.formatTime(new Date(iso));
     $("detail-sub").textContent = w.city;
 
+    // Same picture and day/night decision as the tile (sky.js), at the hero's size.
+    const art = window.AuraSky.picture(p);
+    const visual = window.AuraSky.visualFor(p, art.day);
     const scene = h("div", { class: "wx-scene dhero__scene", "aria-hidden": "true" });
-    ctx.renderScene(scene, p.status === "stale" && p.visual ? { ...p.visual, motion: "static" } : p.visual);
-    const hero = h("div", { class: "dhero" }, scene,
-      h("div", { class: "dhero__art", html: ctx.weatherArt(c.condition, p.visual ? p.visual.is_day : c.is_day) }),
+    ctx.renderScene(scene, p.status === "stale" && visual ? { ...visual, motion: "static" } : visual);
+    const hero = h("div", { class: "dhero", "data-art": art.kind }, scene,
+      h("div", { class: "dhero__art", html: art.html }),
       h("div", { class: "dhero__text" },
         h("div", { class: "dhero__temp" }, ctx.temp(c.temperature_c)),
         h("div", { class: "dhero__desc" }, c.description),

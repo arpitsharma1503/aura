@@ -22,12 +22,18 @@ SCENE_CODES = {
 }
 
 
+def at_hour(hour: int) -> datetime:
+    """Today at `hour` local time: the moment weather_payload(…, hour) describes. Pass it as the
+    page clock (dashboard(at=…)) so the page, the tile and the detail view all agree."""
+    return datetime.now(TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
+
+
 def weather_payload(code: int, hour: int, status: str = "ok", is_mock: bool = False,
                     latitude: float = 12.97, moon_at: datetime | None = None) -> dict:
     """A live-looking Open-Meteo-shaped payload for a weather code at a local hour."""
     snap = asyncio.run(MockWeatherProvider().fetch(SimpleNamespace(city="Bengaluru"), "Asia/Kolkata"))
     cond, desc = describe_code(code)
-    now = datetime.now(TZ).replace(hour=hour, minute=0, second=0, microsecond=0)
+    now = at_hour(hour)
     snap.is_mock = is_mock
     snap.source = "Development preview (sample data)" if is_mock else "Open-Meteo"
     snap.attribution = None if is_mock else "Weather data by Open-Meteo.com (CC BY 4.0)"

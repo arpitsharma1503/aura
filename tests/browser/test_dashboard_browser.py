@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from fixtures import SCENE_CODES, commute_payload, unavailable_weather, weather_payload
+from fixtures import SCENE_CODES, at_hour, commute_payload, unavailable_weather, weather_payload
 
 TZ = ZoneInfo("Asia/Kolkata")
 LOCATION = {"location": {
@@ -71,6 +71,7 @@ def test_clock_ticks_without_network(dash):
 def test_weather_scene_for_each_condition(dash, artifacts, scene):
     page, server = dash
     code, hour = SCENE_CODES[scene]
+    page.clock(at_hour(hour).timestamp() * 1000)   # day/night follows the page clock
     open_with(page, server, weather_payload(code, hour))
     page.wait_for(f"document.getElementById('wx-scene').dataset.scene === {json.dumps(scene)}")
     assert page.js("document.getElementById('wx-scene').dataset.motion") == "live"

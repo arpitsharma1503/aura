@@ -554,14 +554,18 @@ It uses the home location's timezone for all times.
 
 ### Sun & Moon
 
-The big picture beside the temperature uses the same art: on a clear or cloudy day
+The big picture beside the temperature, on the card and in the weather details,
+uses the same art and one shared decision (`static/js/sky.js`): on a clear or cloudy day
 the glowing Sun, on a clear or cloudy night the phase-accurate Moon (with a cloud
 partly over it when it is partly cloudy or cloudy). Day or night comes from the
 provider's sunrise and sunset. Rain, drizzle, storms, fog and snow keep their own
 condition pictures, so the actual weather is never hidden. Without Sun & Moon data
 the plain condition icon is shown. The card's header names the phase and how much of
 the Moon is lit (with a small disc by day, when the big picture shows the Sun). The
-Moon is drawn at night even if it has not risen yet; AURA does not compute moonrise. Tap it, or open the weather details, for the **Sun & Moon**
+Moon is drawn at night even if it has not risen yet; AURA does not compute moonrise.
+Day or night, the Sun card's status and the Sun's place on its arc all follow the
+page's own clock (the one the time and greeting use) against the provider's sunrise
+and sunset, so the card, the details and the animated scene never disagree. Tap it, or open the weather details, for the **Sun & Moon**
 section:
 
 - **Sun:** before sunrise / daytime / after sunset, the Sun's place on a

@@ -25,7 +25,10 @@ tilted ("boat-shaped") compared with the picture.
 
 Sun: sunrise and sunset come from the weather provider (Open-Meteo) for the
 home location; this module only derives day length, before-sunrise / daytime /
-after-sunset, and how far along the sunrise -> sunset arc the Sun is now.
+after-sunset, and how far along the sunrise -> sunset arc the Sun is now. The
+dashboard re-derives status and arc position in the browser (static/js/sky.js)
+from these same times and the page's own clock, so the tile, the detail view
+and the clock never disagree; the values here describe ``computed_at``.
 Nothing is invented: without provider times the Sun part is ``None``.
 """
 
@@ -312,7 +315,7 @@ class SunInfo(BaseModel):
     daylight_minutes: int
     status: Literal["before_sunrise", "day", "after_sunset"]
     progress: float               # 0 at sunrise .. 1 at sunset (clamped outside daytime)
-    next_sunrise: datetime | None = None   # tomorrow's, after sunset, when the provider has it
+    next_sunrise: datetime | None = None   # tomorrow's, when the provider has it
     source: str
 
 
@@ -368,7 +371,7 @@ def sun_info(now: datetime, sunrise: datetime | None, sunset: datetime | None,
     return SunInfo(
         sunrise=sunrise, sunset=sunset, daylight_minutes=round(span / 60), status=status,
         progress=round(progress, 4),
-        next_sunrise=next_sunrise if status == "after_sunset" else None, source=source,
+        next_sunrise=next_sunrise, source=source,
     )
 
 

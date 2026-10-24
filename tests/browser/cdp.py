@@ -140,6 +140,19 @@ class Page(Session):
         self.call("Emulation.setEmulatedMedia",
                   features=[{"name": "prefers-reduced-motion", "value": "reduce" if on else "no-preference"}])
 
+    def clock(self, epoch_ms: float) -> None:
+        """From the next navigation on, the page's clock starts at `epoch_ms` and keeps
+        ticking (Date and Date.now are shifted; timers are untouched). Lets a fixture's
+        time of day and the page's own clock agree."""
+        self.call("Page.addScriptToEvaluateOnNewDocument", source="""(() => {
+          const Real = Date, offset = %r - Real.now();
+          class ShiftedDate extends Real {
+            constructor(...a) { if (a.length) super(...a); else super(Real.now() + offset); }
+            static now() { return Real.now() + offset; }
+          }
+          window.Date = ShiftedDate;
+        })();""" % float(epoch_ms))
+
     # --- fixtures: answer matching requests with canned JSON ---
     def fixture(self, url_suffix: str, body, status: int = 200) -> None:
         self.fixtures[url_suffix] = (status, json.dumps(body))
