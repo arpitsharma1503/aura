@@ -52,7 +52,11 @@
     return n;
   }
   const row = (label, value, sub) => el("div", {}, el("dt", {}, label), el("dd", {}, value ?? "—", sub ? el("small", {}, sub) : null));
-  const fmtTime = (iso) => iso ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso)) : "—";
+  // Same clock as the dashboard: the home time zone and the household's 12/24-hour setting.
+  const fmtTime = (iso) => iso ? new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium", timeStyle: "short", hour12: state.settings?.display?.clock_format !== "24h",
+    timeZone: state.info?.weather?.location?.timezone || undefined,
+  }).format(new Date(iso)) : "—";
   const get = (obj, path) => path.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj);
   function setPath(obj, path, value) {
     const keys = path.split("."); let o = obj;

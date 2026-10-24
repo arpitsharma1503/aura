@@ -30,28 +30,27 @@ SECURITY_HEADERS = {
 }
 
 
-def is_local_address(host: str | None) -> bool:
+def _ip(host: str | None) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
+    """Parse a client/host address (IPv6 zone and IPv4-mapped forms included); None if it isn't one."""
     if not host:
-        return False
+        return None
     try:
         ip = ipaddress.ip_address(host.split("%", 1)[0])
     except ValueError:
-        return False
+        return None
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
         ip = ip.ipv4_mapped
-    return ip.is_loopback or ip.is_link_local or (ip.is_private and not ip.is_unspecified)
+    return ip
+
+
+def is_local_address(host: str | None) -> bool:
+    ip = _ip(host)
+    return ip is not None and (ip.is_loopback or ip.is_link_local or (ip.is_private and not ip.is_unspecified))
 
 
 def is_loopback(host: str | None) -> bool:
-    if not host:
-        return False
-    try:
-        ip = ipaddress.ip_address(host.split("%", 1)[0])
-    except ValueError:
-        return False
-    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
-        ip = ip.ipv4_mapped
-    return ip.is_loopback
+    ip = _ip(host)
+    return ip is not None and ip.is_loopback
 
 
 UNSAFE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

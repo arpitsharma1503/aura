@@ -22,7 +22,6 @@ import asyncio
 import json
 import logging
 import re
-import time
 from collections import deque
 from collections.abc import Awaitable, Callable
 from pathlib import Path

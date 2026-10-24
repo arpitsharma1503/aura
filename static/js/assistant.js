@@ -24,6 +24,7 @@ window.AuraAssistant = (() => {
 
   let icon = () => "";
   let openView = () => {};
+  let formatTime = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });   // until init() gives the home clock
   let info = null;                 // last GET /api/assistant
   let state = "idle";
   let errorText = "";
@@ -273,7 +274,7 @@ window.AuraAssistant = (() => {
   }
 
   function renderTurn(t) {
-    const when = new Date(t.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    const when = formatTime(new Date(t.at));
     return el("li", { class: `asst__turn${t.answer.ok ? "" : " is-limited"}`, "data-intent": t.answer.intent },
       el("p", { class: "asst__q" }, el("span", { class: "asst__who" }, `You · ${t.source === "voice" ? "spoken" : "typed"} · ${when}`), t.question),
       el("p", { class: "asst__a" }, t.answer.text));
@@ -322,6 +323,7 @@ window.AuraAssistant = (() => {
   function init(opts) {
     icon = opts.icon;
     openView = opts.openView;
+    if (opts.formatTime) formatTime = opts.formatTime;
     const btn = $("mic-btn");
     if (btn) {
       btn.innerHTML = icon("mic", 1.6);

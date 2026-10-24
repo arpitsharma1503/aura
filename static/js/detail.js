@@ -385,16 +385,18 @@ window.AuraDetail = (() => {
 
     const aq = w.air_quality;
     const uvMax = w.daily?.[0]?.uv_index_max;
+    // "Feels like" is in the hero line; sunrise/sunset are on the Sun card below, so
+    // they appear here only when that card can't show them (no Sun & Moon data).
+    const sunHere = !p.astronomy?.sun;
     const metrics = [
-      metric("Feels like", ctx.temp(c.feels_like_c)),
       metric("Humidity", `${c.humidity_pct}%`),
       metric("Wind", `${Math.round(c.wind_kph)} km/h`, c.wind_gust_kph != null ? `gusts ${Math.round(c.wind_gust_kph)} km/h` : null),
       metric("UV index", c.uv_index != null ? String(Math.round(c.uv_index)) : null, uvMax != null ? `max today ${Math.round(uvMax)}` : null),
       metric("Rain chance", c.precipitation_chance_pct != null ? `${c.precipitation_chance_pct}%` : null, "this hour"),
       metric("Precipitation", `${c.precipitation_mm.toFixed(1)} mm`, "now"),
       metric("Air quality", aq ? `${aq.us_aqi} US AQI` : "Not available", aq ? `${aq.category}${aq.pm2_5 != null ? ` · PM2.5 ${aq.pm2_5} µg/m³` : ""}` : null),
-      metric("Sunrise", w.sunrise ? t(w.sunrise) : null),
-      metric("Sunset", w.sunset ? t(w.sunset) : null),
+      sunHere ? metric("Sunrise", w.sunrise ? t(w.sunrise) : null) : null,
+      sunHere ? metric("Sunset", w.sunset ? t(w.sunset) : null) : null,
     ];
 
     const hourly = h("div", { class: "dtable-wrap" }, h("table", { class: "dtable" },

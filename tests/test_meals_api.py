@@ -156,3 +156,17 @@ def test_rest_of_month_endpoint_runs_once(tmp_path):
     after = c.get("/api/meals/groceries").json()["auto"]
     assert after["month_done"] is True and any(b["batch"].endswith("-rest") for b in after["batches"])
     assert make_client(tmp_path / "x", client_ip="192.168.1.50").post("/api/meals/groceries/rest-of-month").status_code == 401
+
+
+def test_note_tells_other_screens(tmp_path):
+    c = lan(tmp_path)
+    q = c.app.state.broker.subscribe()
+    c.post("/api/meals/note", json={"date": "2026-11-03", "text": "Less salt"})
+    assert q.get_nowait() == ("meals", {"date": "2026-11-03"})
+
+
+def test_add_skips_names_already_on_the_list_even_from_the_automatic_batch(tmp_path):
+    c = lan(tmp_path)
+    c.post("/api/meals/groceries/rest-of-month")
+    r = c.post("/api/meals/groceries/add", json={"items": [{"name": "Paneer (fresh)"}, {"name": "Saffron"}]}).json()
+    assert r == {"added": ["Saffron"], "skipped": ["Paneer (fresh)"]}

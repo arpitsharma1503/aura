@@ -279,3 +279,18 @@ def test_api_unconfigured(client):
 def test_production_logging_silences_request_urls():
     src = (__import__("pathlib").Path(__file__).parent.parent / "app" / "__main__.py").read_text()
     assert 'logging.getLogger("httpx").setLevel(logging.WARNING)' in src    # httpx logs full URLs at INFO
+
+
+def test_unreachable_feed_is_retried_soon_but_bad_content_is_not(tmp_path):
+    import time as _time
+    from app.agenda import RETRY_AFTER_FAILURE_S
+    down = service(tmp_path, handler_for(TEXTS, fail={"Family"}))
+    asyncio.run(down.refresh(force=True))
+    waited = _time.monotonic() - down._fetched_at                      # how "old" the fetch looks
+    assert down.refresh_s - RETRY_AFTER_FAILURE_S - 1 <= waited <= down.refresh_s - RETRY_AFTER_FAILURE_S + 5
+    bad = service(tmp_path / "b", handler_for({**TEXTS, "Holidays": "<html>Sign in</html>"}))
+    asyncio.run(bad.refresh(force=True))
+    assert _time.monotonic() - bad._fetched_at < 5                      # normal interval
+    ok = service(tmp_path / "c", handler_for(TEXTS))
+    asyncio.run(ok.refresh(force=True))
+    assert _time.monotonic() - ok._fetched_at < 5

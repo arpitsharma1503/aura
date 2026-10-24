@@ -234,7 +234,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     async def current_weather():
         return await weather_service.get(weather_location(), timezone())
 
-    def agenda_for(days: int) -> AgendaResponse:
+    def agenda_for(days: int | None) -> AgendaResponse:
+        """The agenda in the home time zone (it can change with the location)."""
         agenda.tz_name = timezone()
         return agenda.agenda(days)
 
@@ -350,22 +351,19 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        def spawn(coro) -> None:
+            task = asyncio.create_task(coro)
+            background.add(task)                      # keep a reference; cancelled on shutdown
+            task.add_done_callback(background.discard)
+
         # Detect in the background so the dashboard (and clock) start instantly.
-        task = asyncio.create_task(location.ensure_detected())
-        background.add(task)
-        task.add_done_callback(background.discard)
+        spawn(location.ensure_detected())
         commute.start()
         agenda.tz_name = timezone()       # home timezone, once the location is known
         agenda.start()
-        hk = asyncio.create_task(housekeeping())
-        background.add(hk)
-        hk.add_done_callback(background.discard)
-        mg = asyncio.create_task(meal_grocery_sync())
-        background.add(mg)
-        mg.add_done_callback(background.discard)
-        ws = asyncio.create_task(wake_sync())
-        background.add(ws)
-        ws.add_done_callback(background.discard)
+        spawn(housekeeping())
+        spawn(meal_grocery_sync())
+        spawn(wake_sync())
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
@@ -565,7 +563,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @app.get("/api/weather", response_model=WeatherPayload)
     async def weather() -> WeatherPayload:
-        result = await weather_service.get(weather_location(), timezone())
+        result = await current_weather()
         recs: list[Recommendation] = []
         if result.data:
             recs = build_recommendations(
@@ -599,8 +597,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @app.get("/api/calendar", response_model=AgendaResponse)
     async def calendar(days: int = Query(default=0, ge=0, le=90)) -> AgendaResponse:
-        agenda.tz_name = timezone()
-        return agenda.agenda(days or None)
+        return agenda_for(days or None)
 
     # ----- commute -----
 
@@ -888,6 +885,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         meals_on()
         d = plan_date(body.date)
         meal_log.set_note(d, body.text)
+        broker.publish("meals", {"date": d.isoformat()})
         return {"note": meal_log.note(d)}
 
     @app.get("/api/meals/groceries")
@@ -941,19 +939,10 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     async def meals_grocery_add(body: PlanGroceryAdd) -> dict:
         """Add to the shared shopping list. Idempotent: items already on the list are skipped."""
         meals_on()
-        added, skipped = [], []
-        open_keys = {nutrition.grocery_key(i.name) for i in groceries.load().items if not i.purchased}
-        for item in body.items:
-            if nutrition.grocery_key(item.name) in open_keys:     # "Lobia (black-eyed peas)" vs "Lobia"
-                skipped.append(item.name)
-                continue
-            try:
-                added.append(groceries.add(item).name)
-                open_keys.add(nutrition.grocery_key(item.name))
-            except DuplicateItem:
-                skipped.append(item.name)
-            except ListFull as exc:
-                raise HTTPException(status_code=409, detail=str(exc)) from exc
+        try:
+            added, skipped = plan_groceries.add_missing(body.items)
+        except ListFull as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
         if added:
             groceries_changed()
         return {"added": added, "skipped": skipped}

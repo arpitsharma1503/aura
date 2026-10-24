@@ -557,6 +557,24 @@ class PlanGroceries:
             self._record(batch, len(added), len(updated), len(skipped))
         return {"batch": batch, "added": added, "updated": updated, "skipped": skipped}
 
+    def add_missing(self, items: list) -> tuple[list[str], list[str]]:
+        """Add shopping-list items (groceries.ItemIn) unless an open item with the same
+        name is already there ("Lobia (black-eyed peas)" == "lobia"). Raises ListFull."""
+        from .groceries import DuplicateItem
+        added, skipped = [], []
+        with self._lock:                         # same lock as apply(): no race with the automatic batches
+            open_keys = {grocery_key(i.name) for i in self.store.load().items if not i.purchased}
+            for item in items:
+                if grocery_key(item.name) in open_keys:
+                    skipped.append(item.name)
+                    continue
+                try:
+                    added.append(self.store.add(item).name)
+                    open_keys.add(grocery_key(item.name))
+                except DuplicateItem:
+                    skipped.append(item.name)
+        return added, skipped
+
     # ----- the two ways batches happen -----
 
     def rest_of_month(self, plan: dict, d: date) -> dict:

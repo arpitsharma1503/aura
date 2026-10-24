@@ -14,7 +14,7 @@ import re
 import threading
 from collections import deque
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo

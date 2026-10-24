@@ -72,7 +72,7 @@ Undo scripts: `deploy/uninstall.sh` (AURA autostart), `deploy/pihole/rollback.sh
 | Page | Setting | Was | Now |
 |---|---|---|---|
 | Network → LAN | Static DHCP Entry | — | `88:a2:9e:b1:64:da` → `192.168.1.11` |
-| Network → LAN | Primary DNS | empty (router itself) | `192.168.1.11` |
+| Network → LAN | Primary DNS | empty (router itself) | was set to `192.168.1.11`; **the router reverted it to `192.168.1.1` on 23 Oct (02:14)**, so filtering is not network-wide until it is set again (the dashboard tile says "Not network-wide yet") |
 | Network → LAN | Secondary DNS | empty | empty (keep it so: a public DNS here bypasses filtering) |
 | Network → LAN_IPv6 | (unchanged) | HGWProxy | — no IPv6 internet; MacBook confirmed no IPv6 DNS leak |
 
@@ -91,13 +91,13 @@ DHCP, Wi-Fi, WAN and port forwarding were not touched. Nothing is exposed to the
 
 ## Not yet verified (needs someone at the Pi / TV)
 
-- Recognition of a **real voice** through the USB microphone (synthetic speech: 5/5 correct).
-- Spoken replies through the TV speakers, and the TV-remote shortcut (HDMI-CEC).
+- Spoken replies through the TV speakers over long use (a real voice through the USB microphone and "Hey Aura" were tried by the household on 23–24 Oct).
+- The TV-remote shortcut (HDMI-CEC).
 - Pi-hole statistics in AURA Settings (needs the app password in `.env`).
 
 ## Tests
 
 ```bash
 cd ~/aura && .venv/bin/python -m pytest -m "not browser"   # fast, ~20 s
-cd ~/aura && .venv/bin/python -m pytest                    # everything incl. headless browser, ~6 min
+cd ~/aura && .venv/bin/python -m pytest                    # everything incl. headless browser, ~15 min
 ```

@@ -980,42 +980,42 @@
     Detail.refresh("protection");
   }
 
+  /** One reading of the Pi-hole status for both the tile and its status capsule:
+      state (ok/alert/off), the tile's value and line, and the short capsule text. */
+  function protectionSummary(d) {
+    if (!d.installed) {
+      return { state: "off", value: "Not installed", sub: "Network-wide ad blocking (Pi-hole) isn't set up on this Pi.", capsule: null };
+    }
+    if (d.service !== "running" || d.dns_ok === false) {
+      return { state: "alert", value: d.service !== "running" ? "Stopped" : "Not answering",
+        sub: d.problems?.[0] || "Pi-hole needs attention.", capsule: "Needs attention" };
+    }
+    if (d.blocking_ok === false || d.problems?.length) {
+      return { state: "alert", value: "Needs attention", sub: d.problems?.[0] || "A test ad domain was not blocked.", capsule: "Needs attention" };
+    }
+    const n = (x) => Number(x).toLocaleString("en-IN");
+    const stats = d.stats ? ` · ${d.stats.percent_blocked}% of ${n(d.stats.total_queries)} lookups blocked (24 h)` : "";
+    if (d.router_uses_pihole) {
+      return { state: "ok", value: "Active", capsule: "On for home network",
+        sub: `Router gives out this Pi for DNS, so devices that follow it are filtered${stats}.` };
+    }
+    if (d.router_uses_pihole == null) {
+      return { state: "ok", value: "Running", capsule: "Running",
+        sub: `Blocking works; couldn't tell which DNS server the router gives out${stats}.` };
+    }
+    return { state: "ok", value: "Running", capsule: "On (not network-wide)",
+      sub: `Not network-wide yet: only devices set to use this Pi for DNS are filtered${stats}.` };
+  }
+
   function renderProtection(d) {
     const tile = $("protection-tile");
     const val = $("protection-status");
     const sub = $("protection-sub");
     if (!d) { tile.dataset.state = "loading"; val.textContent = "Checking…"; sub.textContent = ""; return; }
-    if (!d.installed) {
-      tile.dataset.state = "off";
-      val.textContent = "Not installed";
-      sub.textContent = "Network-wide ad blocking (Pi-hole) isn't set up on this Pi.";
-      return;
-    }
-    if (d.service !== "running" || d.dns_ok === false) {
-      tile.dataset.state = "alert";
-      val.textContent = d.service !== "running" ? "Stopped" : "Not answering";
-      sub.textContent = d.problems?.[0] || "Pi-hole needs attention.";
-      return;
-    }
-    const n = (x) => Number(x).toLocaleString("en-IN");
-    const stats = d.stats ? ` · ${d.stats.percent_blocked}% of ${n(d.stats.total_queries)} lookups blocked (24 h)` : "";
-    if (d.blocking_ok === false || d.problems?.length) {
-      tile.dataset.state = "alert";
-      val.textContent = "Needs attention";
-      sub.textContent = d.problems?.[0] || "A test ad domain was not blocked.";
-    } else if (d.router_uses_pihole) {
-      tile.dataset.state = "ok";
-      val.textContent = "Active";
-      sub.textContent = `Router gives out this Pi for DNS, so devices that follow it are filtered${stats}.`;
-    } else if (d.router_uses_pihole == null) {
-      tile.dataset.state = "ok";
-      val.textContent = "Running";
-      sub.textContent = `Blocking works; couldn't tell which DNS server the router gives out${stats}.`;
-    } else {
-      tile.dataset.state = "ok";
-      val.textContent = "Running";
-      sub.textContent = `Not network-wide yet: only devices set to use this Pi for DNS are filtered${stats}.`;
-    }
+    const s = protectionSummary(d);
+    tile.dataset.state = s.state;
+    val.textContent = s.value;
+    sub.textContent = s.sub;
   }
 
   // ---------- system ----------
@@ -1087,8 +1087,9 @@
     if (open) cap("cart", "Groceries", `${open} to buy`, "groceries", "var(--tone-orange)");
     const p = state.protection;
     if (p?.installed) {
-      if (p.service !== "running" || p.dns_ok === false || p.problems?.length) cap("shieldOff", "Ad blocking", "Needs attention", "protection", "var(--tone-teal)", "alert");
-      else cap("shield", "Ad blocking", p.router_uses_pihole ? "On for home network" : p.router_uses_pihole == null ? "Running" : "On (not network-wide)", "protection", "var(--tone-teal)");
+      const ps = protectionSummary(p);
+      if (ps.state === "alert") cap("shieldOff", "Ad blocking", ps.capsule, "protection", "var(--tone-teal)", "alert");
+      else cap("shield", "Ad blocking", ps.capsule, "protection", "var(--tone-teal)");
     }
     $("status-row").replaceChildren(...caps.slice(0, 6).map((x) => {
       const li = document.createElement("li");
@@ -1175,8 +1176,11 @@
   function connectEvents() {
     if (!("EventSource" in window)) return;
     const es = new EventSource("/api/events");
+    let connected = false;
     es.addEventListener("hello", (e) => {
       if (state.config) loadConfig();      // after a reconnect: catch server restarts quickly
+      if (connected) { loadMeals(); loadCommute(); loadCalendar(); }   // events missed while disconnected
+      connected = true;
       // (Re)connected: re-sync everything we might have missed.
       try {
         const { groceries } = JSON.parse(e.data);
@@ -1256,6 +1260,13 @@
 
   // ---------- boot ----------
 
+  /** A time of day in the home time zone and the household's 12/24-hour setting. */
+  function clockTime(date, { seconds = false } = {}) {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz(), hour: "numeric", minute: "2-digit", ...(seconds ? { second: "2-digit" } : {}), hour12: twelve(),
+    }).format(date);
+  }
+
   // The Pi's own screen opens /?kiosk=1 (see deploy/kiosk): hide the mouse pointer there.
   if (new URLSearchParams(location.search).has("kiosk")) document.body.classList.add("kiosk");
   for (const el of document.querySelectorAll("[data-icon]")) el.innerHTML = icon(el.dataset.icon, 1.7);
@@ -1281,9 +1292,7 @@
     renderScene: (el, visual) => Scene.render(el,
       visual && state.config?.display && !state.config.display.weather_animations && visual.motion === "live"
         ? { ...visual, motion: "static", reason: "off" } : visual),
-    formatTime: (date, { seconds = false } = {}) => new Intl.DateTimeFormat("en-US", {
-      timeZone: tz(), hour: "numeric", minute: "2-digit", ...(seconds ? { second: "2-digit" } : {}), hour12: twelve(),
-    }).format(date),
+    formatTime: clockTime,
     formatTimeIn: (tzName, date) => new Intl.DateTimeFormat("en-US", {
       timeZone: tzName, hour: "numeric", minute: "2-digit", hour12: twelve(),
     }).format(date),
@@ -1295,7 +1304,7 @@
     },
   });
   window.AuraMeals.init({ icon });
-  window.AuraAssistant.init({ icon, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
+  window.AuraAssistant.init({ icon, formatTime: clockTime, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather ? window.AuraSky.visualFor(state.weather, window.AuraSky.picture(state.weather).day) : null);
   loadConfig().then(async () => {
     loadWeather();

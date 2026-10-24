@@ -38,6 +38,7 @@ from pydantic import BaseModel
 from .storage import write_json_atomic
 
 log = logging.getLogger("aura.calendar")
+RETRY_AFTER_FAILURE_S = 120
 
 MAX_FEED_BYTES = 5_000_000
 Kind = Literal["birthday", "event", "holiday", "observance"]
@@ -257,6 +258,7 @@ class AgendaService:
             if not force and time.monotonic() - self._fetched_at < self.refresh_s and self._fetched_at:
                 return False
             changed = False
+            failed = False
             results = await asyncio.gather(*(self._fetch(f) for f in self.feeds), return_exceptions=True)
             now = datetime.now(UTC)
             for feed, res in zip(self.feeds, results):
@@ -266,13 +268,16 @@ class AgendaService:
                         "unreachable" if isinstance(res, httpx.HTTPError) else str(res)[:80])
                     st.ok, st.error = False, msg
                     log.warning("calendar: %s failed: %s", feed.safe_name, msg)
+                    failed = failed or isinstance(res, httpx.HTTPError)    # network trouble, not bad content
                     continue
                 fp = self._fp(feed)
                 if self._texts.get(fp) != res:
                     changed = True
                 self._texts[fp] = res
                 st.ok, st.error, st.last_success = True, None, now
-            self._fetched_at = time.monotonic()
+            # A feed that was unreachable (e.g. the Pi booted before the network was up) is retried
+            # in RETRY_AFTER_FAILURE_S instead of waiting a whole refresh interval.
+            self._fetched_at = time.monotonic() - (max(0, self.refresh_s - RETRY_AFTER_FAILURE_S) if failed else 0)
             if changed:
                 self._save_cache()
                 log.info("calendar: refreshed %d feed(s)", sum(s.ok for s in self._status.values()))

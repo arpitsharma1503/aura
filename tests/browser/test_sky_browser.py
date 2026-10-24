@@ -309,3 +309,27 @@ def test_page_clock_drives_tile_and_sun_card_alike(chrome, srv):
     assert p.js("document.getElementById('dsky-sun').dataset.status") == "after_sunset"
     assert p.js("document.querySelector('.dhero').dataset.art") == "moon"
     assert "After sunset" in p.text("#dsky-sun")
+
+
+@pytest.mark.parametrize("w, h", [(1920, 1080), (1280, 720)])
+def test_weather_detail_does_not_repeat_itself(chrome, srv, artifacts, w, h):
+    """Sunrise/sunset only on the Sun card, "Feels like" only in the hero line."""
+    p = dashboard(chrome, srv, w=w, h=h, weather=weather_payload(0, 12), at=at_hour(12))
+    p.js("window.AuraDetail.open('weather')")
+    p.wait_for(f"{IS_OPEN} && !!document.getElementById('dsky-sun') && !!document.getElementById('dsec-metrics')")
+    labels = p.js("[...document.querySelectorAll('#dsec-metrics dt')].map(d => d.textContent)")
+    assert "Sunrise" not in labels and "Sunset" not in labels and "Feels like" not in labels
+    assert "Feels like" in p.text(".dhero__sub")
+    assert "Sunrise" in p.text("#dsky-sun")
+    p.screenshot(str(artifacts / f"detail-weather-norepeat-{w}x{h}.png"))
+    assert p.errors == [], p.errors
+
+
+def test_weather_detail_keeps_sunrise_when_there_is_no_sun_card(chrome, srv):
+    payload = {**weather_payload(0, 12), "astronomy": None}
+    p = dashboard(chrome, srv, weather=payload, at=at_hour(12))
+    p.js("window.AuraDetail.open('weather')")
+    p.wait_for(f"{IS_OPEN} && !!document.getElementById('dsec-metrics')")
+    labels = p.js("[...document.querySelectorAll('#dsec-metrics dt')].map(d => d.textContent)")
+    assert "Sunrise" in labels and "Sunset" in labels
+    assert not p.js("!!document.getElementById('dsky-sun')")

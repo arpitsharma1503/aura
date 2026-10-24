@@ -139,3 +139,17 @@ def test_entrance_still_fits_with_mic_button(chrome, server, w, h):
     assert over["v"] <= 0 and over["h"] <= 0, over
     box = p.js("(() => { const r = document.getElementById('mic-btn').getBoundingClientRect(); return [r.width, r.height, r.right <= innerWidth]; })()")
     assert box[0] >= 40 and box[1] >= 40 and box[2]
+
+
+def test_conversation_times_use_the_home_clock_setting(chrome, server):
+    """Same clock as the rest of the dashboard: home time zone, 12/24-hour setting."""
+    p = dashboard(chrome, server, fixtures={"/api/assistant": status(transcript=[TURN])})
+    p.js("window.AuraDetail.open('assistant')")
+    p.wait_for(f"{IS_OPEN} && !!document.querySelector('.asst__who')")
+    assert p.text(".asst__who").endswith("8:00 AM")
+    status_code, _ = server.api("PATCH", "/api/settings/display", {"clock_format": "24h"})
+    assert status_code == 200
+    p2 = dashboard(chrome, server, fixtures={"/api/assistant": status(transcript=[TURN])})
+    p2.js("window.AuraDetail.open('assistant')")
+    p2.wait_for(f"{IS_OPEN} && !!document.querySelector('.asst__who')")
+    assert p2.text(".asst__who").endswith("08:00")
