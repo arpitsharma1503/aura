@@ -110,7 +110,7 @@ def ask(q, **kw):
     ("What time is it", "time"),
     ("What can you do?", "help"),
     ("Delete all my groceries", "action"),
-    ("Turn off the Wi-Fi", "action"),
+    ("Turn off the Wi-Fi", "smarthome"),
     ("Restart the Pi", "action"),
     ("Hello", "greeting"),
     ("Hey.", "greeting"),
@@ -132,7 +132,7 @@ def test_unknown_requests_fail_safely():
 
 
 def test_tools_are_a_fixed_read_only_allowlist():
-    assert {t.name for t in TOOLS} == {"action", "help", "greeting", "network", "summary", "rain", "calendar",
+    assert {t.name for t in TOOLS} == {"smarthome", "action", "help", "greeting", "network", "summary", "rain", "calendar",
                                         "commute", "groceries", "weather", "time"}
 
 

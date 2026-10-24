@@ -2,7 +2,7 @@
 
 from conftest import make_client
 
-TILES = ["weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "protection", "system"]
+TILES = ["weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "smarthome", "protection", "system"]
 
 
 def lan(tmp_path):
@@ -12,7 +12,7 @@ def lan(tmp_path):
 def test_defaults_exposed_in_config(tmp_path):
     home = lan(tmp_path).get("/api/config").json()["home"]
     assert home["name"] == "Home" and home["tile_order"] == TILES and home["hidden_tiles"] == []
-    assert home["overview_hidden"] == ["system"]                  # 12 cells: fits the entrance screen
+    assert home["overview_hidden"] == ["protection", "system"]    # 12 cells: fits the entrance screen
     assert [r["id"] for r in home["rooms"]] == ["entrance", "kitchen", "network"]
     # Rooms only group information tiles; nothing implies connected hardware.
     assert all(set(r["tiles"]) <= set(TILES) for r in home["rooms"])

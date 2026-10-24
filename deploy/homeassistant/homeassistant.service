@@ -1,0 +1,32 @@
+# Home Assistant Core for AURA's Smart Home section, as a *user* service
+# (like aura-voice): no Docker, no root, no firewall or router changes.
+# Python 3.14 is a private copy managed by uv in ~/homeassistant; the system Python is untouched.
+#
+# Installed by deploy/homeassistant/install.sh to ~/.config/systemd/user/homeassistant.service.
+#
+#   systemctl --user status homeassistant
+#   journalctl --user-unit homeassistant -f
+#
+# Web UI on the home network: http://192.168.1.11:8123 (nothing is forwarded from the internet).
+
+[Unit]
+Description=Home Assistant (smart home integrations for AURA)
+After=network-online.target
+StartLimitIntervalSec=600
+StartLimitBurst=5
+
+[Service]
+Type=exec
+WorkingDirectory=%h/homeassistant
+ExecStart=%h/homeassistant/venv/bin/hass --config %h/homeassistant/config
+Environment=PYTHONUNBUFFERED=1
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=60
+UMask=0077
+NoNewPrivileges=yes
+# Let the dashboard, kiosk and Pi-hole go first.
+Nice=5
+
+[Install]
+WantedBy=default.target

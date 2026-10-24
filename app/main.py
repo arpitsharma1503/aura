@@ -11,6 +11,7 @@ from datetime import date, datetime, timedelta
 from datetime import time as dtime
 from types import SimpleNamespace
 from typing import Literal
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 import httpx
@@ -28,6 +29,7 @@ from .agenda import AgendaResponse, AgendaService, parse_feeds
 from .assistant import Assistant, Sources, Turn
 from .dnsfilter import DnsFilterMonitor, DnsFilterStatus
 from . import nutrition
+from . import smarthome
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -245,7 +247,24 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         clock_format=lambda: prefs.display.clock_format,
         temperature_unit=lambda: prefs.display.temperature_unit,
         travel_window_hours=lambda: prefs.weather.travel_window_hours,
+        smarthome=lambda: smart,
     ))
+    ha_registry = smarthome.Registry(settings.data_dir / "aura.db")
+    ha_link = smarthome.HomeAssistantLink(
+        settings.homeassistant_url,
+        settings.homeassistant_token.get_secret_value() if settings.homeassistant_token else None,
+        on_change=lambda ids: smarthome_changed(ids))
+
+    def ha_public_url() -> str | None:
+        """Home Assistant's address for people on the home network (it runs on this Pi)."""
+        ha = urlsplit(settings.homeassistant_url)
+        if ha.hostname not in ("127.0.0.1", "localhost", "::1"):
+            return settings.homeassistant_url.rstrip("/")
+        url, _ = share_url(settings.public_url, settings.host, settings.port)
+        host = urlsplit(url).hostname if url else None
+        return f"{ha.scheme}://{host}:{ha.port or 8123}" if host else None
+
+    smart = smarthome.SmartHome(ha_registry, ha_link, lambda: [r.model_dump() for r in prefs.home.rooms], ha_public_url)
     meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
     plan_groceries = nutrition.PlanGroceries(settings.data_dir / "aura.db", groceries)
     voice = VoiceClient(settings.voice_port, transport=voice_transport)
@@ -349,6 +368,21 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     def location_changed() -> None:
         broker.publish("location", {})
 
+    sh_publish: dict = {"handle": None}
+
+    def smarthome_changed(ids: set[str] | None) -> None:
+        """Tell screens about changes to devices in AURA (or the connection), at most once a
+        second: sensors can report often, and screens re-read /api/smarthome anyway."""
+        if ids is not None:
+            mine = {d["entity_id"] for d in ha_registry.devices()}
+            if not (ids & mine or any(i.startswith("automation.") for i in ids)):
+                return
+        if sh_publish["handle"] is None:
+            def fire() -> None:
+                sh_publish["handle"] = None
+                broker.publish("smarthome", {})
+            sh_publish["handle"] = asyncio.get_running_loop().call_later(1.0, fire)
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
         def spawn(coro) -> None:
@@ -364,10 +398,12 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         spawn(housekeeping())
         spawn(meal_grocery_sync())
         spawn(wake_sync())
+        ha_link.start()
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
         await agenda.stop()
+        await ha_link.stop()
         commute_store.close()
         for t in list(background):
             t.cancel()
@@ -377,6 +413,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         groceries.close()
         meal_log.close()
         plan_groceries.close()
+        ha_registry.close()
         prefs.close()
 
     app = FastAPI(
@@ -397,6 +434,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.dns_filter = dns_filter
     app.state.meal_log = meal_log
     app.state.plan_groceries = plan_groceries
+    app.state.smarthome = smart
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -750,7 +788,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             client = request.client.host if request.client else "unknown"
             logging.getLogger("aura.voice").info("microphone started from %s", client)
         try:
-            return await voice_session.listen(prefs.assistant.max_listen_seconds)
+            return await voice_session.listen(prefs.assistant.max_listen_seconds, can_control=access.can_edit(request))
         except VoiceError as exc:
             return voice_failure(exc)
 
@@ -789,9 +827,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         return Response(status_code=204)
 
     @app.post("/api/assistant/ask", response_model=Turn)
-    async def assistant_ask(body: AskIn) -> Turn:
+    async def assistant_ask(body: AskIn, request: Request) -> Turn:
         assistant_on()
-        turn = await assistant.ask(body.text, source="typed")
+        turn = await assistant.ask(body.text, source="typed", can_control=access.can_edit(request))
         broker.publish("assistant", {"state": "answered", "turn_id": turn.id})
         return turn
 
@@ -953,6 +991,98 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         return {"schedule": plan["schedule"], "weeks": plan["weeks"], "context": plan["context"],
                 "people": meal_names(), "people_info": plan["people"], "source": plan["source"],
                 "disclaimer": plan["disclaimer"], "today": nutrition.local_today(timezone()).isoformat()}
+
+    # ----- smart home (Home Assistant) -----
+
+    def sh_error(exc: smarthome.CommandError) -> HTTPException:
+        return HTTPException(status_code=exc.status, detail=str(exc))
+
+    @app.get("/api/smarthome")
+    async def smarthome_overview() -> dict:
+        return {**smart.summary(), "devices": smart.devices(), "scene_details": ha_registry.scenes(),
+                "automation_list": smart.automations(), "guides": smarthome.GUIDES}
+
+    @app.post("/api/smarthome/discover", dependencies=[Depends(editor)])
+    async def smarthome_discover() -> dict:
+        if ha_link.status != "connected":
+            raise HTTPException(status_code=503, detail=smart.connection()["message"])
+        await ha_link.refresh_registries()
+        return {"candidates": smart.candidates(), "discovered": await smart.discovered()}
+
+    @app.post("/api/smarthome/devices", status_code=201, dependencies=[Depends(editor)])
+    async def smarthome_add(body: smarthome.DeviceIn) -> dict:
+        try:
+            view = smart.add(body)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+        broker.publish("smarthome", {})
+        return view
+
+    @app.patch("/api/smarthome/devices/{entity_id}", dependencies=[Depends(editor)])
+    async def smarthome_update(entity_id: str, body: smarthome.DevicePatch) -> dict:
+        try:
+            view = smart.update(entity_id, body)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+        broker.publish("smarthome", {})
+        return view
+
+    @app.delete("/api/smarthome/devices/{entity_id}", status_code=204, dependencies=[Depends(editor)])
+    async def smarthome_remove(entity_id: str) -> Response:
+        if not ha_registry.remove(entity_id):
+            raise HTTPException(status_code=404, detail="That device isn't in AURA.")
+        broker.publish("smarthome", {})
+        return Response(status_code=204)
+
+    @app.post("/api/smarthome/devices/{entity_id}/command", dependencies=[Depends(editor)])
+    async def smarthome_command(entity_id: str, body: smarthome.Command, request: Request) -> dict:
+        if body.action in smarthome.SENSITIVE:
+            access.require_admin(request)          # unlocking: the Pi's own screen or a PIN-unlocked phone
+        try:
+            return await smart.command(entity_id, body)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+
+    @app.post("/api/smarthome/scenes", status_code=201, dependencies=[Depends(editor)])
+    async def smarthome_scene_add(body: smarthome.SceneIn) -> dict:
+        try:
+            smart.scene_check(body)
+            sid = ha_registry.save_scene(body)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+        broker.publish("smarthome", {})
+        return ha_registry.scene(sid)
+
+    @app.put("/api/smarthome/scenes/{scene_id}", dependencies=[Depends(editor)])
+    async def smarthome_scene_save(scene_id: int, body: smarthome.SceneIn) -> dict:
+        try:
+            smart.scene_check(body)
+            ha_registry.save_scene(body, scene_id)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+        broker.publish("smarthome", {})
+        return ha_registry.scene(scene_id)
+
+    @app.delete("/api/smarthome/scenes/{scene_id}", status_code=204, dependencies=[Depends(editor)])
+    async def smarthome_scene_delete(scene_id: int) -> Response:
+        if not ha_registry.delete_scene(scene_id):
+            raise HTTPException(status_code=404, detail="That scene no longer exists.")
+        broker.publish("smarthome", {})
+        return Response(status_code=204)
+
+    @app.post("/api/smarthome/scenes/{scene_id}/run", dependencies=[Depends(editor)])
+    async def smarthome_scene_run(scene_id: int, body: smarthome.SceneRun) -> dict:
+        try:
+            return await smart.run_scene(scene_id, body.request_id)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
+
+    @app.post("/api/smarthome/automations/{entity_id}", dependencies=[Depends(editor)])
+    async def smarthome_automation(entity_id: str, body: smarthome.AutomationToggle) -> dict:
+        try:
+            return await smart.set_automation(entity_id, body.enabled)
+        except smarthome.CommandError as exc:
+            raise sh_error(exc) from exc
 
     # ----- groceries -----
 

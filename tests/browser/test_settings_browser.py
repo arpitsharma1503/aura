@@ -81,7 +81,7 @@ def test_tiles_show_only_a_bare_arrow(chrome, srv):
                 border: cs?.borderTopWidth, svg: !!a?.querySelector('svg'),
                 topRight: r && (c.right - r.right) < 30 && (r.top - c.top) < 40,
                 label: a?.getAttribute('aria-label')}; }))()""")
-    assert len(info) == 9
+    assert len(info) == 10
     for t in info:
         assert t["n"] == 1 and t["svg"] and t["text"] == "", t
         assert t["bg"] in ("rgba(0, 0, 0, 0)", "transparent") and t["border"] == "0px", t

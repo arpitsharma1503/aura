@@ -114,6 +114,11 @@ class Settings(BaseSettings):
     pihole_api_url: str = "http://127.0.0.1"
     pihole_app_password: SecretStr | None = None
 
+    # Smart home: Home Assistant on this Pi (deploy/homeassistant/). AURA connects over its
+    # local WebSocket API; the long-lived access token stays on the server.
+    homeassistant_url: str = "http://127.0.0.1:8123"
+    homeassistant_token: SecretStr | None = None
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080

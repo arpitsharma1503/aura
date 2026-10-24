@@ -58,7 +58,7 @@ def test_room_tabs_keyboard(chrome, srv):
     p.call("Input.dispatchKeyEvent", type="keyDown", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
     p.call("Input.dispatchKeyEvent", type="keyUp", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
     assert p.js("document.activeElement.dataset.room") == "entrance"
-    assert sorted(p.js(VISIBLE)) == sorted(["weather", "advice", "commute", "calendar", "assistant"])
+    assert sorted(p.js(VISIBLE)) == sorted(["weather", "advice", "commute", "calendar", "assistant", "smarthome"])
     p.call("Input.dispatchKeyEvent", type="keyDown", key="End", code="End", windowsVirtualKeyCode=35)
     assert p.js("document.activeElement.dataset.room") == "network"
 
@@ -178,7 +178,7 @@ def test_settings_home_editor_round_trip(chrome, srv, artifacts):
     p.wait_for("document.querySelector('#home .s-status').dataset.kind === 'ok'")
     status, body = srv.api("GET", "/api/config")
     home = body["home"]
-    assert home["tile_order"][0] == "groceries" and home["overview_hidden"] == ["advice", "system"]
+    assert home["tile_order"][0] == "groceries" and home["overview_hidden"] == ["advice", "protection", "system"]
     assert home["hidden_tiles"] == []
     assert {"id": "living-room", "name": "Living room", "tiles": ["weather", "calendar"]} in home["rooms"]
     assert any(r["name"] == "Kitchen & dining" for r in home["rooms"])

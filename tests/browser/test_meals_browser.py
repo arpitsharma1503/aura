@@ -157,3 +157,13 @@ def test_rest_of_month_button_adds_once(chrome, srv, artifacts):
     assert names and len(names) == len(set(names))
     p.screenshot(str(artifacts / "meals-auto-groceries.png"))
     assert p.errors == []
+
+
+def test_add_message_survives_the_repaint(chrome, srv):
+    p = dashboard(chrome, srv)
+    open_view(p)
+    p.js("document.querySelector('[data-tab=groceries]').click()")
+    p.wait_for("!!document.querySelector('.mp-add')", timeout=15)
+    p.js("document.querySelector('.mp-add').click()")
+    p.wait_for("document.querySelector('.mp-gitem').textContent.includes('On list')")
+    assert not p.js("document.querySelector('.mp-flash').hidden") and "Added 1" in p.text(".mp-flash")

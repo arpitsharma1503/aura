@@ -31,6 +31,7 @@
     network: null,          // last /api/system/network response
     room: "overview",       // selected room tab
     meals: null,            // last /api/meals/day response (today)
+    smarthome: null,        // last /api/smarthome response
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -969,6 +970,51 @@
     }
   }
 
+  // ---------- smart home (Home Assistant) ----------
+
+  async function loadSmartHome() {
+    try {
+      state.smarthome = await fetchJSON("/api/smarthome");
+    } catch { /* keep the last known state */ }
+    renderSmartHome(state.smarthome);
+    renderStatus();
+    window.AuraSmartHome?.refresh();
+  }
+
+  /** Summary only: totals, offline devices, favourites. Every value is from /api/smarthome. */
+  function renderSmartHome(d) {
+    const tile = $("smarthome-tile");
+    const val = $("smarthome-status"), sub = $("smarthome-sub"), favs = $("smarthome-favs");
+    if (!d) { tile.dataset.state = "loading"; val.textContent = "Checking…"; sub.textContent = ""; favs.replaceChildren(); return; }
+    const c = d.connection, n = d.counts;
+    $("smarthome-aside").textContent = c.status === "connected" && d.scenes.length ? `${d.scenes.length} scene${d.scenes.length === 1 ? "" : "s"}` : "";
+    favs.replaceChildren();
+    if (c.status !== "connected") {
+      tile.dataset.state = c.status === "not_configured" ? "off" : "alert";
+      val.textContent = c.status === "not_configured" ? "Not connected" : c.status === "connecting" ? "Connecting…" : "Unavailable";
+      sub.textContent = c.status === "not_configured" ? "Set up Home Assistant to add devices." : c.message || "";
+      return;
+    }
+    if (!n.total) {
+      tile.dataset.state = "ok";
+      val.textContent = "No devices yet";
+      sub.textContent = "Home Assistant is connected. Open to add devices.";
+      return;
+    }
+    tile.dataset.state = d.alerts.length || n.offline ? "alert" : "ok";
+    val.textContent = d.alerts.length ? d.alerts[0] : `${n.online} of ${n.total} online`;
+    sub.textContent = n.offline ? d.warnings.slice(0, 2).join(" · ") + (n.offline > 2 ? ` +${n.offline - 2}` : "")
+      : d.rooms.map((r) => `${r.name} ${r.on}/${r.total} on`).join(" · ");
+    favs.replaceChildren(...d.favorites.slice(0, 3).map((f) => {
+      const li = document.createElement("li");
+      li.className = "shtile__fav";
+      li.dataset.on = String(["on", "open", "playing", "unlocked"].includes(f.state));
+      li.dataset.availability = f.availability;
+      li.textContent = f.name;
+      return li;
+    }));
+  }
+
   // ---------- network protection (read-only Pi-hole status) ----------
 
   async function loadProtection() {
@@ -1085,6 +1131,10 @@
     const g = state.groceries;
     const open = (g?.items || []).filter((i) => !i.purchased).length;
     if (open) cap("cart", "Groceries", `${open} to buy`, "groceries", "var(--tone-orange)");
+    const sh = state.smarthome;
+    if (sh?.connection?.status === "connected" && (sh.alerts.length || sh.counts.offline)) {
+      cap("bulb", "Smart home", sh.alerts[0] || `${sh.counts.offline} offline`, "smarthome", "var(--tone-amber)", "alert");
+    }
     const p = state.protection;
     if (p?.installed) {
       const ps = protectionSummary(p);
@@ -1179,7 +1229,7 @@
     let connected = false;
     es.addEventListener("hello", (e) => {
       if (state.config) loadConfig();      // after a reconnect: catch server restarts quickly
-      if (connected) { loadMeals(); loadCommute(); loadCalendar(); }   // events missed while disconnected
+      if (connected) { loadMeals(); loadCommute(); loadCalendar(); loadSmartHome(); }   // events missed while disconnected
       connected = true;
       // (Re)connected: re-sync everything we might have missed.
       try {
@@ -1197,6 +1247,7 @@
     es.addEventListener("commute", () => { loadCommute(); });
     es.addEventListener("calendar", () => { loadCalendar(); });
     es.addEventListener("meals", () => { loadMeals(); });
+    es.addEventListener("smarthome", () => { loadSmartHome(); });
     es.addEventListener("assistant", (e) => {
       try { window.AuraAssistant.onEvent(JSON.parse(e.data)); } catch { /* ignore malformed */ }
     });
@@ -1304,6 +1355,7 @@
     },
   });
   window.AuraMeals.init({ icon });
+  window.AuraSmartHome.init({ icon, formatTime: clockTime });
   window.AuraAssistant.init({ icon, formatTime: clockTime, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather ? window.AuraSky.visualFor(state.weather, window.AuraSky.picture(state.weather).day) : null);
   loadConfig().then(async () => {
@@ -1313,6 +1365,7 @@
     loadCommute();
     loadCalendar();
     loadProtection();
+    loadSmartHome();
     loadSystem();
     loadMeals();
     refreshQr();
@@ -1328,6 +1381,8 @@
   }, GROCERY_POLL_MS);
   setInterval(refreshQr, QR_REFRESH_MS);
   setInterval(loadProtection, 60_000);
+  // Fallback only: device changes normally arrive as "smarthome" events.
+  setInterval(() => { if (!state.events || state.events.readyState !== EventSource.OPEN) loadSmartHome(); }, 60_000);
   setInterval(loadMeals, 5 * 60_000);
   setInterval(loadSystem, 60_000);
   setInterval(shiftPixels, BURN_IN_SHIFT_MS);

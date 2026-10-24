@@ -887,6 +887,74 @@ Daily records (eaten, prep, groceries, notes) are stored per calendar date in
 `data/aura.db`, so a new month never erases the previous one. Nutrition figures
 are the plan's estimates, not medical advice.
 
+## Smart home
+
+The **Smart home** tile and view show devices that **Home Assistant** (running on this
+Pi) has set up. AURA keeps only its own choices: which devices to show, their names,
+rooms, favourites and scenes. It never invents a device, a state or a success.
+
+- **How it fits together.**
+  - Home Assistant Core runs as the user service `homeassistant` on port 8123, on the
+    home network only. It talks to the actual devices: Wi-Fi brands, Matter, Zigbee and so on.
+  - AURA connects to Home Assistant's local WebSocket API with a long-lived access token
+    (`AURA_HOMEASSISTANT_TOKEN` in `.env`, never sent to browsers).
+  - AURA receives every state change as it happens and passes it to open screens within a second.
+  - If Home Assistant is down, AURA keeps trying to reconnect every 5–60 s. Meanwhile
+    devices show **Unknown**, not their last state.
+- **Setting up (once).**
+  1. `deploy/homeassistant/install.sh` (already done on aura-pi).
+  2. Open `http://192.168.1.11:8123` and create your Home Assistant account.
+  3. In Home Assistant, go to your profile → Security → **Long-lived access tokens** →
+     Create token ("AURA").
+  4. On the Pi, run `~/aura/deploy/homeassistant/connect.sh` and paste the token. The script
+     checks the token, backs up `.env`, saves it and restarts AURA.
+- **Adding devices.**
+  - Set each device up in Home Assistant first; the "Add devices" tab has guidance per brand
+    and technology.
+  - Then use **Look for devices** in AURA. It lists:
+    - devices Home Assistant has that aren't in AURA yet, with maker, model and connection;
+    - devices Home Assistant found on the network that still need setting up there.
+  - Pick a room and press **Add**. AURA checks the device with Home Assistant before adding it.
+- **Controls follow capabilities.** AURA reads what each device reports supporting
+  (Home Assistant's feature flags and colour modes):
+  - an on/off switch has no brightness slider;
+  - a curtain without position control has only Open/Close;
+  - sensors have readings only.
+  Supported kinds: lights, switches and plugs, fans, climate, curtains and blinds,
+  temperature, humidity, power and energy sensors, motion, door, smoke and leak sensors,
+  locks, and media players. Cameras and alarms show status only.
+- **Results are honest.**
+  - A control shows **Done** only after the device reports the new state.
+  - If Home Assistant accepted the command but the device stays silent for 6 s, AURA says so.
+  - Offline devices and a disconnected Home Assistant refuse commands, and nothing is sent.
+  - Each press carries a request id, so a repeated or replayed request never runs twice.
+- **Rooms** are the dashboard's rooms (Settings → Home & rooms). A device can be moved,
+  renamed or favourited from its page; favourites show on the tile.
+- **Scenes** are lists of explicit steps (device + action). Running one asks for
+  confirmation and lists every change, then reports how many steps the devices confirmed.
+  A scene touches only its own steps. **Unlocking can never be part of a scene.**
+- **Automations** run in Home Assistant, so they keep working without AURA. AURA lists
+  them, shows when each last ran and can switch them on or off. They are created and
+  edited in Home Assistant; AURA never creates one on its own.
+- **Voice and typed commands.** For example "turn on the living room lights", "set the
+  ceiling light to 30 percent", "activate Movie Time", "what devices are offline?".
+  - Commands go through a fixed set of checked actions (no shell commands, nothing open-ended).
+  - Names are matched to devices in AURA. A room or a plural ("lights") means all
+    matching devices; an ambiguous name gets a question back instead of a guess.
+  - Doors are **never unlocked by voice**.
+  - Typed commands from a phone need edit access, the same as the grocery list.
+- **Permissions.**
+  - Viewing works on the home network.
+  - Switching devices, adding them and editing scenes need edit access
+    (`AURA_EDIT_ACCESS`).
+  - **Unlocking** needs a confirmation, and either the Pi's own screen or a phone unlocked
+    with the household PIN, the same as Wi-Fi changes.
+- **Not set up yet** (each needs your OK and possibly hardware):
+  - Matter: the Matter Server, plus a Thread border router for Thread devices.
+  - Zigbee: a USB coordinator.
+- **Resources:** Home Assistant uses about 200–400 MB of memory. History is kept for
+  3 days (`recorder: purge_keep_days: 3`).
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after

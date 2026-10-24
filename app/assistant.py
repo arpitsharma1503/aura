@@ -31,6 +31,8 @@ HISTORY = 20
 
 
 # --------------------------------------------------------------------------- data access
+from .smarthome import VOICE_PATTERNS  # noqa: E402  (no assistant import there: no cycle)
+
 
 @dataclass
 class Sources:
@@ -44,6 +46,7 @@ class Sources:
     clock_format: Callable[[], str] = lambda: "12h"
     temperature_unit: Callable[[], str] = lambda: "celsius"
     travel_window_hours: Callable[[], int] = lambda: 6
+    smarthome: Callable[[], object | None] = lambda: None          # app.smarthome.SmartHome
     now: Callable[[ZoneInfo], datetime] = lambda tz: datetime.now(tz)
 
 
@@ -53,6 +56,7 @@ class Ctx:
     tz: ZoneInfo
     now: datetime
     question: str
+    can_control: bool = True            # may this request change devices (edit access)?
 
     def t(self, dt: datetime) -> str:
         dt = dt.astimezone(self.tz)
@@ -287,6 +291,15 @@ async def help_tool(c: Ctx) -> Answer:
     return Answer(intent="help", text=HELP)
 
 
+async def smarthome_tool(c: Ctx) -> Answer:
+    from .smarthome import voice_command
+    sh = c.src.smarthome()
+    if sh is None:
+        return Answer(intent="smarthome", ok=False, text="Smart home control isn't set up.")
+    text, ok = await voice_command(sh, c.question, c.can_control)
+    return Answer(intent="smarthome", ok=ok, text=text, sources=["smarthome"])
+
+
 async def action_tool(c: Ctx) -> Answer:
     return Answer(intent="action", ok=False,
                   text="I can only answer questions for now; I can't add, delete or change anything. "
@@ -294,7 +307,8 @@ async def action_tool(c: Ctx) -> Answer:
 
 
 HELP = ("You can ask me about the weather, whether it will rain before you leave, your commute to the office, "
-        "what's on your calendar today or tomorrow, what groceries you need, or ask me to summarize your day.")
+        "what's on your calendar today or tomorrow, what groceries you need, or ask me to summarize your day. "
+        "With smart devices added, I can also switch them, for example “turn on the living room lights”.")
 
 
 @dataclass(frozen=True)
@@ -306,6 +320,7 @@ class Tool:
 
 # Order matters: more specific intents first.
 TOOLS: tuple[Tool, ...] = (
+    Tool("smarthome", smarthome_tool, VOICE_PATTERNS),
     Tool("action", action_tool, (r"^(please )?(add|remove|delete|clear|turn|switch|set|change|disable|enable|"
                                  r"call|text|send|play|open|unlock|lock|reboot|restart|shut)\b",)),
     Tool("help", help_tool, (r"what can you do", r"\bhelp\b", r"what can i ask")),
@@ -369,7 +384,7 @@ class Assistant:
         self._lock = threading.Lock()
 
     async def ask(self, question: str, source: Literal["voice", "typed"] = "typed",
-                  timings: dict[str, int] | None = None) -> Turn:
+                  timings: dict[str, int] | None = None, can_control: bool = True) -> Turn:
         question = re.sub(r"\s+", " ", question).strip()[:MAX_QUESTION]
         tz = ZoneInfo(self.src.timezone())
         now = self.src.now(tz)
@@ -380,7 +395,7 @@ class Assistant:
             answer = Answer(intent="unknown", ok=False, text=UNKNOWN)
         else:
             try:
-                answer = await tool.run(Ctx(self.src, tz, now, normalize(question)))
+                answer = await tool.run(Ctx(self.src, tz, now, normalize(question), can_control))
             except Exception:            # a broken data source must not break the assistant
                 import logging
                 logging.getLogger("aura.assistant").exception("assistant tool %s failed", tool.name)

@@ -155,10 +155,11 @@ class GrocerySettings(_Strict):
         return out
 
 
-TileId = Literal["weather", "commute", "advice", "calendar", "groceries", "assistant", "protection", "system", "meals"]
+TileId = Literal["weather", "commute", "advice", "calendar", "groceries", "assistant", "protection", "system", "meals",
+                 "smarthome"]
 # Default order; on the entrance screen it packs into exactly three rows of four columns.
-TILES: tuple[str, ...] = ("weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "protection",
-                          "system")
+TILES: tuple[str, ...] = ("weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "smarthome",
+                          "protection", "system")
 
 
 def _label(raw: Any, field: str, max_len: int) -> str:
@@ -206,7 +207,7 @@ class Room(_Strict):
 
 def _default_rooms() -> list[Room]:
     return [
-        Room(id="entrance", name="Entrance", tiles=["weather", "advice", "commute", "calendar", "assistant"]),
+        Room(id="entrance", name="Entrance", tiles=["weather", "advice", "commute", "calendar", "assistant", "smarthome"]),
         Room(id="kitchen", name="Kitchen", tiles=["meals", "groceries"]),
         Room(id="network", name="Network & system", tiles=["protection", "system"]),
     ]
@@ -216,7 +217,8 @@ class HomeSettings(_Strict):
     name: str = "Home"
     tile_order: list[TileId] = Field(default_factory=lambda: list(TILES))
     hidden_tiles: list[TileId] = []                          # hidden everywhere (rooms too)
-    overview_hidden: list[TileId] = Field(default_factory=lambda: ["system"])   # not on the Overview tab
+    # Not on the Overview tab (it holds exactly 3 rows of 4). Protection keeps its status capsule there.
+    overview_hidden: list[TileId] = Field(default_factory=lambda: ["protection", "system"])
     rooms: list[Room] = Field(default_factory=_default_rooms, max_length=8)
 
     @field_validator("name", mode="before")

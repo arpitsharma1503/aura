@@ -11,6 +11,7 @@ the Airtel router for MAC `88:a2:9e:b1:64:da`). Administer over SSH:
 |---|---|---|---|---|
 | `aura` | systemd **user** unit | 8080 (LAN) | yes (linger) | dashboard + API: weather, commute, calendar, groceries, assistant |
 | `aura-voice` | systemd **user** unit | 127.0.0.1:8091 only | yes | microphone, speech-to-text (faster-whisper), spoken replies (Piper) |
+| `homeassistant` | systemd **user** unit | 8123 (LAN) | yes | Home Assistant Core 2026.10.3 (private Python 3.14 in `~/homeassistant`): talks to smart devices for AURA's Smart home |
 | `pihole-FTL` | systemd **system** unit | 53 (DNS), 80/443 (admin) | yes | network-wide ad/tracker blocking |
 | kiosk | XDG autostart (labwc) | — | when the TV is connected | Chromium full-screen on the TV |
 
@@ -26,18 +27,20 @@ so `MemoryMax` in the units is advisory (see README).
 
 ```bash
 # status
-systemctl --user status aura aura-voice
+systemctl --user status aura aura-voice homeassistant
 systemctl status pihole-FTL
 ~/aura/deploy/pihole/verify.sh                 # 9 checks: resolve, block, AURA, ports, Pi's own DNS
 
 # logs (no secrets, no audio, no transcripts are logged)
 journalctl --user-unit aura -f                 # also ~/aura/logs/aura.log (survives reboots)
 journalctl --user-unit aura-voice -f
+journalctl --user-unit homeassistant -f        # also ~/homeassistant/config/home-assistant.log
 sudo journalctl -u pihole-FTL -f               # queries: Pi-hole admin page -> Query Log
 
 # restart
 systemctl --user restart aura                  # dashboards reload themselves
 systemctl --user restart aura-voice
+systemctl --user restart homeassistant         # AURA reconnects by itself (5-60 s)
 sudo systemctl restart pihole-FTL
 
 # health endpoints (from the Pi)
@@ -47,7 +50,7 @@ curl -s http://127.0.0.1:8080/api/system/dns-filter
 ```
 
 Web pages: dashboard `http://192.168.1.11:8080`, settings `…:8080/settings`,
-groceries `…:8080/groceries`, Pi-hole admin `http://192.168.1.11/admin`
+groceries `…:8080/groceries`, Home Assistant `http://192.168.1.11:8123` (its own account), Pi-hole admin `http://192.168.1.11/admin`
 (its own password).
 
 ## When something goes wrong

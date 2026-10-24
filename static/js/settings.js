@@ -10,7 +10,7 @@
   const state = { settings: null, info: null, snapshot: {}, canEdit: false, canAdmin: false, scan: [], target: null };
   const LABELS = { network: "Network", locations: "Locations", weather: "Weather", commute: "Commute",
     display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms", meals: "Meal plan" };
-  const TILE_NAMES = { weather: "Weather", commute: "Commute", meals: "Today's meals", advice: "Before you go", groceries: "Groceries",
+  const TILE_NAMES = { weather: "Weather", commute: "Commute", meals: "Today's meals", smarthome: "Smart home", advice: "Before you go", groceries: "Groceries",
     calendar: "Calendar", assistant: "Ask AURA", protection: "Network protection", system: "System" };
 
   // ---------- API ----------

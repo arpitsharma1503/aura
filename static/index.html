@@ -14,6 +14,7 @@
   <script src="/static/js/detail.js" defer></script>
   <script src="/static/js/assistant.js" defer></script>
   <script src="/static/js/meals.js" defer></script>
+  <script src="/static/js/smarthome.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
 <body data-phase="night" data-sky="clear">
@@ -158,6 +159,14 @@
         <p class="tile__value" id="assistant-status">&nbsp;</p>
         <p class="tile__sub" id="assistant-sub"></p>
         <button type="button" class="tile-arrow" data-open="assistant" aria-haspopup="dialog" aria-label="Open the assistant"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card smarthome-tile" id="smarthome-tile" data-tile="smarthome" data-tone="amber" aria-labelledby="smarthome-title" data-open="smarthome" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="bulb" aria-hidden="true"></span><h2 class="tile__title" id="smarthome-title">Smart home</h2><span class="tile__aside" id="smarthome-aside"></span></header>
+        <p class="tile__value" id="smarthome-status">&nbsp;</p>
+        <ul class="shtile__favs" id="smarthome-favs" aria-label="Favourite devices"></ul>
+        <p class="tile__sub" id="smarthome-sub"></p>
+        <button type="button" class="tile-arrow" data-open="smarthome" aria-haspopup="dialog" aria-label="Smart home details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
       <article class="tile card protection" id="protection-tile" data-tile="protection" data-tone="teal" aria-labelledby="protection-title" data-open="protection" data-state="loading">

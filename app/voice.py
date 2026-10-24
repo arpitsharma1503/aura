@@ -102,7 +102,7 @@ class VoiceSession:
     def busy(self) -> bool:
         return self._lock.locked()
 
-    async def listen(self, max_seconds: int) -> Turn | None:
+    async def listen(self, max_seconds: int, can_control: bool = True) -> Turn | None:
         if self._lock.locked():
             raise VoiceError("Already listening.", status=409, retry=False)
         async with self._lock:
@@ -130,7 +130,7 @@ class VoiceSession:
                 if not text:
                     raise VoiceError("I couldn't make out any words. Please try again.", status=422)
                 turn = await self.assistant.ask(text, source="voice", timings={
-                    "record": int((t1 - t0) * 1000), "transcribe": int(result.get("stt_ms", 0))})
+                    "record": int((t1 - t0) * 1000), "transcribe": int(result.get("stt_ms", 0))}, can_control=can_control)
             except VoiceError as exc:
                 self._set("error", error=str(exc), retry=exc.retry)
                 raise

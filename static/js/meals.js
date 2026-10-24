@@ -151,11 +151,13 @@ window.AuraMeals = (() => {
     catch (err) { flash(err.message); }
   }
   let flashTimer = null;
+  let flashText = null;          // kept until it times out, so a repaint right after doesn't wipe it
   function flash(text) {
+    flashText = text;
     const f = root?.querySelector(".mp-flash");
-    if (!f) return;
-    f.textContent = text; f.hidden = false;
-    clearTimeout(flashTimer); flashTimer = setTimeout(() => { f.hidden = true; }, 4000);
+    if (f) { f.textContent = text; f.hidden = false; }
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { flashText = null; const g = root?.querySelector(".mp-flash"); if (g) g.hidden = true; }, 4000);
   }
 
   // ---------- rendering ----------
@@ -188,7 +190,7 @@ window.AuraMeals = (() => {
     $("detail-sub").textContent = `Day ${day.plan_day} of 30 · ${fmtDate(day.date)}`;
     const body = recipe ? recipePage() : tab === "groceries" ? groceriesTab() : tab === "recipes" ? recipesTab()
       : tab === "plan" ? planTab() : todayTab();
-    root.replaceChildren(controls(), el("p", { class: "mp-flash", role: "status", hidden: true }), ...[].concat(body));
+    root.replaceChildren(controls(), el("p", { class: "mp-flash", role: "status", hidden: !flashText }, flashText || ""), ...[].concat(body));
   }
 
   // ----- Today -----
