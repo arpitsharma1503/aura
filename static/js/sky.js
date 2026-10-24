@@ -28,7 +28,7 @@ window.AuraSky = (() => {
     return `M${top} A${R} ${R} 0 0 1 ${bottom} A${rx} ${R} 0 0 ${gibbous ? 1 : 0} ${top} Z`;
   }
 
-  function moon(m, { label = true } = {}) {
+  function moonBody(m) {
     const id = `mn${++uid}`;
     const k = Math.max(0, Math.min(1, Number(m.illumination) || 0));
     const path = litPath(k, m.lit_side);
@@ -37,9 +37,7 @@ window.AuraSky = (() => {
       : path ? `<path d="${path}"/>` : "";
     const craters = (fill, scale) => CRATERS.map(([x, y, r, o]) =>
       `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" fill-opacity="${(o * scale).toFixed(3)}"/>`).join("");
-    const aria = label ? `role="img" aria-label="${m.phase_name}, ${m.illumination_pct}% lit"` : 'aria-hidden="true"';
-    return `<svg class="moon" viewBox="0 0 100 100" ${aria} data-lit-side="${m.lit_side}" data-illumination="${k}">
-      <defs>
+    return `<defs>
         <radialGradient id="${id}-lit" cx="${m.lit_side === "left" ? 38 : 62}%" cy="36%" r="70%">
           <stop offset="0" stop-color="#fffaf0"/><stop offset="0.55" stop-color="#ebe4d2"/><stop offset="1" stop-color="#bdb5a2"/>
         </radialGradient>
@@ -53,8 +51,31 @@ window.AuraSky = (() => {
       <circle cx="${C}" cy="${C}" r="${R}" fill="url(#${id}-dark)"/>
       <g>${craters("#ffffff", 0.25)}</g>
       ${lit ? `<g clip-path="url(#${id}-clip)"><circle class="moon__lit" cx="${C}" cy="${C}" r="${R}" fill="url(#${id}-lit)"/>${craters("#7d735e", 1)}</g>` : ""}
-      <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="0.8"/>
-    </svg>`;
+      <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="0.8"/>`;
+  }
+
+  const clamp01 = (k) => Math.max(0, Math.min(1, Number(k) || 0));
+
+  function moon(m, { label = true } = {}) {
+    const aria = label ? `role="img" aria-label="${m.phase_name}, ${m.illumination_pct}% lit"` : 'aria-hidden="true"';
+    return `<svg class="moon" viewBox="0 0 100 100" ${aria} data-lit-side="${m.lit_side}" data-illumination="${clamp01(m.illumination)}">${moonBody(m)}</svg>`;
+  }
+
+  /** The same moon as an SVG group centred on (cx, cy) with radius r, for use inside other art. */
+  function moonAt(m, cx, cy, r) {
+    const s = r / R;
+    return `<g class="moon" data-lit-side="${m.lit_side}" data-illumination="${clamp01(m.illumination)}" transform="translate(${(cx - C * s).toFixed(2)} ${(cy - C * s).toFixed(2)}) scale(${s.toFixed(4)})">${moonBody(m)}</g>`;
+  }
+
+  /** The glowing Sun of the Sun & Moon section, centred on (cx, cy) with core radius r. */
+  function sunAt(cx, cy, r) {
+    const id = `sg${++uid}`;
+    return `<defs>
+        <radialGradient id="${id}-glow"><stop offset="0" stop-color="#ffe7a3" stop-opacity="0.85"/><stop offset="0.4" stop-color="#ffcf7a" stop-opacity="0.38"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+        <radialGradient id="${id}-core" cx="40%" cy="38%"><stop offset="0" stop-color="#fffbe8"/><stop offset="0.6" stop-color="#ffd978"/><stop offset="1" stop-color="#ffb347"/></radialGradient>
+      </defs>
+      <g class="sky-sun"><circle class="sky-sun__glow" cx="${cx}" cy="${cy}" r="${(r * 2.3).toFixed(1)}" fill="url(#${id}-glow)"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#${id}-core)"/></g>`;
   }
 
   function sunArc(sun) {
@@ -80,5 +101,5 @@ window.AuraSky = (() => {
     </svg>`;
   }
 
-  return { moon, sunArc, litPath };
+  return { moon, moonAt, sunAt, sunArc, litPath };
 })();

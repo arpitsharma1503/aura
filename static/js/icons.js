@@ -119,18 +119,23 @@ window.AuraIcons = (() => {
       <line x1="24" y1="68" x2="70" y2="68"/><line x1="32" y1="76" x2="78" y2="76"/></g>`;
   }
 
-  function weather(condition, isDay = true) {
-    const sky = (cx, cy, r, rays) => (isDay ? sun(cx, cy, r, rays) : moon(cx, cy, r, false));
+  // `celestial(cx, cy, r)`, when given, draws the Sun or Moon itself (the weather
+  // card passes the phase-accurate Sun & Moon art). Only clear and cloudy skies
+  // show it; rain, storms, fog and snow keep their own pictures.
+  function weather(condition, isDay = true, celestial = null) {
+    const sky = (cx, cy, r, rays) => (celestial ? celestial(cx, cy, r)
+      : isDay ? sun(cx, cy, r, rays) : moon(cx, cy, r, false));
     let body;
     switch (condition) {
       case "clear":
-        body = isDay ? sun(50, 50, 20) : moon(50, 50, 22);
+        body = celestial ? celestial(50, 50, isDay ? 19 : 31) : isDay ? sun(50, 50, 20) : moon(50, 50, 22);
         break;
       case "partly_cloudy":
-        body = sky(62, 36, 15, true) + cloud(-6, 6, 0.95, isDay ? "light" : "dim");
+        body = sky(62, 36, celestial ? 18 : 15, true) + cloud(-6, 6, 0.95, isDay ? "light" : "dim");
         break;
       case "cloudy":
-        body = cloud(10, -8, 0.8, "dim", "wx-cloud wx-cloud--back") + cloud(-4, 6, 0.95, isDay ? "light" : "dim");
+        body = (celestial ? celestial(68, 30, 14) : "")
+          + cloud(10, -8, 0.8, "dim", "wx-cloud wx-cloud--back") + cloud(-4, 6, 0.95, isDay ? "light" : "dim");
         break;
       case "fog":
         body = cloud(0, -6, 0.9, "dim") + fogLines();

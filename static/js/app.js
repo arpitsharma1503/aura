@@ -364,6 +364,22 @@
 
   function setWeatherState(name) { $("weather").dataset.state = name; }
 
+  // The big picture beside the temperature. Clear and cloudy skies show the real
+  // Sun (by day) or the phase-accurate Moon (at night), day/night from the
+  // provider's sunrise/sunset in the astronomy data; rain, storms, fog and snow keep
+  // their condition art. Without astronomy data: the plain condition icon.
+  const CELESTIAL_SKIES = ["clear", "partly_cloudy", "cloudy"];
+  function tileArt(payload) {
+    const c = payload.data.current, a = payload.astronomy;
+    if (!a?.sun || !a.moon) {
+      return { html: weatherArt(c.condition, payload.visual ? payload.visual.is_day : c.is_day), kind: "icon" };
+    }
+    const day = a.sun.status === "day";
+    if (!CELESTIAL_SKIES.includes(c.condition)) return { html: weatherArt(c.condition, day), kind: "icon" };
+    const draw = day ? (cx, cy, r) => window.AuraSky.sunAt(cx, cy, r) : (cx, cy, r) => window.AuraSky.moonAt(a.moon, cx, cy, r);
+    return { html: weatherArt(c.condition, day, draw), kind: day ? "sun" : "moon" };
+  }
+
   // Compact moon in the tile header; the full Sun & Moon section is in the detail view.
   function renderMoon(payload) {
     const el = $("weather-moon");
@@ -395,6 +411,7 @@
 
   function showWeatherMessage(kind, title, body, iconName) {
     setWeatherState(kind);
+    $("weather").dataset.art = "none";
     $("weather-message-icon").innerHTML = icon(iconName || (kind === "error" ? "alert" : "cloudOff"), 1.4);
     $("weather-message-title").textContent = title;
     $("weather-message-body").textContent = body;
@@ -417,8 +434,9 @@
     const stale = payload.status === "stale";
     setWeatherState("ok");
 
-    const isDay = payload.visual ? payload.visual.is_day : c.is_day;
-    $("weather-art").innerHTML = weatherArt(c.condition, isDay);
+    const art = tileArt(payload);
+    $("weather-art").innerHTML = art.html;
+    $("weather").dataset.art = art.kind;
     renderScene(stale && payload.visual ? { ...payload.visual, motion: "static" } : payload.visual);
     $("weather-temp").textContent = fmtTemp(c.temperature_c);
     $("weather-desc").textContent = c.description;

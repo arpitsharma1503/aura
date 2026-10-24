@@ -27,7 +27,8 @@ def srv(make_server):
 def lit_center(p, root: str) -> float:
     """Horizontal centre of the lit part of the moon drawn inside `root`, in SVG units (disc centre = 50)."""
     return p.js(f"""(() => {{ const s = document.querySelector({json.dumps(root)} + ' svg.moon');
-        const lit = s.querySelector('clipPath > *'); const b = lit.getBBox(); return b.x + b.width / 2; }})()""")
+        const lit = s.querySelector('clipPath > *'); const b = lit.getBBox();
+        return b.width > 0 && s.getBoundingClientRect().width > 0 ? b.x + b.width / 2 : null; }})()""")
 
 
 def test_tile_header_shows_moon_phase(chrome, srv):
@@ -44,10 +45,12 @@ def test_tile_header_shows_moon_phase(chrome, srv):
     (WAXING, -33.87, "left"), (WANING, -33.87, "right"),        # southern: mirrored
 ])
 def test_moon_orientation(chrome, srv, when, latitude, side):
-    p = dashboard(chrome, srv, weather=weather_payload(0, 21, latitude=latitude, moon_at=when))
+    # By day the header shows its own small moon (at night the big picture does).
+    p = dashboard(chrome, srv, weather=weather_payload(0, 12, latitude=latitude, moon_at=when))
     p.wait_for("!!document.querySelector('#weather-moon svg.moon clipPath > *')")
     assert p.js("document.querySelector('#weather-moon svg.moon').dataset.litSide") == side
     cx = lit_center(p, "#weather-moon")
+    assert cx is not None
     assert (cx > 60) if side == "right" else (cx < 40), cx
 
 
@@ -155,4 +158,95 @@ def test_entrance_screens_fit(chrome, srv, artifacts, w, h):
         return { sideways: b.scrollWidth - b.clientWidth, clipped: bad.map(e => e.className.baseVal ?? e.className) }; })()""")
     assert over["sideways"] <= 1 and over["clipped"] == [], over
     p.screenshot(str(artifacts / f"detail-sky-{w}x{h}.png"))
+    assert p.errors == [], p.errors
+
+
+# --- the big picture beside the temperature -------------------------------------------------
+
+ART = "document.querySelector('#weather-art')"
+
+
+def art(p):
+    return p.js(f"""(() => {{ const a = {ART}; return {{
+        kind: document.getElementById('weather').dataset.art,
+        moon: !!a.querySelector('.moon'), sun: !!a.querySelector('.sky-sun'),
+        cloud: !!a.querySelector('.wx-cloud'), rain: !!a.querySelector('.wx-drop'), bolt: !!a.querySelector('.wx-bolt'),
+        side: a.querySelector('.moon')?.dataset.litSide || null }}; }})()""")
+
+
+def test_night_clear_shows_the_phase_moon(chrome, srv):
+    p = dashboard(chrome, srv, weather=weather_payload(0, 21, moon_at=GIBBOUS))
+    p.wait_for(f"!!{ART}.querySelector('.moon')")
+    assert art(p) == {"kind": "moon", "moon": True, "sun": False, "cloud": False, "rain": False,
+                      "bolt": False, "side": "right"}
+    # A gibbous Moon, not the old crescent: the lit part covers most of the disc.
+    lit = p.js(f"""(() => {{ const g = {ART}.querySelector('.moon'), path = g.querySelector('clipPath > *');
+        const xs = []; for (let x = 4.05; x < 96; x += 0.1) if (path.isPointInFill(new DOMPoint(x, 50))) xs.push(x);
+        return xs.length / 920; }})()""")
+    assert lit == pytest.approx(0.85, abs=0.06)
+    # The header keeps the phase name and percentage; its small disc would only repeat the picture.
+    assert p.js("getComputedStyle(document.querySelector('#weather-moon svg')).display") == "none"
+    assert p.text(".weather__moon-name") == "Waxing Gibbous" and p.text(".weather__moon-pct") == "85%"
+
+
+def test_southern_night_moon_is_mirrored(chrome, srv):
+    p = dashboard(chrome, srv, weather=weather_payload(0, 21, latitude=-33.87, moon_at=WAXING))
+    p.wait_for(f"!!{ART}.querySelector('.moon')")
+    assert art(p)["side"] == "left"
+
+
+def test_day_clear_shows_the_glowing_sun(chrome, srv):
+    p = dashboard(chrome, srv, weather=weather_payload(0, 12))
+    p.wait_for(f"!!{ART}.querySelector('.sky-sun')")
+    assert art(p) == {"kind": "sun", "moon": False, "sun": True, "cloud": False, "rain": False,
+                      "bolt": False, "side": None}
+    assert p.js("getComputedStyle(document.querySelector('#weather-moon svg')).display") != "none"
+
+
+@pytest.mark.parametrize("code, hour, body", [(2, 21, "moon"), (3, 21, "moon"), (2, 12, "sun"), (3, 12, "sun")])
+def test_clouds_partly_cover_the_sun_or_moon(chrome, srv, code, hour, body):
+    p = dashboard(chrome, srv, weather=weather_payload(code, hour, moon_at=GIBBOUS))
+    p.wait_for(f"!!{ART}.querySelector('.wx-cloud')")
+    a = art(p)
+    assert a["kind"] == body and a[body] and a["cloud"] and not a["rain"]
+
+
+@pytest.mark.parametrize("code, hour, mark", [(63, 21, "rain"), (95, 12, "bolt"), (53, 21, "rain")])
+def test_wet_weather_keeps_its_condition_art(chrome, srv, code, hour, mark):
+    p = dashboard(chrome, srv, weather=weather_payload(code, hour, moon_at=GIBBOUS))
+    p.wait_for(f"!!{ART}.querySelector('svg')")
+    a = art(p)
+    assert a["kind"] == "icon" and a[mark] and not a["moon"] and not a["sun"]
+    assert p.js("getComputedStyle(document.querySelector('#weather-moon svg')).display") != "none"
+
+
+def test_without_astronomy_the_plain_icon_stays(chrome, srv):
+    payload = weather_payload(0, 21)
+    payload["astronomy"] = None
+    p = dashboard(chrome, srv, weather=payload)
+    p.wait_for(f"!!{ART}.querySelector('svg')")
+    a = art(p)
+    assert a["kind"] == "icon" and not a["moon"] and not a["sun"]
+
+
+RECTS = """(() => Object.fromEntries(['weather-art', 'weather-temp', 'weather-desc', 'weather-range', 'daily']
+    .map(id => { const r = document.getElementById(id).getBoundingClientRect();
+                 return [id, [r.left, r.top, r.width, r.height].map(v => Math.round(v * 10) / 10)]; })))()"""
+
+
+@pytest.mark.parametrize("w, h", ENTRANCE, ids=[f"{w}x{h}" for w, h in ENTRANCE])
+@pytest.mark.parametrize("hour", [12, 21], ids=["day", "night"])
+def test_picture_keeps_the_tile_layout(chrome, srv, artifacts, w, h, hour):
+    plain = weather_payload(0, hour, moon_at=GIBBOUS)
+    plain["astronomy"] = None
+    p0 = dashboard(chrome, srv, w, h, weather=plain)
+    p0.wait_for(f"!!{ART}.querySelector('svg')")
+    before = p0.js(RECTS)
+    p = dashboard(chrome, srv, w, h, weather=weather_payload(0, hour, moon_at=GIBBOUS))
+    p.wait_for(f"!!{ART}.querySelector('.moon, .sky-sun')")
+    after = p.js(RECTS)
+    assert after == before
+    clip = p.js(f"""(() => {{ const t = document.getElementById('weather'); return t.scrollHeight - t.clientHeight; }})()""")
+    assert clip <= 2
+    p.screenshot(str(artifacts / f"dashboard-sky-{'day' if hour == 12 else 'night'}-{w}x{h}.png"))
     assert p.errors == [], p.errors

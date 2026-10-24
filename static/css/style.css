@@ -616,6 +616,7 @@ a.btn { display: inline-flex; align-items: center; text-decoration: none; }
 .weather__moon { display: inline-flex; align-items: center; gap: 0.45em; cursor: pointer; }
 .weather__moon[hidden] { display: none; }
 .weather__moon svg { width: 1.35em; height: 1.35em; flex: none; }
+.weather[data-art="moon"] .weather__moon svg { display: none; }   /* the big picture already shows it */
 .weather__moon-name { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
 .weather__moon-pct { color: var(--ink-3); font-variant-numeric: tabular-nums; }
 
