@@ -57,7 +57,7 @@ from .network import mdns_url, share_url
 from .open_meteo import OpenMeteoProvider
 from .recommendations import Recommendation, build_recommendations
 from .security import LanOnlyMiddleware
-from .settings_store import SECTIONS, SettingsError, SettingsStore
+from .settings_store import SECTIONS, WIDGETS, SettingsError, SettingsStore
 from .voice import VoiceClient, VoiceError, VoiceSession
 from .astronomy import Astronomy, astronomy_for
 from .weather import (
@@ -296,7 +296,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             broker.publish("commute", {})
         if section in ("weather", "locations"):
             weather_service.refresh_seconds = prefs.weather.refresh_minutes * 60
-        if section in ("display", "weather", "locations", "groceries", "home", "meals"):
+        if section in ("display", "weather", "locations", "groceries", "home", "meals", "views"):
             broker.publish("location", {})        # dashboards re-read /api/config and refresh
         if section == "groceries":
             await auto_clear()
@@ -309,7 +309,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
                 "display": "Open dashboards update within a few seconds.",
                 "groceries": "Phones and the dashboard use the new settings now.",
                 "assistant": "The assistant uses the new settings now.",
-                "home": "Open dashboards show the new rooms and tiles within a few seconds.",
+                "home": "Open dashboards use the new names within a few seconds.",
+                "views": "Open dashboards show the new views within a few seconds.",
                 "meals": "Open dashboards use the new meal-plan settings within a few seconds."}.get(section, "")
 
     async def auto_clear() -> None:
@@ -469,6 +470,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "dev_preview": provider is not None and provider.is_mock,
             "location": location.public().model_dump(mode="json"),
             "home": prefs.home.model_dump(mode="json"),
+            "views": prefs.views.model_dump(mode="json"),
+            "widgets": {k: {"name": w["name"], "sizes": list(w["sizes"]), "size": w["size"], "about": w["about"]}
+                        for k, w in WIDGETS.items()},
             "assistant_enabled": prefs.assistant.enabled,
             "meals_enabled": prefs.meals.enabled,
         }

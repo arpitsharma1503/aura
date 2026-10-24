@@ -1,4 +1,4 @@
-"""AURA Home redesign: rooms, tile visibility/order, status capsules, protection/system/assistant tiles."""
+"""AURA Home redesign: views, widget visibility/order, status capsules, protection/system/assistant tiles."""
 
 import pytest
 
@@ -30,60 +30,70 @@ def dashboard(chrome, srv, w=1920, h=1080, dns=DNS, storage_room=None):
     p.fixture("/api/system/dns-filter", dns)
     p.goto(f"{srv.url}/")
     if storage_room:
-        p.js(f"localStorage.setItem('aura.room', '{storage_room}'); location.reload()")
-    p.wait_for("document.querySelectorAll('.room-tab').length >= 1"
+        p.js(f"sessionStorage.setItem('aura.view', '{storage_room}'); location.reload()")
+    p.wait_for("document.querySelectorAll('.view-tab').length >= 1"
                " && document.getElementById('protection-tile').dataset.state !== 'loading'"
                " && document.getElementById('system-tile').dataset.state !== 'loading'"
                " && document.getElementById('weather').dataset.state === 'ok'")
     return p
 
 
-def test_room_tabs_filter_tiles(chrome, srv):
+def test_view_tabs_show_each_views_widgets(chrome, srv):
     p = dashboard(chrome, srv)
-    tabs = p.js("[...document.querySelectorAll('.room-tab')].map(t => [t.textContent, t.getAttribute('aria-selected')])")
-    assert tabs == [["Overview", "true"], ["Entrance", "false"], ["Kitchen", "false"], ["Network & system", "false"]]
-    assert len(p.js(VISIBLE)) == 8
-    p.js("document.querySelector('.room-tab[data-room=kitchen]').click()")
-    assert sorted(p.js(VISIBLE)) == ["groceries", "meals"]
-    p.js("document.querySelector('.room-tab[data-room=network]').click()")
-    assert sorted(p.js(VISIBLE)) == ["protection", "system"]
-    assert p.js("document.querySelector('.room-tab[data-room=network]').getAttribute('aria-selected')") == "true"
-    assert p.js("localStorage.getItem('aura.room')") == "network"           # remembered on this screen only
+    tabs = p.js("[...document.querySelectorAll('.view-tab')].map(t => [t.textContent, t.getAttribute('aria-selected')])")
+    assert tabs == [["Home", "true"], ["Daily planning", "false"], ["Smart home", "false"], ["System", "false"]]
+    assert p.js(VISIBLE) == ["weather", "commute", "meals", "advice", "calendar", "groceries", "assistant", "smarthome"]
+    p.js("document.querySelector('.view-tab[data-view=daily]').click()")
+    assert sorted(p.js(VISIBLE)) == ["advice", "calendar", "commute", "groceries", "meals"]
+    assert p.js("document.getElementById('calendar-tile').dataset.size") == "l"
+    p.js("document.querySelector('.view-tab[data-view=system]').click()")
+    assert sorted(p.js(VISIBLE)) == ["assistant", "protection", "smarthome", "system"]
+    assert p.js("document.querySelector('.view-tab[data-view=system]').getAttribute('aria-selected')") == "true"
+    assert p.js("sessionStorage.getItem('aura.view')") == "system"           # this screen, this session
+    assert p.js("document.querySelector('.views__edit').getAttribute('href')") == "/settings#views"
     assert p.errors == []
 
 
-def test_room_tabs_keyboard(chrome, srv):
+def test_switching_views_makes_no_requests(chrome, srv):
     p = dashboard(chrome, srv)
-    p.js("document.querySelector('.room-tab').focus()")
+    p.js("""window.__reqs = 0; const f = window.fetch; window.fetch = (...a) => { window.__reqs++; return f(...a); };""")
+    for v in ("daily", "smart-home", "system", "home"):
+        p.js(f"document.querySelector('.view-tab[data-view={v}]').click()")
+    assert p.js("window.__reqs") == 0
+
+
+def test_view_tabs_keyboard_and_number_keys(chrome, srv):
+    p = dashboard(chrome, srv)
+    p.js("document.querySelector('.view-tab').focus()")
     p.call("Input.dispatchKeyEvent", type="keyDown", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
     p.call("Input.dispatchKeyEvent", type="keyUp", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
-    assert p.js("document.activeElement.dataset.room") == "entrance"
-    assert sorted(p.js(VISIBLE)) == sorted(["weather", "advice", "commute", "calendar", "assistant", "smarthome"])
+    assert p.js("document.activeElement.dataset.view") == "daily"
     p.call("Input.dispatchKeyEvent", type="keyDown", key="End", code="End", windowsVirtualKeyCode=35)
-    assert p.js("document.activeElement.dataset.room") == "network"
+    assert p.js("document.activeElement.dataset.view") == "system"
+    p.call("Input.dispatchKeyEvent", type="keyDown", key="3", code="Digit3", text="3", windowsVirtualKeyCode=51)
+    assert p.js("document.querySelector('.view-tab[aria-selected=true]').dataset.view") == "smart-home"
 
 
-def test_hidden_tiles_order_and_custom_room(chrome, srv):
-    status, body = srv.api("PATCH", "/api/settings/home", {
-        "name": "Sharma home", "tile_order": ["groceries", "weather"], "hidden_tiles": ["system"],
-        "rooms": [{"id": "living-room", "name": "Living room", "tiles": ["weather", "calendar", "system"]},
-                  {"id": "bedroom", "name": "Bedroom", "tiles": []}]})
+def test_custom_views_hidden_widgets_and_default_view(chrome, srv):
+    status, body = srv.api("PATCH", "/api/settings/home", {"name": "Sharma home", "hidden_tiles": ["system"]})
+    assert status == 200, body
+    status, body = srv.api("PATCH", "/api/settings/views", {"default_view": "living-room", "views": [
+        {"id": "living-room", "name": "Living room", "columns": "2", "tiles": [{"id": "groceries", "size": "w"}, "weather", "system"]},
+        {"id": "bedroom", "name": "Bedroom", "tiles": []}]})
     assert status == 200, body
     p = dashboard(chrome, srv)
     assert p.text("#home-name") == "Sharma home"
-    visible = p.js(VISIBLE)
-    assert "system" not in visible and len(visible) == 8
+    assert p.js("document.querySelector('.view-tab[aria-selected=true]').dataset.view") == "living-room"   # the default view
+    assert p.js(VISIBLE) == ["weather", "groceries"]                       # hidden everywhere stays hidden
     first = p.js("[...document.querySelectorAll('#tiles [data-tile]:not([hidden])')].sort((a, b) => a.style.order - b.style.order)[0].dataset.tile")
-    assert first == "groceries"
-    p.js("document.querySelector('.room-tab[data-room=living-room]').click()")
-    assert sorted(p.js(VISIBLE)) == ["calendar", "weather"]                 # hidden tiles stay hidden in rooms too
-    p.js("document.querySelector('.room-tab[data-room=bedroom]').click()")
+    assert first == "groceries" and p.js("document.getElementById('tiles').dataset.cols") == "2"
+    p.js("document.querySelector('.view-tab[data-view=bedroom]').click()")
     assert p.js(VISIBLE) == [] and "Nothing in Bedroom yet" in p.text("#tiles-empty")
 
 
-def test_unknown_saved_room_falls_back_to_overview(chrome, srv):
+def test_unknown_saved_view_falls_back_to_the_default(chrome, srv):
     p = dashboard(chrome, srv, storage_room="garage")
-    assert p.js("document.querySelector('.room-tab[aria-selected=true]').dataset.room") == "overview"
+    assert p.js("document.querySelector('.view-tab[aria-selected=true]').dataset.view") == "home"
 
 
 def test_status_capsules_come_from_real_data_and_open_details(chrome, srv, artifacts):
@@ -156,33 +166,3 @@ def test_assistant_tile_reflects_real_state(chrome, srv):
     assert p.text("#assistant-status") == "Listening…"
     p.js("window.AuraAssistant.onEvent({state: 'idle'})")
     assert p.text("#assistant-status") != "Listening…"
-
-
-def test_settings_home_editor_round_trip(chrome, srv, artifacts):
-    p = chrome.new_page()
-    p.viewport(1440, 900)
-    p.goto(f"{srv.url}/settings#home")
-    p.wait_for("!document.getElementById('s-main').hidden && document.querySelectorAll('#room-editor > li').length === 3", timeout=15)
-    # hide System, move Groceries to the top, add a room with two tiles, rename Kitchen
-    p.js("document.querySelector('#tile-editor li[data-value=advice] input').click()")   # off the Overview
-    for _ in range(3):
-        p.js("document.querySelector('#tile-editor li[data-value=groceries] .s-move').click()")
-    p.js("document.getElementById('room-new').value = 'Living room'; document.getElementById('room-add').click()")
-    p.js("""(() => { const li = document.querySelector('#room-editor li[data-id=living-room]');
-        li.querySelector('input[value=weather]').click(); li.querySelector('input[value=calendar]').click(); })()""")
-    p.js("""(() => { const n = document.querySelector('#room-editor li[data-id=kitchen] .s-room__name');
-        n.value = 'Kitchen & dining'; n.dispatchEvent(new Event('input', {bubbles: true})); })()""")
-    assert not p.js("document.querySelector('#home .s-save').disabled")
-    p.screenshot(str(artifacts / "settings-home-editor.png"))
-    p.js("document.querySelector('#home .s-save').click()")
-    p.wait_for("document.querySelector('#home .s-status').dataset.kind === 'ok'")
-    status, body = srv.api("GET", "/api/config")
-    home = body["home"]
-    assert home["tile_order"][0] == "groceries" and home["overview_hidden"] == ["advice", "protection", "system"]
-    assert home["hidden_tiles"] == []
-    assert {"id": "living-room", "name": "Living room", "tiles": ["weather", "calendar"]} in home["rooms"]
-    assert any(r["name"] == "Kitchen & dining" for r in home["rooms"])
-    # duplicate room names are refused in the editor
-    p.js("document.getElementById('room-new').value = 'living ROOM'; document.getElementById('room-add').click()")
-    assert "already a room" in p.text("#home .s-status")
-    assert p.errors == []

@@ -206,18 +206,17 @@ class Room(_Strict):
 
 
 def _default_rooms() -> list[Room]:
-    return [
-        Room(id="entrance", name="Entrance", tiles=["weather", "advice", "commute", "calendar", "assistant", "smarthome"]),
-        Room(id="kitchen", name="Kitchen", tiles=["meals", "groceries"]),
-        Room(id="network", name="Network & system", tiles=["protection", "system"]),
-    ]
+    """The home's rooms: smart-home devices are assigned to these. (Dashboard tabs are views.)"""
+    return [Room(id="living-room", name="Living room"), Room(id="bedroom", name="Bedroom"),
+            Room(id="kitchen", name="Kitchen"), Room(id="entrance", name="Entrance")]
 
 
 class HomeSettings(_Strict):
     name: str = "Home"
+    # Before views (see ViewsSettings) the dashboard had one Overview tab plus room tabs.
+    # These fields are kept so saved settings stay valid and can be migrated into views.
     tile_order: list[TileId] = Field(default_factory=lambda: list(TILES))
-    hidden_tiles: list[TileId] = []                          # hidden everywhere (rooms too)
-    # Not on the Overview tab (it holds exactly 3 rows of 4). Protection keeps its status capsule there.
+    hidden_tiles: list[TileId] = []                          # hidden in every view
     overview_hidden: list[TileId] = Field(default_factory=lambda: ["protection", "system"])
     rooms: list[Room] = Field(default_factory=_default_rooms, max_length=8)
 
@@ -274,6 +273,134 @@ class AssistantSettings(_Strict):
     wake_word: bool = False
 
 
+# --------------------------------------------------------------------------- views
+
+# The widget registry: every dashboard tile, the sizes it can be shown at and its default.
+# s = 1 column, w = 2 columns, l = 2 columns x 2 rows (on the entrance screen).
+WIDGETS: dict[str, dict[str, Any]] = {
+    "weather": {"name": "Weather", "sizes": ("w", "l"), "size": "w", "about": "Now, 5-day outlook, Sun & Moon"},
+    "commute": {"name": "Commute", "sizes": ("w", "l"), "size": "w", "about": "Best time to leave for the office"},
+    "meals": {"name": "Today's meals", "sizes": ("w", "l"), "size": "w", "about": "Meal plan day and tonight's prep"},
+    "groceries": {"name": "Groceries", "sizes": ("w", "l"), "size": "w", "about": "Shared shopping list"},
+    "advice": {"name": "Before you go", "sizes": ("s", "w"), "size": "s", "about": "Tips from the weather"},
+    "calendar": {"name": "Calendar", "sizes": ("s", "w", "l"), "size": "s", "about": "Events, birthdays, holidays"},
+    "assistant": {"name": "Ask AURA", "sizes": ("s", "w"), "size": "s", "about": "Voice assistant status"},
+    "smarthome": {"name": "Smart home", "sizes": ("s", "w", "l"), "size": "s", "about": "Devices, favourites, rooms"},
+    "protection": {"name": "Network protection", "sizes": ("s", "w"), "size": "s", "about": "Pi-hole ad blocking"},
+    "system": {"name": "System", "sizes": ("s", "w"), "size": "s", "about": "Raspberry Pi health"},
+}
+Size = Literal["s", "w", "l"]
+CELLS = {"s": 1, "w": 2, "l": 4}
+VIEW_ID = r"^[a-z0-9][a-z0-9-]{0,23}$"
+
+
+class ViewTile(_Strict):
+    id: TileId
+    size: Size | None = None              # None: the widget's default size
+
+    @model_validator(mode="after")
+    def _size(self):
+        if self.size not in WIDGETS[self.id]["sizes"]:
+            self.size = WIDGETS[self.id]["size"]         # sizes a widget can't do fall back to its default
+        return self
+
+
+class View(_Strict):
+    """A dashboard view: a named set of widgets with their order, sizes and layout.
+    Taking a widget out of a view only hides it there; the feature and its data stay."""
+    id: str = Field(pattern=VIEW_ID)
+    name: str
+    description: str = ""
+    columns: Literal["auto", "1", "2", "3", "4"] = "auto"      # "auto": 4 on the entrance screen
+    tiles: list[ViewTile] = Field(default_factory=list, max_length=len(TILES))
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _name(cls, v):
+        return _label(v, "view name", 24)
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def _desc(cls, v):
+        return "" if v in (None, "") else _label(v, "description", 80)
+
+    @field_validator("tiles", mode="before")
+    @classmethod
+    def _tiles(cls, v):
+        if not isinstance(v, list):
+            raise ValueError("must be a list of widgets")
+        out, seen = [], set()
+        for t in v:
+            t = {"id": t} if isinstance(t, str) else t.model_dump() if isinstance(t, ViewTile) else t
+            if not isinstance(t, dict) or t.get("id") not in TILES:
+                raise ValueError(f"unknown widget: {t!r}"[:80])
+            if t["id"] not in seen:                         # each widget once per view
+                seen.add(t["id"])
+                out.append(t)
+        return out
+
+
+def _view(id_: str, name: str, description: str, tiles: list[tuple[str, str | None]], columns: str = "auto") -> View:
+    return View(id=id_, name=name, description=description, columns=columns,
+                tiles=[ViewTile(id=t, size=sz) for t, sz in tiles])
+
+
+PRESET_VIEWS: dict[str, View] = {v.id: v for v in (
+    # Home = the dashboard as it was before views: exactly the 12 spaces of the entrance screen.
+    _view("home", "Home", "Everything important at a glance",
+          [("weather", "w"), ("commute", "w"), ("meals", "w"), ("groceries", "w"), ("advice", "s"),
+           ("calendar", "s"), ("assistant", "s"), ("smarthome", "s")]),
+    _view("daily", "Daily planning", "Calendar, meals, groceries and the commute",
+          [("calendar", "l"), ("meals", "w"), ("groceries", "w"), ("commute", "w"), ("advice", "w")]),
+    _view("smart-home", "Smart home", "Devices, rooms, scenes and the assistant",
+          [("smarthome", "l"), ("assistant", "w"), ("weather", "w")]),
+    _view("system", "System", "Pi health, network protection and services",
+          [("system", "w"), ("protection", "w"), ("assistant", "w"), ("smarthome", "w")]),
+)}
+
+
+def _preset_views() -> list[View]:
+    return [v.model_copy(deep=True) for v in PRESET_VIEWS.values()]
+
+
+def views_from_home(home: HomeSettings) -> list[View]:
+    """Views for a household that arranged the old Overview/room tabs: the Overview becomes
+    "Home" (same tiles, same order) and each room with tiles becomes a view of its own."""
+    hidden = set(home.hidden_tiles)
+    overview = [t for t in home.tile_order if t not in hidden and t not in home.overview_hidden]
+    views = [_view("home", "Home", "Everything important at a glance", [(t, None) for t in overview])]
+    for r in home.rooms:
+        tiles = [t for t in r.tiles if t not in hidden]
+        if tiles and r.id != "home" and len(views) < 8:
+            views.append(_view(r.id, r.name, "", [(t, None) for t in tiles]))
+    for preset in ("smart-home", "system"):                 # the new widgets get somewhere to live
+        if len(views) < 8 and all(v.id != preset and v.name.casefold() != PRESET_VIEWS[preset].name.casefold() for v in views):
+            views.append(PRESET_VIEWS[preset].model_copy(deep=True))
+    return views
+
+
+class ViewsSettings(_Strict):
+    """Dashboard views (the tabs under the clock). Stored apart from the widgets' own data."""
+    version: int = 1
+    views: list[View] = Field(default_factory=_preset_views, min_length=1, max_length=8)
+    default_view: str = Field(default="home", pattern=VIEW_ID)
+
+    @model_validator(mode="after")
+    def _check(self):
+        ids = [v.id for v in self.views]
+        names = [v.name.casefold() for v in self.views]
+        if len(set(ids)) != len(ids) or len(set(names)) != len(names):
+            raise ValueError("view names must be different from each other")
+        if self.default_view not in ids:
+            self.default_view = ids[0]                      # the default view was deleted: use the first
+        return self
+
+
+def _arranged(home_overrides: dict) -> bool:
+    return bool(home_overrides.get("tile_order") or home_overrides.get("overview_hidden") is not None
+                or any(r.get("tiles") for r in home_overrides.get("rooms") or [] if isinstance(r, dict)))
+
+
 SECTIONS: dict[str, type[_Strict]] = {
     "display": DisplaySettings,
     "weather": WeatherSettings,
@@ -283,8 +410,9 @@ SECTIONS: dict[str, type[_Strict]] = {
     "assistant": AssistantSettings,
     "home": HomeSettings,
     "meals": MealSettings,
+    "views": ViewsSettings,                       # after "home": first use migrates the old tabs
 }
-Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant", "home", "meals"]
+Section = Literal["display", "weather", "locations", "commute", "groceries", "assistant", "home", "meals", "views"]
 
 
 def env_defaults(env: Settings) -> dict[str, dict[str, Any]]:
@@ -376,6 +504,15 @@ class SettingsStore:
         model = SECTIONS[section]
         defaults = self._defaults.get(section, {})
         overrides = self._overrides(section)
+        if section == "views" and not overrides and _arranged(self._overrides("home")):
+            # The household arranged the old Overview/room tabs: keep that as their views, and
+            # save it so later changes to rooms can't change the views.
+            migrated = ViewsSettings(views=views_from_home(self._cache["home"]))
+            self._db.execute("INSERT OR REPLACE INTO settings (section, data, updated_at) VALUES (?, ?, ?)",
+                             ("views", json.dumps({"views": migrated.model_dump(mode="json")["views"]}),
+                              datetime.now(UTC).isoformat(timespec="seconds")))
+            log.info("settings: old dashboard tabs migrated to %d views", len(migrated.views))
+            return migrated
         try:
             return model.model_validate({**defaults, **overrides})
         except ValidationError:
@@ -401,6 +538,8 @@ class SettingsStore:
     def home(self) -> HomeSettings: return self._cache["home"]  # noqa: E704
     @property
     def meals(self) -> MealSettings: return self._cache["meals"]  # noqa: E704
+    @property
+    def views(self) -> ViewsSettings: return self._cache["views"]  # noqa: E704
 
     def customized(self, section: str) -> list[str]:
         return sorted(self._overrides(section))

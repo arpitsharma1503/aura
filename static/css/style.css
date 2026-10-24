@@ -1039,20 +1039,26 @@ body[data-phase="night"] .shell { opacity: 0.9; }
 .status__btn[data-kind="alert"] .status__value { color: var(--warn); }
 
 /* ---------- Room tabs ---------- */
-.rooms { display: flex; gap: 0.45rem; overflow-x: auto; scrollbar-width: none; margin: 0 calc(var(--pad) * -1); padding: 0.1rem var(--pad); }
-.rooms::-webkit-scrollbar { display: none; }
-.rooms:empty { display: none; }
-.room-tab {
+/* view switcher: tabs on one glass bar, plus the edit button */
+.views { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.views__tabs { display: flex; gap: 0.25rem; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.views__tabs::-webkit-scrollbar { display: none; }
+.views__tabs:empty { display: none; }
+.views__edit { flex: none; display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%;
+  color: var(--ink-2); background: var(--surface-1); text-decoration: none; }
+.views__edit svg { width: 1.15rem; height: 1.15rem; }
+.views__edit:hover { color: var(--ink); background: var(--surface-2); }
+.views__edit:focus-visible { box-shadow: var(--focus); }
+.view-tab {
   all: unset; box-sizing: border-box; flex: none; cursor: pointer;
   display: inline-flex; align-items: center; gap: 0.45rem; min-height: 2.5rem; padding: 0 1.05rem;
   border-radius: var(--r-pill); font-size: 0.92rem; font-weight: 600; color: var(--ink-2); background: var(--surface-1);
   transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
   -webkit-tap-highlight-color: transparent;
 }
-.room-tab:hover { background: var(--surface-2); color: var(--ink); }
-.room-tab:focus-visible { box-shadow: var(--focus); }
-.room-tab[aria-selected="true"] { background: var(--ink); color: #0b0d12; }
-.room-tab__count { font-size: 0.75rem; font-weight: 600; opacity: 0.6; }
+.view-tab:hover { background: var(--surface-2); color: var(--ink); }
+.view-tab:focus-visible { box-shadow: var(--focus); }
+.view-tab[aria-selected="true"] { background: var(--ink); color: #0b0d12; }
 
 /* ---------- Tiles ---------- */
 .tiles {
@@ -1061,8 +1067,13 @@ body[data-phase="night"] .shell { opacity: 0.9; }
 }
 @media (min-width: 720px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .tile--wide { grid-column: span 2; }
+  .tile[data-size="w"], .tile[data-size="l"] { grid-column: span 2; }
 }
+/* switching views: a short fade, no layout animation */
+.tiles.is-switching { animation: view-in 180ms var(--ease); }
+@keyframes view-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tiles.is-switching { animation: none; } }
+body.force-reduce .tiles.is-switching { animation: none; }
 .tiles__empty { grid-column: 1 / -1; margin: 1rem 0; color: var(--ink-3); font-size: 1rem; }
 
 .tile {
@@ -1257,7 +1268,7 @@ body[data-phase="night"] .shell { opacity: 0.9; }
   .grocery__item button { min-height: 44px; }
   .sheet__close { width: 2.75rem; height: 2.75rem; }
   .results button { min-height: 44px; }
-  .room-tab { min-height: 44px; }
+  .view-tab, .views__edit { min-height: 44px; } .views__edit { width: 44px; }
   .status__btn { min-height: 44px; }
 }
 
@@ -1310,13 +1321,24 @@ body[data-phase="night"] .shell { opacity: 0.9; }
   .status { max-width: 62%; gap: calc(var(--u) * 0.5); }
   .status__btn { min-height: calc(var(--u) * 2.75); }
 
+  /* each view sets --cols (1-4) and --rows (from its widgets' sizes); taller views scroll
+     inside the tile area instead of squeezing tiles below a readable height */
   .tiles {
-    flex: 1; min-height: 0;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none;
+    grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--rows, 3), minmax(calc(var(--u) * 11), 1fr));
+    grid-auto-rows: minmax(calc(var(--u) * 11), 1fr);
   }
+  .tiles::-webkit-scrollbar { display: none; }
+  .tile[data-size="l"] { grid-row: span 2; }
+  /* large weather: the next hours and today's details below the outlook */
+  .weather[data-size="l"] .weather__content { grid-template-rows: auto auto auto 1fr; }
+  .weather[data-size="l"] .weather__stats { display: flex; grid-column: 1 / -1; grid-row: 2; }
+  .weather[data-size="l"] .hourly { display: grid; grid-column: 1 / -1; grid-row: 3; }
+  .weather[data-size="l"] .weather__sun { display: flex; }
+  .weather[data-size="l"] .weather__meta { grid-row: 4; align-self: end; }
+  .tiles[data-cols="1"] .tile[data-size] { grid-column: auto; }
   .tile { min-height: 0; overflow: hidden; padding: calc(var(--u) * 1.05) calc(var(--u) * 1.15) calc(var(--u) * 0.9); gap: calc(var(--u) * 0.6); }
-  .tile--wide { grid-column: span 2; }
 
   /* weather: reading on the left, 5-day outlook on the right */
   .weather__content { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); grid-template-rows: 1fr auto; gap: calc(var(--u) * 0.5) calc(var(--u) * 1.4); align-items: center; }
@@ -1386,6 +1408,10 @@ body.kiosk, body.kiosk * { cursor: none !important; }
 .mp-batches small { color: var(--ink-3); }
 
 /* ---------- smart home (tile + view) ---------- */
+.shtile__rooms { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
+.shtile__rooms li { display: flex; justify-content: space-between; gap: 1rem; padding: 0.45rem 0.7rem; border-radius: var(--r-sm); background: var(--surface-1); font-size: 0.95rem; }
+.shtile__rooms span { color: var(--ink-3); }
+.agenda__day { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); margin-top: 0.3rem; }
 .shtile__favs { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .shtile__fav { font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: var(--r-pill); background: var(--surface-1); color: var(--ink-2);
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1466,3 +1492,74 @@ body.kiosk, body.kiosk * { cursor: none !important; }
 .sh-guides dt { font-weight: 600; margin-top: 0.6rem; }
 .sh-guides dd { margin: 0; color: var(--ink-2); line-height: 1.5; }
 @media (max-width: 560px) { .sh-ctl { grid-template-columns: minmax(0, 1fr); gap: 0.3rem; } }
+
+/* =====================================================================
+   Liquid Glass: AURA's surface system (inspired by, not copied from, Apple's).
+   Three levels; blur only where it earns its cost on the Pi:
+     primary     - view switcher, detail sheet, dialogs: blurred, brightest edge
+     secondary   - tiles: translucent tint + light-catching top edge, no blur
+                   (8-10 blurred tiles cost frames on the Pi; over the soft
+                   ambient background they read the same without it)
+     interactive - tabs, capsules, buttons: small glass pills, a lit "lens" when selected
+   Without backdrop-filter, or with "reduce transparency", surfaces become solid.
+   ===================================================================== */
+:root {
+  --glass-1: rgba(28, 32, 44, 0.52);                 /* primary tint (blurred) */
+  --glass-1-solid: #1a1e29;
+  --glass-2: rgba(255, 255, 255, 0.058);             /* tiles */
+  --glass-2-hover: rgba(255, 255, 255, 0.085);
+  --glass-3: rgba(255, 255, 255, 0.075);             /* controls */
+  --glass-3-hover: rgba(255, 255, 255, 0.12);
+  --glass-lens: rgba(255, 255, 255, 0.92);           /* selected tab: a bright lens with dark text */
+  --glass-edge: rgba(255, 255, 255, 0.10);           /* hairline all round */
+  --glass-rim: rgba(255, 255, 255, 0.16);            /* the brighter top edge that catches light */
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 38%);
+  --glass-blur: blur(22px) saturate(150%);
+  --glass-depth-1: 0 18px 50px -18px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.25);
+  --glass-depth-2: 0 10px 30px -16px rgba(0, 0, 0, 0.55);
+}
+
+/* ---- primary ---- */
+.views__tabs, .detail, .sheet {
+  background: var(--glass-1);
+  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-depth-1);
+}
+.views__tabs:not(:empty) { padding: 0.28rem; border-radius: var(--r-pill); }
+.detail { background: linear-gradient(180deg, rgba(34, 38, 52, 0.78), rgba(18, 21, 30, 0.86)); }
+.detail__head { background: var(--glass-sheen); }
+
+/* ---- secondary: tiles ---- */
+.tile {
+  background: var(--glass-sheen), var(--glass-2);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-depth-2);
+}
+.tile[data-open]:hover { background: var(--glass-sheen), var(--glass-2-hover); }
+/* status is never colour alone: alert tiles also get a warm rim and their text says what's wrong */
+.tile[data-state="alert"], .tile[data-state="error"] { box-shadow: inset 0 1px 0 rgba(255, 179, 92, 0.35), var(--glass-depth-2); }
+
+/* ---- interactive ---- */
+.view-tab { background: transparent; color: var(--ink-2); }
+.view-tab:hover { background: var(--glass-3-hover); color: var(--ink); }
+.view-tab[aria-selected="true"] { background: var(--glass-lens); color: #0b0d12; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 #fff; }
+.views__edit, .topbar__mic, .topbar__settings, .status__btn, .btn {
+  background: var(--glass-3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 0 1px var(--glass-edge);
+}
+.views__edit:hover, .topbar__mic:hover, .topbar__settings:hover, .status__btn:hover, .btn:hover { background: var(--glass-3-hover); }
+.btn--primary { background: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 14px -6px rgba(255, 207, 122, 0.6); }
+.btn--primary:hover { background: #ffd993; }
+.status__btn[data-kind="alert"] { background: rgba(255, 179, 92, 0.16); box-shadow: inset 0 1px 0 rgba(255, 179, 92, 0.3), 0 0 0 1px rgba(255, 179, 92, 0.25); }
+.topbar__mic.is-live { background: var(--danger); }
+
+/* ---- graceful degradation ---- */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .views__tabs, .detail, .sheet { background: var(--glass-1-solid); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .views__tabs, .detail, .sheet { background: var(--glass-1-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .tile { background: #171a22; }
+}
+body.force-reduce .views__tabs, body.force-reduce .detail, body.force-reduce .sheet { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-1-solid); }

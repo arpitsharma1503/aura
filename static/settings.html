@@ -29,6 +29,7 @@
     </header>
 
     <nav class="s-nav" aria-label="Settings sections">
+      <a href="#views">Views</a>
       <a href="#home">Home &amp; rooms</a>
       <a href="#meals">Meal plan</a>
       <a href="#locations">Locations</a>
@@ -54,27 +55,34 @@
 
     <main class="s-main" id="s-main" hidden>
 
+      <form class="s-card s-card--wide" id="views" data-section="views" aria-labelledby="views-h" novalidate>
+        <header class="s-card__head"><h2 id="views-h">Views</h2></header>
+        <p class="s-help">Views are the tabs under the clock: each one shows the widgets you pick, in your order and size.
+          Taking a widget out of a view only hides it there; its data and settings stay. The entrance screen fits
+          12 spaces per view (3 rows of 4); a taller view scrolls inside the tile area.</p>
+        <div id="view-editor" data-field="views" data-type="views"></div>
+        <span data-field="default_view" data-type="default-view" hidden></span>
+        <div class="s-inline">
+          <input class="sheet__input" id="view-new" maxlength="24" placeholder="New view, e.g. Fitness" aria-label="New view name">
+          <button type="button" class="btn" id="view-add">Add view</button>
+        </div>
+        <small class="s-help">Up to 8 views. On the dashboard, keys 1–9 switch views. “Reset” at the bottom brings back the four standard views.</small>
+      </form>
+
       <form class="s-card" id="home" data-section="home" aria-labelledby="home-h" novalidate>
         <header class="s-card__head"><h2 id="home-h">Home &amp; rooms</h2></header>
-        <p class="s-help">Rooms group the dashboard's tiles so each part of the home shows what matters there. They are
-          labels for information, not connected devices; real smart-home devices can be added to rooms later.</p>
+        <p class="s-help">The rooms of your home. Smart-home devices are assigned to these rooms. (What the dashboard
+          shows is set in Views.)</p>
         <label class="s-field"><span>Home name</span>
           <input class="sheet__input" data-field="name" maxlength="30" autocomplete="off"></label>
-        <div class="s-field">
-          <span id="tiles-label">Tiles on the Overview</span>
-          <ol class="s-list" id="tile-editor" data-field="tile_order" data-type="tiles" aria-labelledby="tiles-label"></ol>
-          <span data-field="overview_hidden" data-type="hidden-tiles" hidden></span>
-          <small class="s-help">Ticked tiles appear on the Overview, in this order. Rooms show their own tiles. The entrance
-            screen fits 12 spaces: wide tiles take 2.</small>
-        </div>
         <div class="s-field">
           <span id="rooms-label">Rooms</span>
           <ol class="s-list" id="room-editor" data-field="rooms" data-type="rooms" aria-labelledby="rooms-label"></ol>
           <div class="s-inline">
-            <input class="sheet__input" id="room-new" maxlength="24" placeholder="New room, e.g. Living room" aria-label="New room name">
+            <input class="sheet__input" id="room-new" maxlength="24" placeholder="New room, e.g. Study" aria-label="New room name">
             <button type="button" class="btn" id="room-add">Add room</button>
           </div>
-          <small class="s-help">Up to 8 rooms. Pick which tiles each room shows; the Overview always shows every visible tile.</small>
+          <small class="s-help">Up to 8 rooms.</small>
         </div>
       </form>
 

@@ -72,6 +72,8 @@ class AuraServer:
             "AURA_LOCATION_DETECTION": "off",
             "AURA_COMMUTE_ENABLED": "false",
             "AURA_CALENDAR_FEEDS": "", "AURA_VOICE_PORT": "1025",          # never fetch the household's real calendars in tests
+            # never connect to the household's real Home Assistant (the token in .env)
+            "AURA_HOMEASSISTANT_TOKEN": "", "AURA_HOMEASSISTANT_URL": "http://127.0.0.1:1",
             "AURA_EDIT_ACCESS": "lan",
             "AURA_PUBLIC_URL": f"http://127.0.0.1:{self.port}",
             **(env or {}),

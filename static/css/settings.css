@@ -207,3 +207,29 @@ li:last-child > .s-move:nth-of-type(2), li:last-child > .s-room__top > .s-move:n
 .s-room__tiles label { display: inline-flex; align-items: center; gap: 0.4rem; min-height: 2.2rem; font-size: 0.9rem; color: var(--ink-2); cursor: pointer; }
 .s-room__tiles input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
 @media (pointer: coarse) { .s-move { width: 2.75rem; height: 2.75rem; } .s-room__tiles label { min-height: 2.75rem; } }
+
+/* ---------- views editor ---------- */
+
+.s-views { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.s-view { display: grid; gap: 0.7rem; padding: 1rem; border-radius: var(--r-sm); background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); }
+.s-view__top { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.s-view__name { flex: 1 1 12rem; font-weight: 600; }
+.s-view__start { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.88rem; color: var(--ink-2); padding: 0 0.4rem; }
+.s-view__meta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.s-view__desc { flex: 2 1 14rem; }
+.s-view__cols { flex: 1 1 10rem; }
+.s-view__tiles .s-row__main { display: grid; }
+.s-view__tiles .s-row__main small { color: var(--ink-3); font-size: 0.78rem; }
+.s-view__size { max-width: 7.5rem; }
+.s-view__actions { justify-content: flex-end; }
+.s-preview-wrap { display: grid; gap: 0.35rem; }
+.s-preview { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); grid-auto-rows: 2.2rem; gap: 0.3rem;
+  padding: 0.5rem; border-radius: 10px; background: rgba(0, 0, 0, 0.25); max-width: 34rem; }
+.s-preview__tile { display: grid; place-items: center; padding: 0 0.3rem; border-radius: 6px; font-size: 0.72rem; color: var(--ink-2);
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.08); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.s-preview__empty { grid-column: 1 / -1; color: var(--ink-3); font-size: 0.8rem; align-self: center; }
+
+/* Liquid Glass: Settings cards are secondary surfaces, like dashboard tiles */
+.s-card { background: var(--glass-sheen), var(--glass-2); border: 1px solid var(--glass-edge); box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-depth-2); }
+.s-card.is-dirty { border-color: rgba(255, 207, 122, 0.4); }
+@media (prefers-reduced-transparency: reduce) { .s-card { background: #171a22; } }

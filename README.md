@@ -255,6 +255,56 @@ simulated `nmcli`. To try it:
 2. Tap **Find Wi-Fi networks**, pick yours, enter the password, and confirm.
 3. Check with `nmcli -t -f DEVICE,STATE,CONNECTION device`.
 
+## Views
+
+The tabs under the clock are **views**: each is a named set of widgets with its own order,
+sizes and layout, so the screen shows what matters rather than everything at once.
+
+- **Standard views** (Settings → Views → *Reset to defaults* brings them back):
+  - **Home**: the dashboard as it was before views (weather, commute, meals, groceries,
+    tips, calendar, assistant, smart home), exactly the 12 spaces of the entrance screen.
+  - **Daily planning**: a large calendar (today, then the next days), meals, groceries,
+    commute and tips.
+  - **Smart home**: a large smart-home tile (favourites, rooms), the assistant and weather.
+  - **System**: Pi health, network protection, the assistant and the smart-home connection.
+- **Switching:**
+  - Tap a tab, use ←/→ on the tabs, or press **1–9**.
+  - The screen remembers its view until the browser closes, then opens on the **Start here** view.
+  - Switching makes no requests and starts nothing new. Every widget keeps updating as
+    before, because the status capsules at the top use them.
+- **Editing (Settings → Views, or the ⚙ button next to the tabs):**
+  - Add, rename, describe, duplicate, reorder and delete views (up to 8). Deleting asks
+    first, and the last view can't be deleted.
+  - Pick which widgets a view shows, their order and size: **Small** (1 space), **Wide**
+    (2) or **Large** (2×2, which shows more: next hours for weather, the following days
+    for the calendar, more groceries, rooms for smart home).
+  - Choose the layout: standard 4 columns, or 3, 2 or 1.
+  - Mark the start view.
+  - **Reset** on a standard view restores just that view's widgets.
+  - A live preview shows how the view packs and whether it fits the entrance screen (12
+    spaces). A taller view scrolls inside the tile area instead of shrinking tiles.
+- **Nothing is lost by removing a widget from a view:** its feature, data and settings stay,
+  and other views keep it.
+- **Storage:** views are their own settings section (`views`, versioned) in `data/aura.db`,
+  separate from the widgets' data. On first start, a household that had arranged the old
+  Overview and room tabs gets those as views (saved once). Saved settings that can't be read
+  fall back to the standard views.
+- **Rooms** (Settings → Home & rooms) are now only the rooms of the home, used for
+  smart-home devices.
+
+### Look: Liquid Glass
+
+AURA's surfaces use a glass system inspired by Apple's Liquid Glass (no Apple assets):
+
+- **Primary** surfaces (the view switcher, detail sheets, dialogs) are frosted: blur, a
+  bright top edge, deep shadow.
+- **Tiles** are translucent with a light-catching top edge and a soft shadow, but no blur.
+- **Controls** are small glass pills; the selected view is a bright "lens".
+- **Without blur support, or with *Reduce transparency* on the device, surfaces become solid.**
+  Reduced motion turns off the view-switch fade.
+- **Performance:** on the Pi's Chromium, the blur made no measurable difference to CPU use;
+  the weather animation is the main cost (Settings → Display can turn it off).
+
 ## Interactive tiles
 
 Every information tile on the dashboard opens a detail view. Tap or click
@@ -928,7 +978,7 @@ rooms, favourites and scenes. It never invents a device, a state or a success.
   - If Home Assistant accepted the command but the device stays silent for 6 s, AURA says so.
   - Offline devices and a disconnected Home Assistant refuse commands, and nothing is sent.
   - Each press carries a request id, so a repeated or replayed request never runs twice.
-- **Rooms** are the dashboard's rooms (Settings → Home & rooms). A device can be moved,
+- **Rooms** are the home's rooms (Settings → Home & rooms). A device can be moved,
   renamed or favourited from its page; favourites show on the tile.
 - **Scenes** are lists of explicit steps (device + action). Running one asks for
   confirmation and lists every change, then reports how many steps the devices confirmed.

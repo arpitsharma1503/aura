@@ -29,7 +29,7 @@
     protection: null,       // last /api/system/dns-filter response
     system: null,           // last /api/system/info response
     network: null,          // last /api/system/network response
-    room: "overview",       // selected room tab
+    view: null,             // selected view (tab)
     meals: null,            // last /api/meals/day response (today)
     smarthome: null,        // last /api/smarthome response
     groceryRevision: null,
@@ -611,8 +611,9 @@
     }
 
     count.textContent = `${open.length} to buy`;
-    // The entrance layout's wide tile has room for two columns of three.
-    const max = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches ? 6 : MAX_GROCERIES;
+    // On the entrance screen a wide tile has room for two columns of three; a large one for more.
+    const tv = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches;
+    const max = !tv ? MAX_GROCERIES : sizeOf("groceries") === "l" ? 16 : 6;
     const shown = open.slice(0, max);
     const canEdit = state.session?.can_edit;
     list.toggleAttribute("data-readonly", !canEdit);
@@ -886,10 +887,23 @@
     }
     empty.hidden = true;
     tile.dataset.state = cal.status === "partial" ? "alert" : "ok";
-    // At most three rows: three items, or two plus "+N more".
-    const shown = day.items.length > 3 ? day.items.slice(0, 2) : day.items;
+    // Small and wide: at most three rows (three items, or two plus "+N more").
+    // Large (2x2): up to eight rows, continuing into the following days with a day label.
+    const large = sizeOf("calendar") === "l";
+    const cap = large ? 8 : 3;
+    const shown = day.items.length > cap ? day.items.slice(0, cap - 1) : day.items;
     $("calendar-when").textContent = dayLabel(day.date, cal.today);
-    list.replaceChildren(...shown.map((it) => {
+    const later = [];
+    if (large && day.items.length <= cap) {
+      let room = cap - shown.length;
+      for (const d of days.slice(days.indexOf(day) + 1)) {
+        if (room < 2 || !d.items.length) continue;
+        const items = d.items.slice(0, room - 1);
+        later.push({ date: d.date, items });
+        room -= items.length + 1;
+      }
+    }
+    const row = (it) => {
       const li = document.createElement("li");
       li.className = "agenda__item";
       li.dataset.kind = it.kind;
@@ -897,6 +911,12 @@
       li.querySelector(".agenda__title").textContent = it.title;
       li.querySelector(".agenda__time").textContent = it.all_day ? "" : calTime(it, cal.timezone);
       return li;
+    };
+    list.replaceChildren(...shown.map(row), ...later.flatMap((d) => {
+      const head = document.createElement("li");
+      head.className = "agenda__day";
+      head.textContent = dayLabel(d.date, cal.today);
+      return [head, ...d.items.map(row)];
     }));
     if (day.items.length > shown.length) {
       const more = document.createElement("li");
@@ -989,6 +1009,7 @@
     const c = d.connection, n = d.counts;
     $("smarthome-aside").textContent = c.status === "connected" && d.scenes.length ? `${d.scenes.length} scene${d.scenes.length === 1 ? "" : "s"}` : "";
     favs.replaceChildren();
+    renderSmartHomeRooms([]);
     if (c.status !== "connected") {
       tile.dataset.state = c.status === "not_configured" ? "off" : "alert";
       val.textContent = c.status === "not_configured" ? "Not connected" : c.status === "connecting" ? "Connecting…" : "Unavailable";
@@ -1005,12 +1026,28 @@
     val.textContent = d.alerts.length ? d.alerts[0] : `${n.online} of ${n.total} online`;
     sub.textContent = n.offline ? d.warnings.slice(0, 2).join(" · ") + (n.offline > 2 ? ` +${n.offline - 2}` : "")
       : d.rooms.map((r) => `${r.name} ${r.on}/${r.total} on`).join(" · ");
-    favs.replaceChildren(...d.favorites.slice(0, 3).map((f) => {
+    const large = sizeOf("smarthome") === "l";
+    if (large && d.rooms.length) sub.textContent = n.offline ? sub.textContent : "";
+    renderSmartHomeRooms(large ? d.rooms : []);
+    favs.replaceChildren(...d.favorites.slice(0, large ? 8 : 3).map((f) => {
       const li = document.createElement("li");
       li.className = "shtile__fav";
       li.dataset.on = String(["on", "open", "playing", "unlocked"].includes(f.state));
       li.dataset.availability = f.availability;
       li.textContent = f.name;
+      return li;
+    }));
+  }
+
+  /** Large tile: one line per room (devices on / total, offline). */
+  function renderSmartHomeRooms(rooms) {
+    const ul = $("smarthome-rooms");
+    ul.hidden = !rooms.length;
+    ul.replaceChildren(...rooms.map((r) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<b></b><span></span>`;
+      li.querySelector("b").textContent = r.name;
+      li.querySelector("span").textContent = `${r.on} of ${r.total} on${r.offline ? ` · ${r.offline} offline` : ""}`;
       return li;
     }));
   }
@@ -1158,66 +1195,121 @@
     }));
   }
 
-  // ---------- rooms: tabs, tile order and visibility (Settings → Home & rooms) ----------
+  // ---------- views: the tabs under the clock (Settings → Views) ----------
+  // A view is a named set of widgets with their order, sizes and layout. Switching views only
+  // shows other tiles: every tile keeps loading as before (the status capsules use them), so a
+  // switch makes no requests and adds no listeners.
 
-  const ROOM_KEY = "aura.room";
+  const VIEW_KEY = "aura.view";            // this screen's view, for this browser session
+  /** The size a widget has in the current view ("s", "w" or "l"). */
+  const sizeOf = (id) => document.querySelector(`#tiles [data-tile="${id}"]`)?.dataset.size || "w";
+  const SPAN = { s: 1, w: 2, l: 2 };
+
+  function currentViews() {
+    const cfg = state.config;
+    if (!cfg?.views) return [];
+    const off = new Set([...(cfg.home?.hidden_tiles || []), ...(cfg.meals_enabled === false ? ["meals"] : [])]);
+    return cfg.views.views.map((v) => ({ ...v, tiles: v.tiles.filter((t) => !off.has(t.id)) }));
+  }
 
   function applyHome() {
     const home = state.config?.home;
     if (!home) return;
     $("home-name").textContent = home.name;
     document.title = `AURA · ${home.name}`;
-    const off = [...home.hidden_tiles, ...(state.config.meals_enabled === false ? ["meals"] : [])];
-    const overviewOff = [...off, ...(home.overview_hidden || [])];
-    const rooms = [{ id: "overview", name: "Overview", tiles: home.tile_order.filter((t) => !overviewOff.includes(t)) },
-      ...home.rooms.map((r) => ({ ...r, tiles: r.tiles.filter((t) => !off.includes(t)) }))];
-    if (!rooms.some((r) => r.id === state.room)) state.room = "overview";
-    const nav = $("rooms");
-    nav.replaceChildren(...(rooms.length > 1 ? rooms : []).map((r) => {
+    const views = currentViews();
+    if (!views.some((v) => v.id === state.view)) state.view = state.config.views.default_view;
+    if (!views.some((v) => v.id === state.view)) state.view = views[0]?.id;
+    const nav = $("views");
+    const tabs = (views.length > 1 ? views : []).map((v, i) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "room-tab";
+      b.className = "view-tab";
       b.setAttribute("role", "tab");
-      b.dataset.room = r.id;
-      b.setAttribute("aria-selected", String(r.id === state.room));
-      b.tabIndex = r.id === state.room ? 0 : -1;
-      b.textContent = r.name;
-      b.addEventListener("click", () => selectRoom(r.id));
+      b.dataset.view = v.id;
+      b.setAttribute("aria-selected", String(v.id === state.view));
+      b.setAttribute("aria-controls", "tiles");
+      if (i < 9) b.setAttribute("aria-keyshortcuts", String(i + 1));
+      if (v.description) b.title = v.description;
+      b.tabIndex = v.id === state.view ? 0 : -1;
+      b.textContent = v.name;
+      b.addEventListener("click", () => selectView(v.id));
       return b;
-    }));
-    const room = rooms.find((r) => r.id === state.room);
-    const order = room.id === "overview" ? home.tile_order : room.tiles;
+    });
+    const edit = document.createElement("a");
+    edit.className = "views__edit";
+    edit.href = "/settings#views";
+    edit.setAttribute("aria-label", "Edit views");
+    edit.title = "Edit views";
+    edit.innerHTML = icon("sliders", 1.8);
+    $("views-tabs").replaceChildren(...tabs);
+    nav.querySelector(".views__edit")?.remove();
+    nav.append(edit);
+    layoutView(views.find((v) => v.id === state.view) || { id: "none", name: "", columns: "auto", tiles: [] });
+  }
+
+  function layoutView(view) {
     const tiles = $("tiles");
-    tiles.dataset.room = room.id;
-    tiles.setAttribute("aria-label", room.id === "overview" ? "All tiles" : `${room.name} tiles`);
+    const cols = view.columns === "auto" ? 4 : Number(view.columns);
+    const pos = new Map(view.tiles.map((t, i) => [t.id, { i, size: t.size }]));
+    let cells = 0;
     for (const el of tiles.querySelectorAll("[data-tile]")) {
-      const id = el.dataset.tile;
-      el.hidden = !room.tiles.includes(id);
-      el.style.order = String(Math.max(0, order.indexOf(id)));
+      const p = pos.get(el.dataset.tile);
+      el.hidden = !p;
+      if (!p) continue;
+      el.dataset.size = p.size;
+      el.style.order = String(p.i);
+      cells += Math.min(SPAN[p.size], cols) * (p.size === "l" ? 2 : 1);
     }
+    // Widgets that show more when large: redraw from the data already loaded (no requests).
+    const sizes = view.tiles.map((t) => `${t.id}:${t.size}`).join();
+    if (sizes !== state.viewSizes) {
+      state.viewSizes = sizes;
+      if (state.calendar) renderAgenda(state.calendar);
+      if (state.groceries) renderGroceries(state.groceries);
+      if (state.smarthome) renderSmartHome(state.smarthome);
+    }
+    tiles.dataset.view = view.id;
+    tiles.dataset.cols = String(cols);
+    tiles.style.setProperty("--cols", String(cols));
+    tiles.style.setProperty("--rows", String(Math.max(2, Math.ceil(cells / cols))));
+    tiles.setAttribute("aria-label", view.name ? `${view.name} view` : "Tiles");
     const empty = $("tiles-empty");
-    empty.hidden = room.tiles.length > 0;
-    empty.textContent = room.id === "overview" ? "All tiles are hidden. Choose tiles in Settings → Home & rooms."
-      : `Nothing in ${room.name} yet. Choose its tiles in Settings → Home & rooms.`;
+    empty.hidden = view.tiles.length > 0;
+    empty.textContent = `Nothing in ${view.name || "this view"} yet. Choose its widgets in Settings → Views.`;
   }
 
-  function selectRoom(id, { focus = false } = {}) {
-    state.room = id;
-    try { localStorage.setItem(ROOM_KEY, id); } catch { /* private mode */ }
+  function selectView(id, { focus = false } = {}) {
+    if (id === state.view) return;
+    state.view = id;
+    try { sessionStorage.setItem(VIEW_KEY, id); } catch { /* private mode */ }
+    const tiles = $("tiles");
+    tiles.classList.remove("is-switching");
+    void tiles.offsetWidth;                         // restart the short fade
+    tiles.classList.add("is-switching");
     applyHome();
-    if (focus) $("rooms").querySelector(`[data-room="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
+    if (focus) $("views").querySelector(`[data-view="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
   }
 
-  function wireRooms() {
-    try { state.room = localStorage.getItem(ROOM_KEY) || "overview"; } catch { /* private mode */ }
-    $("rooms").addEventListener("keydown", (e) => {
+  function wireViews() {
+    try { state.view = sessionStorage.getItem(VIEW_KEY); } catch { /* private mode */ }
+    $("tiles").addEventListener("animationend", (e) => { if (e.target === $("tiles")) $("tiles").classList.remove("is-switching"); });
+    $("views").addEventListener("keydown", (e) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
-      const tabs = [...$("rooms").querySelectorAll(".room-tab")];
-      const i = tabs.findIndex((t) => t.dataset.room === state.room);
+      const tabs = [...$("views").querySelectorAll(".view-tab")];
+      if (!tabs.length) return;
+      const i = tabs.findIndex((t) => t.dataset.view === state.view);
       const next = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1
         : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
       e.preventDefault();
-      selectRoom(tabs[next].dataset.room, { focus: true });
+      selectView(tabs[next].dataset.view, { focus: true });
+    });
+    // 1-9 switch views (not while typing, and not with a detail view or dialog open).
+    document.addEventListener("keydown", (e) => {
+      if (!/^[1-9]$/.test(e.key) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.target.closest?.("input, textarea, select, [contenteditable]") || document.querySelector("dialog[open]")) return;
+      const v = currentViews()[Number(e.key) - 1];
+      if (v) { e.preventDefault(); selectView(v.id); }
     });
   }
 
@@ -1321,7 +1413,7 @@
   // The Pi's own screen opens /?kiosk=1 (see deploy/kiosk): hide the mouse pointer there.
   if (new URLSearchParams(location.search).has("kiosk")) document.body.classList.add("kiosk");
   for (const el of document.querySelectorAll("[data-icon]")) el.innerHTML = icon(el.dataset.icon, 1.7);
-  wireRooms();
+  wireViews();
   startClock();
   wireDialog();
   Detail.init({

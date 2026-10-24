@@ -264,7 +264,7 @@ window.AuraSmartHome = (() => {
         el("label", { class: "s-field" }, el("span", {}, "Name"), nameIn),
         el("button", { type: "button", class: "btn", onclick: () => nameIn.value.trim() && save(d, { name: nameIn.value.trim() }) }, "Rename"),
         el("label", { class: "s-field" }, el("span", {}, "Room"), roomSel)),
-      note("Rooms are the same rooms as on the dashboard (Settings → Home & rooms).", "dnote--muted")));
+      note("Rooms are your home's rooms (Settings → Home & rooms).", "dnote--muted")));
     out.push(el("section", { class: "dsec" }, el("h3", { class: "dsec__title" }, "Connection"),
       el("dl", { class: "dmetrics" },
         el("div", { class: "dmetric" }, el("dt", {}, "Through"), el("dd", {}, d.integration, det.platform ? el("small", {}, det.platform) : null)),

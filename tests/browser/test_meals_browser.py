@@ -139,7 +139,7 @@ def test_turned_off_hides_the_tile(chrome, srv):
     p = chrome.new_page()
     p.viewport(1920, 1080)
     p.goto(f"{srv.url}/")
-    p.wait_for("document.querySelectorAll('.room-tab').length > 0")
+    p.wait_for("document.querySelectorAll('.view-tab').length > 0")
     assert p.js("document.getElementById('meals-tile').hidden")
 
 

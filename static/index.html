@@ -70,11 +70,11 @@
       <ul class="status" id="status-row" aria-label="At a glance"></ul>
     </section>
 
-    <nav class="rooms" id="rooms" aria-label="Rooms" role="tablist"></nav>
+    <nav class="views" id="views" aria-label="Views"><div class="views__tabs" id="views-tabs" role="tablist" aria-label="Views"></div></nav>
 
-    <section class="tiles" id="tiles" role="tabpanel" aria-label="Tiles" data-room="overview">
+    <section class="tiles" id="tiles" role="tabpanel" aria-label="Tiles">
 
-      <article class="tile tile--wide card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
+      <article class="tile card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
         <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
         <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2><span class="tile__aside weather__moon" id="weather-moon" data-open="weather#astro" hidden></span></header>
         <div class="weather__loading">
@@ -106,7 +106,7 @@
         <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
-      <article class="tile tile--wide card commute" id="commute" data-tile="commute" data-tone="green" aria-labelledby="commute-title" data-state="loading" data-open="commute">
+      <article class="tile card commute" id="commute" data-tile="commute" data-tone="green" aria-labelledby="commute-title" data-state="loading" data-open="commute">
         <header class="tile__head"><span class="tile__icon" data-icon="car" aria-hidden="true"></span><h2 class="tile__title" id="commute-title">Commute</h2><span class="tile__aside" id="commute-route"></span></header>
         <div class="commute__body" id="commute-body">
           <div class="skeleton skeleton--row"></div>
@@ -116,7 +116,7 @@
         <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
-      <article class="tile tile--wide card meals" id="meals-tile" data-tile="meals" data-tone="lime" aria-labelledby="meals-title" data-open="meals" data-state="loading">
+      <article class="tile card meals" id="meals-tile" data-tile="meals" data-tone="lime" aria-labelledby="meals-title" data-open="meals" data-state="loading">
         <header class="tile__head"><span class="tile__icon" data-icon="bowl" aria-hidden="true"></span><h2 class="tile__title" id="meals-title">Today's meals</h2><span class="tile__aside" id="meals-day"></span></header>
         <ul class="meals__list" id="meals-list" aria-label="Today's meals"></ul>
         <p class="meals__prep" id="meals-prep"></p>
@@ -139,7 +139,7 @@
         <button type="button" class="tile-arrow" data-open="calendar" aria-haspopup="dialog" aria-label="Calendar details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
-      <article class="tile tile--wide card grocery" id="grocery-tile" data-tile="groceries" data-tone="orange" aria-labelledby="grocery-title" data-open="groceries">
+      <article class="tile card grocery" id="grocery-tile" data-tile="groceries" data-tone="orange" aria-labelledby="grocery-title" data-open="groceries">
         <header class="tile__head"><span class="tile__icon" data-icon="cart" aria-hidden="true"></span><h2 class="tile__title" id="grocery-title">Groceries</h2><span class="tile__aside card__count" id="grocery-count"></span></header>
         <div class="grocery__body">
           <ul class="grocery__list" id="grocery-list" data-state="loading">
@@ -165,6 +165,7 @@
         <header class="tile__head"><span class="tile__icon" data-icon="bulb" aria-hidden="true"></span><h2 class="tile__title" id="smarthome-title">Smart home</h2><span class="tile__aside" id="smarthome-aside"></span></header>
         <p class="tile__value" id="smarthome-status">&nbsp;</p>
         <ul class="shtile__favs" id="smarthome-favs" aria-label="Favourite devices"></ul>
+        <ul class="shtile__rooms" id="smarthome-rooms" aria-label="Rooms" hidden></ul>
         <p class="tile__sub" id="smarthome-sub"></p>
         <button type="button" class="tile-arrow" data-open="smarthome" aria-haspopup="dialog" aria-label="Smart home details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>

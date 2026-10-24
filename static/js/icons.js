@@ -213,6 +213,7 @@ window.AuraIcons = (() => {
     motion: '<circle cx="13" cy="4.5" r="1.6"/><path d="m9 21 2.5-6.5L14 17v4M7 12l3-4.5 4 1 2.5 3.5M11.5 14.5 10 9"/>',
     door: '<path d="M6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21M3.5 21h17"/><circle cx="15" cy="12.5" r="0.9"/>',
     camera: '<rect x="3" y="7" width="13" height="10" rx="2"/><path d="m16 11 5-3v8l-5-3"/>',
+    sliders: '<path d="M4 6.5h9M17 6.5h3M4 12h3M11 12h9M4 17.5h11M19 17.5h1"/><circle cx="15" cy="6.5" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17.5" r="2"/>',
     bolt: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6L13 3Z"/>',
   };
 

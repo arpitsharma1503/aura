@@ -1,4 +1,4 @@
-"""Settings → Home & rooms: validation, defaults, persistence and /api/config exposure."""
+"""Settings → Home & rooms: validation, defaults, persistence and /api/config exposure (views: test_views.py)."""
 
 from conftest import make_client
 
@@ -13,7 +13,7 @@ def test_defaults_exposed_in_config(tmp_path):
     home = lan(tmp_path).get("/api/config").json()["home"]
     assert home["name"] == "Home" and home["tile_order"] == TILES and home["hidden_tiles"] == []
     assert home["overview_hidden"] == ["protection", "system"]    # 12 cells: fits the entrance screen
-    assert [r["id"] for r in home["rooms"]] == ["entrance", "kitchen", "network"]
+    assert [r["id"] for r in home["rooms"]] == ["living-room", "bedroom", "kitchen", "entrance"]   # rooms for devices
     # Rooms only group information tiles; nothing implies connected hardware.
     assert all(set(r["tiles"]) <= set(TILES) for r in home["rooms"])
 
@@ -61,7 +61,7 @@ def test_reset(tmp_path):
     c = lan(tmp_path)
     c.patch("/api/settings/home", json={"name": "Flat 4B", "rooms": []})
     assert c.post("/api/settings/home/reset").json()["values"]["name"] == "Home"
-    assert len(c.get("/api/config").json()["home"]["rooms"]) == 3
+    assert len(c.get("/api/config").json()["home"]["rooms"]) == 4
 
 
 def test_editing_needs_edit_access(tmp_path):

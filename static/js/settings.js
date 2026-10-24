@@ -9,7 +9,7 @@
   const $ = (id) => document.getElementById(id);
   const state = { settings: null, info: null, snapshot: {}, canEdit: false, canAdmin: false, scan: [], target: null };
   const LABELS = { network: "Network", locations: "Locations", weather: "Weather", commute: "Commute",
-    display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms", meals: "Meal plan" };
+    display: "Display", groceries: "Groceries", assistant: "Assistant", home: "Home & rooms", meals: "Meal plan", views: "Views" };
   const TILE_NAMES = { weather: "Weather", commute: "Commute", meals: "Today's meals", smarthome: "Smart home", advice: "Before you go", groceries: "Groceries",
     calendar: "Calendar", assistant: "Ask AURA", protection: "Network protection", system: "System" };
 
@@ -84,14 +84,13 @@
     if (node.matches("fieldset.s-choice")) return node.querySelector("input:checked")?.value ?? null;
     if (type === "days") return [...node.querySelectorAll("input:checked")].map((i) => i.value);
     if (type === "list") return [...node.querySelectorAll("li")].map((li) => li.dataset.value);
-    if (type === "tiles") return [...node.querySelectorAll(":scope > li")].map((li) => li.dataset.value);
-    if (type === "hidden-tiles") return [...$("tile-editor").querySelectorAll(":scope > li")]
-      .filter((li) => !li.querySelector("input[type=checkbox]").checked).map((li) => li.dataset.value);
     if (type === "rooms") return [...node.querySelectorAll(":scope > li")].map((li) => ({
       id: li.dataset.id,
       name: li.querySelector(".s-room__name").value.trim(),
-      tiles: [...li.querySelectorAll(".s-room__tiles input:checked")].map((i) => i.value),
+      tiles: JSON.parse(li.dataset.tiles || "[]"),            // kept as saved (views replaced room tiles)
     }));
+    if (type === "views") return readViews();
+    if (type === "default-view") return $("view-editor").querySelector("input[name=default-view]:checked")?.value ?? null;
     if (node.type === "checkbox") return node.checked;
     const v = node.value.trim();
     if (type === "int") return v === "" ? null : Number(v);
@@ -108,14 +107,13 @@
       node.querySelectorAll("input").forEach((i) => { i.checked = (value || []).includes(i.value); });
     } else if (type === "list") {
       renderQuickAdd(value || []);
-    } else if (type === "tiles") {
-      renderTileEditor(value || []);
-    } else if (type === "hidden-tiles") {
-      for (const li of $("tile-editor").querySelectorAll(":scope > li")) {
-        li.querySelector("input[type=checkbox]").checked = !(value || []).includes(li.dataset.value);
-      }
     } else if (type === "rooms") {
       renderRoomEditor(value || []);
+    } else if (type === "views") {
+      renderViewEditor(value || []);
+    } else if (type === "default-view") {
+      const r = $("view-editor").querySelector(`input[name=default-view][value="${CSS.escape(value || "")}"]`);
+      if (r) r.checked = true;
     } else if (node.type === "checkbox") {
       node.checked = !!value;
     } else if (node.tagName === "SELECT" && value != null && ![...node.options].some((o) => o.value === String(value))) {
@@ -289,24 +287,13 @@
     return [up, down];
   }
 
-  function renderTileEditor(order) {
-    $("tile-editor").replaceChildren(...order.map((id) => {
-      const li = el("li", { class: "s-row", "data-value": id });
-      const box = el("input", { type: "checkbox", checked: true, "aria-label": `Show ${TILE_NAMES[id] || id} on the Overview` });
-      li.append(el("label", { class: "s-row__main" }, box, el("span", {}, TILE_NAMES[id] || id)), ...moveButtons(li, TILE_NAMES[id] || id));
-      return li;
-    }));
-  }
-
   function roomRow(room) {
-    const li = el("li", { class: "s-row s-room", "data-id": room.id });
+    const li = el("li", { class: "s-row s-room", "data-id": room.id, "data-tiles": JSON.stringify(room.tiles || []) });
     const name = el("input", { class: "sheet__input s-room__name", maxlength: "24", value: room.name, "aria-label": "Room name" });
-    const tiles = el("fieldset", { class: "s-room__tiles" }, el("legend", { class: "sr-only" }, `Tiles in ${room.name}`),
-      Object.entries(TILE_NAMES).map(([id, label]) => el("label", {},
-        el("input", { type: "checkbox", value: id, checked: room.tiles.includes(id) }), label)));
+    name.addEventListener("input", homeChanged);
     const remove = el("button", { type: "button", class: "s-move s-room__remove", "aria-label": `Remove ${room.name}` }, "×");
     remove.addEventListener("click", () => { li.remove(); homeChanged(); });
-    li.append(el("div", { class: "s-room__top" }, name, ...moveButtons(li, room.name), remove), tiles);
+    li.append(el("div", { class: "s-room__top" }, name, ...moveButtons(li, room.name), remove));
     return li;
   }
 
@@ -330,8 +317,174 @@
     while (rows.some((li) => li.dataset.id === id)) id = `${base}-${n++}`;
     list.append(roomRow({ id, name, tiles: [] }));
     input.value = "";
-    list.lastElementChild.querySelector(".s-room__tiles input")?.focus();
+    list.lastElementChild.querySelector(".s-room__name")?.focus();
     homeChanged();
+  }
+
+  // ---------- Views editor ----------
+  // Each view: name, description, layout (columns), start-here, its widgets (order + size),
+  // with a live preview of how it packs on the entrance screen. Nothing is saved until Save.
+  const SIZE_LABEL = { s: "Small", w: "Wide", l: "Large" };
+  const SIZE_CELLS = { s: [1, 1], w: [2, 1], l: [2, 2] };
+  const PRESETS = ["home", "daily", "smart-home", "system"];
+
+  function viewsChanged() {
+    const form = $("views");
+    for (const card of $("view-editor").querySelectorAll(".s-view")) drawPreview(card);
+    updateDirty(form); setStatus(form, isDirty(form) ? "Unsaved changes" : "");
+  }
+  const widgetName = (id) => state.widgets?.[id]?.name || TILE_NAMES[id] || id;
+
+  function readViews() {
+    return [...$("view-editor").querySelectorAll(".s-view")].map((card) => ({
+      id: card.dataset.id,
+      name: card.querySelector(".s-view__name").value.trim(),
+      description: card.querySelector(".s-view__desc").value.trim(),
+      columns: card.querySelector(".s-view__cols").value,
+      tiles: [...card.querySelectorAll(".s-view__tiles > li")].map((li) => ({ id: li.dataset.id, size: li.querySelector("select").value })),
+    }));
+  }
+
+  function tileRow(card, t) {
+    const sizes = state.widgets?.[t.id]?.sizes || ["s", "w", "l"];
+    const li = el("li", { class: "s-row", "data-id": t.id });
+    const size = el("select", { class: "sheet__input s-view__size", "aria-label": `Size of ${widgetName(t.id)}` },
+      sizes.map((z) => el("option", { value: z, selected: z === (t.size || state.widgets?.[t.id]?.size) }, SIZE_LABEL[z])));
+    size.addEventListener("change", viewsChanged);
+    const remove = el("button", { type: "button", class: "s-move", "aria-label": `Remove ${widgetName(t.id)} from this view` }, "×");
+    remove.addEventListener("click", () => { li.remove(); refreshAddList(card); viewsChanged(); });
+    const [up, down] = moveButtons(li, widgetName(t.id));
+    for (const b of [up, down]) b.addEventListener("click", () => viewsChanged());
+    li.append(el("span", { class: "s-row__main" }, widgetName(t.id), el("small", {}, state.widgets?.[t.id]?.about || "")), size, up, down, remove);
+    return li;
+  }
+
+  function refreshAddList(card) {
+    const used = new Set([...card.querySelectorAll(".s-view__tiles > li")].map((li) => li.dataset.id));
+    const sel = card.querySelector(".s-view__pick");
+    const free = Object.keys(state.widgets || TILE_NAMES).filter((id) => !used.has(id));
+    sel.replaceChildren(...free.map((id) => el("option", { value: id }, widgetName(id))));
+    card.querySelector(".s-view__add").disabled = !free.length;
+  }
+
+  function drawPreview(card) {
+    const cols = card.querySelector(".s-view__cols").value === "auto" ? 4 : Number(card.querySelector(".s-view__cols").value);
+    const tiles = [...card.querySelectorAll(".s-view__tiles > li")].map((li) => ({ id: li.dataset.id, size: li.querySelector("select").value }));
+    let cells = 0;
+    const boxes = tiles.map((t) => {
+      const [w, h] = SIZE_CELLS[t.size];
+      cells += Math.min(w, cols) * h;
+      const box = el("span", { class: "s-preview__tile" }, widgetName(t.id));
+      box.style.gridColumn = `span ${Math.min(w, cols)}`;       // CSSOM: allowed by the page's CSP (style attributes aren't)
+      box.style.gridRow = `span ${h}`;
+      return box;
+    });
+    const pv = card.querySelector(".s-preview");
+    pv.style.setProperty("--cols", cols);
+    pv.replaceChildren(...(boxes.length ? boxes : [el("span", { class: "s-preview__empty" }, "No widgets: this view will be empty.")]));
+    const rows = Math.ceil(cells / cols);
+    card.querySelector(".s-preview__note").textContent = !tiles.length ? ""
+      : cols === 4 && cells <= 12 ? `Uses ${cells} of 12 spaces: fits the entrance screen.`
+      : rows <= 3 ? "Fits the entrance screen." : `About ${rows} rows: the entrance screen shows 3 and scrolls for the rest.`;
+  }
+
+  function viewCard(v) {
+    const card = el("li", { class: "s-view", "data-id": v.id });
+    const name = el("input", { class: "sheet__input s-view__name", maxlength: "24", value: v.name, "aria-label": "View name" });
+    const desc = el("input", { class: "sheet__input s-view__desc", maxlength: "80", value: v.description || "", placeholder: "Description (optional)", "aria-label": "View description" });
+    const cols = el("select", { class: "sheet__input s-view__cols", "aria-label": "Layout" },
+      [["auto", "Standard (4 columns)"], ["3", "3 columns"], ["2", "2 columns"], ["1", "1 column"], ["4", "4 columns"]].map(([val, label]) =>
+        el("option", { value: val, selected: val === (v.columns || "auto") }, label)));
+    const start = el("label", { class: "s-view__start" }, el("input", { type: "radio", name: "default-view", value: v.id }), "Start here");
+    const [up, down] = moveButtons(card, v.name);
+    for (const b of [up, down]) b.addEventListener("click", () => viewsChanged());
+    const dup = el("button", { type: "button", class: "btn", "aria-label": `Duplicate ${v.name}` }, "Duplicate");
+    const reset = PRESETS.includes(v.id) ? el("button", { type: "button", class: "btn", "aria-label": `Reset ${v.name} to its original widgets` }, "Reset") : null;
+    const del = el("button", { type: "button", class: "btn", "aria-label": `Delete ${v.name}` }, "Delete");
+    const tiles = el("ol", { class: "s-list s-view__tiles", "aria-label": `Widgets in ${v.name}` });
+    const pick = el("select", { class: "sheet__input s-view__pick", "aria-label": "Widget to add" });
+    const add = el("button", { type: "button", class: "btn s-view__add" }, "Add widget");
+    card.append(
+      el("div", { class: "s-view__top" }, name, start, up, down),
+      el("div", { class: "s-row s-view__meta" }, desc, cols),
+      tiles,
+      el("div", { class: "s-inline" }, pick, add),
+      el("div", { class: "s-preview-wrap" }, el("div", { class: "s-preview", role: "img", "aria-label": `Preview of ${v.name}` }), el("small", { class: "s-preview__note s-help" })),
+      el("div", { class: "s-inline s-view__actions" }, dup, reset, del));
+    tiles.replaceChildren(...(v.tiles || []).map((t) => tileRow(card, t)));
+    refreshAddList(card);
+    for (const i of [name, desc]) i.addEventListener("input", viewsChanged);
+    cols.addEventListener("change", viewsChanged);
+    start.querySelector("input").addEventListener("change", viewsChanged);
+    add.addEventListener("click", () => {
+      if (!pick.value) return;
+      tiles.append(tileRow(card, { id: pick.value, size: null }));
+      refreshAddList(card); viewsChanged();
+    });
+    dup.addEventListener("click", () => {
+      const all = readViews();
+      if (all.length >= 8) { setStatus($("views"), "Up to 8 views.", "error"); return; }
+      const me = all.find((x) => x.id === card.dataset.id);
+      const copy = { ...me, id: uniqueViewId(`${me.id}-copy`), name: uniqueViewName(`${me.name} copy`) };
+      card.after(viewCard(copy));
+      viewsChanged();
+    });
+    reset?.addEventListener("click", () => {
+      const original = state.presetViews?.find((x) => x.id === v.id);
+      if (!original) return;
+      const fresh = viewCard({ ...original, name: name.value.trim() || original.name });
+      const wasDefault = start.querySelector("input").checked;
+      card.replaceWith(fresh);
+      if (wasDefault) fresh.querySelector("input[name=default-view]").checked = true;
+      viewsChanged();
+    });
+    del.addEventListener("click", async () => {
+      const cards = $("view-editor").querySelectorAll(".s-view");
+      if (cards.length <= 1) { setStatus($("views"), "Keep at least one view. Use Reset to bring back the standard views.", "error"); return; }
+      if (!(await confirmDialog(`Delete the view “${name.value.trim() || v.name}”?`,
+        "Only the view goes: its widgets, their data and other views stay. Nothing is saved until you press Save.", "Delete"))) return;
+      const wasDefault = start.querySelector("input").checked;
+      card.remove();
+      if (wasDefault) $("view-editor").querySelector("input[name=default-view]").checked = true;
+      viewsChanged();
+    });
+    return card;
+  }
+
+  function uniqueViewId(base) {
+    const ids = new Set(readViews().map((x) => x.id));
+    base = base.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 20) || "view";
+    let id = base, n = 2;
+    while (ids.has(id)) id = `${base.slice(0, 20)}-${n++}`;
+    return id;
+  }
+  function uniqueViewName(base) {
+    const names = new Set(readViews().map((x) => x.name.toLowerCase()));
+    let name = base.slice(0, 24), n = 2;
+    while (names.has(name.toLowerCase())) name = `${base.slice(0, 20)} ${n++}`;
+    return name;
+  }
+
+  function renderViewEditor(views) {
+    const list = el("ol", { class: "s-views" }, views.map(viewCard));
+    $("view-editor").replaceChildren(list);
+    for (const card of list.children) drawPreview(card);
+  }
+
+  function addView() {
+    const input = $("view-new");
+    const name = input.value.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    const form = $("views");
+    const all = readViews();
+    if (all.length >= 8) { setStatus(form, "Up to 8 views.", "error"); return; }
+    if (all.some((x) => x.name.toLowerCase() === name.toLowerCase())) { setStatus(form, `There's already a view called ${name}.`, "error"); return; }
+    const card = viewCard({ id: uniqueViewId(name), name, description: "", columns: "auto", tiles: [] });
+    $("view-editor").querySelector(".s-views").append(card);
+    drawPreview(card);
+    input.value = "";
+    card.querySelector(".s-view__pick").focus();
+    viewsChanged();
   }
 
   // ---------- place search (fills coordinates; nothing saved until Save) ----------
@@ -610,6 +763,8 @@
     $("qa-add").addEventListener("click", addQuickAdd);
     $("qa-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addQuickAdd(); } });
     $("room-add").addEventListener("click", addRoom);
+    $("view-add").addEventListener("click", addView);
+    $("view-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addView(); } });
     $("room-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addRoom(); } });
     $("net-refresh").addEventListener("click", loadNetwork);
     $("dns-refresh").addEventListener("click", () => loadDnsFilter(true));
@@ -642,7 +797,9 @@
     wirePlaceSearch();
 
     try {
-      const data = await api("/api/settings");
+      const [data, cfg] = await Promise.all([api("/api/settings"), api("/api/config")]);
+      state.widgets = cfg.widgets;                              // the widget registry (names, sizes)
+      state.presetViews = data.defaults?.views?.views || [];     // for "Reset" on a standard view
       state.settings = data.values;
       state.info = data.info;
       state.canEdit = data.can_edit;
