@@ -36,9 +36,10 @@ FETCH_AT = time(12, 0)
 RETRIES = (timedelta(minutes=15), timedelta(minutes=30), timedelta(minutes=60))
 MONTHLY_CAP = 40                       # of the free plan's 100; a daily check needs ~31
 ITEMS = [("gold24", "24K Gold", "10 g"), ("silver", "Silver", "kg")]
-# Lower purities are calculated from the 24K price with the household's factors (not fetched).
+# Lower purities are calculated from the 24K price (not fetched): 22K uses the 916 hallmark, 20K and 18K
+# the household's factors.
 # 14K wasn't given a factor: it uses 14/24, the same rule as 20K (20/24) and 18K (18/24).
-PURITY_FACTORS = [("gold22", "22K", "0.91"), ("gold20", "20K", "0.8333"), ("gold18", "18K", "0.75"), ("gold14", "14K", "0.5833")]
+PURITY_FACTORS = [("gold22", "22K", "0.916"), ("gold20", "20K", "0.8333"), ("gold18", "18K", "0.75"), ("gold14", "14K", "0.5833")]
 
 
 class PriceError(Exception):
