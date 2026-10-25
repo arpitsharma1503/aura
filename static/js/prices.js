@@ -117,6 +117,14 @@ window.AuraPrices = (() => {
     if (d.items.length) {
       out.push(el("div", { class: "pt-kpis pt-kpis--detail" }, d.items.map((i) => kpi(i, { big: true, picked: pick === i.id, onclick: () => { pick = i.id; paint(); } }))));
       const item = d.items.find((i) => i.id === pick) || d.items[0];
+      if (item.id === "gold24" && d.gold_purities?.length) {
+        // Calculated on the Pi from the 24K price (factors in app/prices.py), not quoted by IBJA.
+        out.push(el("section", { class: "dsec" }, el("h3", { class: "dsec__title" }, "Gold by purity · per 10 g"),
+          el("div", { class: "pt-kpis pt-kpis--purity" }, d.gold_purities.map((g) => kpi(
+            { ...g, label: `${g.karat} Gold`, previous_day: d.items[0].previous_day }))),
+          el("p", { class: "dnote dnote--muted" }, `Calculated from the 24K price: ${d.gold_purities.map((g) => `${g.karat} × ${g.factor}`).join(", ")}. ` +
+            "Estimates, not jewellers' quotes.")));
+      }
       const since = new Date(Date.now() - range * 86400000).toISOString().slice(0, 10);
       const series = d.history.filter((h) => h.day >= since).map((h) => ({ day: h.day, v: h[item.id] }));
       out.push(el("section", { class: "dsec" }, el("h3", { class: "dsec__title" }, `${item.label} · ₹ per ${item.unit}`),

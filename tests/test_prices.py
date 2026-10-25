@@ -123,3 +123,18 @@ def test_states(tmp_path):
 @pytest.fixture(autouse=True)
 def _tmp_dirs(tmp_path):
     (tmp_path / "a").mkdir()
+
+
+def test_lower_purities_are_calculated_from_24k(tmp_path):
+    from app.prices import purities
+    assert purities(141630) == {"gold22": 128883, "gold20": 118020, "gold18": 106223, "gold14": 82613}   # x0.91, x0.8333, x0.75, x0.5833
+    clock = Clock(datetime(2026, 10, 26, 12, 0, tzinfo=IST))
+    t, _ = tracker(tmp_path, [ok(14000, 190), ok(14163.0225, 194.4171)], clock)
+    asyncio.run(t.fetch())
+    first = t.view()["gold_purities"]
+    assert [p["karat"] for p in first] == ["22K", "20K", "18K", "14K"] and all(p["change"] is None for p in first)
+    clock.t += timedelta(days=1)
+    asyncio.run(t.fetch())
+    g22 = t.view()["gold_purities"][0]
+    assert g22 == {"id": "gold22", "karat": "22K", "factor": "0.91", "unit": "10 g", "price": 128883, "previous": 127400,
+                   "change": 1483, "change_pct": round(1483 / 127400 * 100, 2)}      # 140000 x 0.91 = 127400

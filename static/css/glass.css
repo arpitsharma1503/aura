@@ -433,3 +433,7 @@ button.pt-kpi:focus-visible { box-shadow: var(--focus); }
 .pt-line { fill: none; stroke: #f6d58a; stroke-width: 2.4; stroke-linejoin: round; }
 .pt-area { fill: rgba(246, 213, 138, 0.10); }
 .pt-dot { fill: #f6d58a; }
+.pt-kpis--purity { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); margin-bottom: 0.5rem; }
+.pt-kpis--purity .pt-kpi__value { font-size: 1.45rem; }
+.pt-kpi[data-id^="gold"] .pt-kpi__value { color: #f6d58a; }
+.pt .dsec + .dsec { margin-top: 1.2rem; }

@@ -23,6 +23,11 @@ def view(status="ok", history=3, first=False):
             "items": [item("gold24", "24K Gold", "10 g", 141630, None if first else 140000),
                       item("silver", "Silver", "kg", 194417, None if first else 195000)],
             "history": [{"day": d, "gold24": 140000 + i * 815, "silver": 195000 - i * 291} for i, d in enumerate(days)],
+            "gold_purities": [] if first else [
+                {"id": "gold22", "karat": "22K", "factor": "0.91", "unit": "10 g", "price": 128883, "previous": 127400, "change": 1483, "change_pct": 1.16},
+                {"id": "gold20", "karat": "20K", "factor": "0.8333", "unit": "10 g", "price": 118020, "previous": 116662, "change": 1358, "change_pct": 1.16},
+                {"id": "gold18", "karat": "18K", "factor": "0.75", "unit": "10 g", "price": 106223, "previous": 105000, "change": 1223, "change_pct": 1.16},
+                {"id": "gold14", "karat": "14K", "factor": "0.5833", "unit": "10 g", "price": 82613, "previous": 81662, "change": 951, "change_pct": 1.16}],
             "schedule": "Once a day at 12:00 India time", "next_update": "2026-10-28T12:00", "requests_this_month": 3, "monthly_cap": 40}
 
 
@@ -75,8 +80,15 @@ def test_two_kpi_tiles_with_day_on_day_change(chrome, srv, artifacts):
     assert "once a day at 12:00" in text and "3 daily readings" in text and "before GST" in text
     assert "Refresh" not in text and p.js("document.querySelectorAll('.pt-kpis--detail .pt-kpi').length") == 2
     assert p.js("document.querySelectorAll('.pt-chart circle').length") == 3
+    purity = p.js("[...document.querySelectorAll('.pt-kpis--purity .pt-kpi')].map(e => [e.querySelector('.pt-kpi__label').textContent, e.querySelector('.pt-kpi__value').textContent, e.querySelector('.pt-kpi__dod').textContent])")
+    assert purity == [["22K Gold · per 10 g", "₹1,28,883", "▲ ₹1,483 · +1.16%"], ["20K Gold · per 10 g", "₹1,18,020", "▲ ₹1,358 · +1.16%"],
+                      ["18K Gold · per 10 g", "₹1,06,223", "▲ ₹1,223 · +1.16%"], ["14K Gold · per 10 g", "₹82,613", "▲ ₹951 · +1.16%"]]
+    assert "22K × 0.91, 20K × 0.8333, 18K × 0.75, 14K × 0.5833" in p.text("#detail-body")
+    assert "22K" not in p.text("#prices-tile")                                          # only in the gold detail
+    p.screenshot(str(artifacts / "prices-detail-gold.png"))
     p.js("document.querySelector('.pt-kpis--detail .pt-kpi[data-id=silver]').click()")
-    p.wait_for("document.querySelector('.dsec__title').textContent.startsWith('Silver · ₹ per kg')", timeout=5)
+    p.wait_for("[...document.querySelectorAll('.dsec__title')].some(t => t.textContent.startsWith('Silver · ₹ per kg'))", timeout=5)
+    assert p.js("document.querySelectorAll('.pt-kpis--purity').length") == 0                # purities belong to gold
     p.screenshot(str(artifacts / "prices-detail.png"))
     assert p.errors == []
 

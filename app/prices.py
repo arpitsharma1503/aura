@@ -36,6 +36,9 @@ FETCH_AT = time(12, 0)
 RETRIES = (timedelta(minutes=15), timedelta(minutes=30), timedelta(minutes=60))
 MONTHLY_CAP = 40                       # of the free plan's 100; a daily check needs ~31
 ITEMS = [("gold24", "24K Gold", "10 g"), ("silver", "Silver", "kg")]
+# Lower purities are calculated from the 24K price with the household's factors (not fetched).
+# 14K wasn't given a factor: it uses 14/24, the same rule as 20K (20/24) and 18K (18/24).
+PURITY_FACTORS = [("gold22", "22K", "0.91"), ("gold20", "20K", "0.8333"), ("gold18", "18K", "0.75"), ("gold14", "14K", "0.5833")]
 
 
 class PriceError(Exception):
@@ -64,6 +67,11 @@ def _rupees(x: Decimal) -> int:
 def derive(gold_g: float, silver_g: float) -> dict[str, int]:
     """Whole rupees (half-up, as price lists round): 24K gold per 10 g, silver per kg."""
     return {"gold24": _rupees(Decimal(str(gold_g)) * 10), "silver": _rupees(Decimal(str(silver_g)) * 1000)}
+
+
+def purities(gold24_per_10g: int) -> dict[str, int]:
+    """22K/20K/18K/14K per 10 g = the (rounded) 24K price x the purity factor, to the nearest rupee."""
+    return {pid: _rupees(Decimal(gold24_per_10g) * Decimal(f)) for pid, _, f in PURITY_FACTORS}
 
 
 class PriceTracker:
@@ -211,6 +219,15 @@ class PriceTracker:
                               "change_pct": round(change / prev[pid] * 100, 2) if prev and prev[pid] else None,
                               "previous_day": rows[-2]["day"] if prev else None})
         history = [{"day": r["day"], **derive(r["gold_g"], r["silver_g"])} for r in rows[-400:]]
+        purity = []
+        if rows:
+            cur_p = purities(cur["gold24"])
+            prev_p = purities(prev["gold24"]) if prev else None
+            for pid, karat, f in PURITY_FACTORS:
+                ch = cur_p[pid] - prev_p[pid] if prev_p else None
+                purity.append({"id": pid, "karat": karat, "factor": f, "unit": "10 g", "price": cur_p[pid],
+                               "previous": prev_p[pid] if prev_p else None, "change": ch,
+                               "change_pct": round(ch / prev_p[pid] * 100, 2) if prev_p and prev_p[pid] else None})
         return {
             "status": status, "message": {"not_configured": "Add a metals.dev API key to show prices.",
                                           "unavailable": self.last_error or "No prices yet: the first one arrives at 12:00.",
@@ -223,6 +240,7 @@ class PriceTracker:
             "fetched_at": rows[-1]["fetched_at"] if rows else None,
             "source_time": rows[-1]["source_time"] if rows else None,
             "items": items, "history": history,
+            "gold_purities": purity,              # calculated from 24K (PURITY_FACTORS), not quoted
             "schedule": "Once a day at 12:00 India time",
             "next_update": self.next_run().isoformat(timespec="minutes") if self.key else None,
             "requests_this_month": self.requests_this_month(), "monthly_cap": MONTHLY_CAP,
