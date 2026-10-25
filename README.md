@@ -294,16 +294,47 @@ sizes and layout, so the screen shows what matters rather than everything at onc
 
 ### Look: Liquid Glass
 
-AURA's surfaces use a glass system inspired by Apple's Liquid Glass (no Apple assets):
+AURA's look is a glass material system (`static/css/glass.css`) inspired by Apple's
+Liquid Glass. It is the closest web version that runs well on the Pi; it isn't Apple's
+native rendering, and it uses no Apple assets.
 
-- **Primary** surfaces (the view switcher, detail sheets, dialogs) are frosted: blur, a
-  bright top edge, deep shadow.
-- **Tiles** are translucent with a light-catching top edge and a soft shadow, but no blur.
-- **Controls** are small glass pills; the selected view is a bright "lens".
-- **Without blur support, or with *Reduce transparency* on the device, surfaces become solid.**
-  Reduced motion turns off the view-switch fade.
-- **Performance:** on the Pi's Chromium, the blur made no measurable difference to CPU use;
-  the weather animation is the main cost (Settings → Display can turn it off).
+- **Environment:** a lit, atmospheric background. Indigo, teal and violet light fields and
+  a faint warm glow, retinted by time of day and dimmed in cloudy or wet weather, so the
+  glass has something to show.
+- **Material:** surfaces are translucent and blur what's behind them.
+  - The light comes from the top left: each surface has a specular rim, bright on its top
+    and left edges and faint at the bottom right, a soft inner reflection and an ambient
+    shadow.
+  - Text, numbers and icons sit on the glass and are never blurred.
+- **Three levels:**
+  - **Primary** (the view dock, the mic/settings cluster, detail sheets, dialogs): most
+    blur, brightest rim, floating shadow.
+  - **Secondary** (widgets, Settings cards): lighter.
+  - **Compact** (pills, buttons, forecast days, metric cells): small glass shapes.
+- **The selected view is a raised glass "lens" that glides between tabs.** Tiles lift
+  slightly under the pointer and settle when pressed. Detail sheets rise in. Reduced
+  motion turns the movement off.
+- **Fallbacks:** without blur support, or with *Reduce transparency*, surfaces become
+  solid tinted glass with the same rims and hierarchy.
+- **Wallpaper (Settings → Display):**
+  - Choose a photo (JPEG, PNG or WebP, up to 12 MB; phones convert HEIC photos to JPEG
+    when uploading) and the glass frosts it.
+  - **Dim** (0–80%) keeps text readable over bright pictures.
+  - Switching back to *AURA light* keeps the picture for later; **Remove picture** deletes it.
+  - The picture is checked from its own bytes (not its name), stored as
+    `data/background.<ext>`, and only people with edit access can change it.
+- **Pi performance** (measured on the Pi's Chromium, which renders in software here; the
+  TV's GPU should do better):
+  - **Live blur:** the dashboard doesn't redo it every frame. With live blur on its 19
+    glass surfaces, the weather animation made the browser re-blur everything each frame
+    (about 75% of a core over a photo). Instead, AURA light uses translucency (blurring
+    soft gradients looks the same), and a photo is blurred **once**, in a small canvas,
+    whenever the picture, dim or screen size changes. Each surface shows its patch of
+    that blurred copy. Detail sheets and Settings blur live.
+  - **Light fields:** they no longer drift. The slow drift kept three screen-sized layers
+    moving: about 104% of a core vs about 24% still.
+  - **Night dimming:** it now uses an overlay instead of lowering the page's opacity,
+    which had silently stopped every glass surface from seeing the background.
 
 ## Interactive tiles
 

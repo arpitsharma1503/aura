@@ -45,7 +45,8 @@ def test_defaults_come_from_env(tmp_path):
     assert v["commute"]["timezone"] == "Asia/Kolkata" and v["commute"]["slot_minutes"] == 15
     assert v["commute"]["days"] == ["mon", "tue", "wed", "thu", "fri"]
     assert v["display"] == {"clock_format": "12h", "temperature_unit": "celsius",
-                            "weather_animations": True, "reduced_motion": "system"}
+                            "weather_animations": True, "reduced_motion": "system",
+                            "background": "aura", "background_dim": 40, "background_version": ""}
     assert body["customized"] == {k: [] for k in v}
 
 

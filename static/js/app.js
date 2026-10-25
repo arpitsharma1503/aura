@@ -1221,30 +1221,48 @@
     if (!views.some((v) => v.id === state.view)) state.view = state.config.views.default_view;
     if (!views.some((v) => v.id === state.view)) state.view = views[0]?.id;
     const nav = $("views");
-    const tabs = (views.length > 1 ? views : []).map((v, i) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "view-tab";
-      b.setAttribute("role", "tab");
-      b.dataset.view = v.id;
-      b.setAttribute("aria-selected", String(v.id === state.view));
-      b.setAttribute("aria-controls", "tiles");
-      if (i < 9) b.setAttribute("aria-keyshortcuts", String(i + 1));
-      if (v.description) b.title = v.description;
-      b.tabIndex = v.id === state.view ? 0 : -1;
-      b.textContent = v.name;
-      b.addEventListener("click", () => selectView(v.id));
-      return b;
-    });
-    const edit = document.createElement("a");
-    edit.className = "views__edit";
-    edit.href = "/settings#views";
-    edit.setAttribute("aria-label", "Edit views");
-    edit.title = "Edit views";
-    edit.innerHTML = icon("sliders", 1.8);
-    $("views-tabs").replaceChildren(...tabs);
-    nav.querySelector(".views__edit")?.remove();
-    nav.append(edit);
+    const box = $("views-tabs");
+    const shown = views.length > 1 ? views : [];
+    // Rebuild the tabs only when the views changed: settings refreshes happen often, and a
+    // rebuild would drop keyboard focus. Otherwise just move the selection.
+    const sig = shown.map((v) => `${v.id}|${v.name}|${v.description || ""}`).join("\n");
+    if (sig !== state.tabsSig) {
+      state.tabsSig = sig;
+      const focused = document.activeElement?.closest?.(".view-tab")?.dataset.view;
+      const tabs = shown.map((v, i) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "view-tab";
+        b.setAttribute("role", "tab");
+        b.dataset.view = v.id;
+        b.setAttribute("aria-controls", "tiles");
+        if (i < 9) b.setAttribute("aria-keyshortcuts", String(i + 1));
+        if (v.description) b.title = v.description;
+        b.textContent = v.name;
+        b.addEventListener("click", () => selectView(v.id));
+        return b;
+      });
+      const lens = document.createElement("span");
+      lens.className = "view-indicator";
+      lens.setAttribute("aria-hidden", "true");
+      box.replaceChildren(...(tabs.length ? [lens, ...tabs] : []));
+      if (focused) box.querySelector(`[data-view="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
+      state.lensSnap = true;
+    }
+    for (const b of box.querySelectorAll(".view-tab")) {
+      b.setAttribute("aria-selected", String(b.dataset.view === state.view));
+      b.tabIndex = b.dataset.view === state.view ? 0 : -1;
+    }
+    if (state.lensSnap) { state.lensSnap = false; placeLens(false); }
+    if (!nav.querySelector(".views__edit")) {
+      const edit = document.createElement("a");
+      edit.className = "views__edit";
+      edit.href = "/settings#views";
+      edit.setAttribute("aria-label", "Edit views");
+      edit.title = "Edit views";
+      edit.innerHTML = icon("sliders", 1.8);
+      nav.append(edit);
+    }
     layoutView(views.find((v) => v.id === state.view) || { id: "none", name: "", columns: "auto", tiles: [] });
   }
 
@@ -1279,6 +1297,17 @@
     empty.textContent = `Nothing in ${view.name || "this view"} yet. Choose its widgets in Settings → Views.`;
   }
 
+  /** Move the glass "lens" under the selected tab (glides between tabs; no glide on first draw). */
+  function placeLens(animate = true) {
+    const box = $("views-tabs"), lens = box.querySelector(".view-indicator");
+    const tab = box.querySelector(".view-tab[aria-selected=true]");
+    if (!lens || !tab) return;
+    if (!animate) lens.style.transition = "none";
+    lens.style.width = `${tab.offsetWidth}px`;
+    lens.style.transform = `translateX(${tab.offsetLeft}px)`;
+    if (!animate) { void lens.offsetWidth; lens.style.transition = ""; }
+  }
+
   function selectView(id, { focus = false } = {}) {
     if (id === state.view) return;
     state.view = id;
@@ -1288,11 +1317,14 @@
     void tiles.offsetWidth;                         // restart the short fade
     tiles.classList.add("is-switching");
     applyHome();
+    placeLens(true);                                // the lens glides to the new tab
     if (focus) $("views").querySelector(`[data-view="${CSS.escape(id)}"]`)?.focus({ preventScroll: true });
   }
 
   function wireViews() {
     try { state.view = sessionStorage.getItem(VIEW_KEY); } catch { /* private mode */ }
+    if ("ResizeObserver" in window) new ResizeObserver(() => placeLens(false)).observe($("views-tabs"));
+    document.fonts?.ready?.then(() => placeLens(false));
     $("tiles").addEventListener("animationend", (e) => { if (e.target === $("tiles")) $("tiles").classList.remove("is-switching"); });
     $("views").addEventListener("keydown", (e) => {
       if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
@@ -1367,6 +1399,7 @@
         || cfg.clock_format !== state.config?.clock_format;
       state.config = cfg;
       document.body.classList.toggle("force-reduce", cfg.display?.reduced_motion === "reduce");
+      applyWallpaper(cfg.display);
       if (displayChanged && state.weatherPayload) {
         // Units, clock or animation settings changed: redraw with the new ones.
         $("wx-scene").dataset.key = "";
@@ -1392,6 +1425,52 @@
     }
     state.configTimer = setTimeout(loadConfig, next);
   }
+
+  // ---------- wallpaper (Settings → Display) ----------
+  function applyWallpaper(d) {
+    const on = d?.background === "image" && d.background_version;
+    document.body.dataset.wallpaper = on ? "image" : "aura";
+    const src = on ? `/api/display/background?v=${encodeURIComponent(d.background_version)}` : "";
+    const dim = (d?.background_dim ?? 40) / 100;
+    if (src !== state.wallSrc) {                      // only when it changes: no re-download every config poll
+      state.wallSrc = src;
+      document.querySelector(".ambient").style.backgroundImage = src ? `url("${src}")` : "";
+      state.wallImg = null;
+      delete document.body.dataset.wallReady;
+      if (src) {
+        const img = new Image();
+        img.onload = () => { if (state.wallSrc === src) { state.wallImg = img; blurWallpaper(); } };
+        img.src = src;
+      }
+    }
+    document.body.style.setProperty("--wall-dim", String(dim));
+    if (dim !== state.wallDim) { state.wallDim = dim; blurWallpaper(); }
+  }
+
+  /** One blurred, dimmed copy of the picture for the glass to show (see glass.css): drawn
+      small in a canvas, matching the background's cover crop, dim and vignette. */
+  function blurWallpaper() {
+    const img = state.wallImg;
+    if (!img) return;
+    const W = 640, H = Math.max(1, Math.round(W * innerHeight / innerWidth));
+    const c = document.createElement("canvas");
+    c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight) * 1.08;   // cover, with bleed for the blur edge
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    ctx.filter = `blur(${Math.round(18 * W / innerWidth * 1.6)}px) saturate(160%)`;
+    ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+    ctx.filter = "none";
+    ctx.fillStyle = `rgba(4, 6, 12, ${state.wallDim ?? 0.4})`;
+    ctx.fillRect(0, 0, W, H);
+    const v = ctx.createRadialGradient(W / 2, H * 1.2, 0, W / 2, H * 1.2, H * 0.75);
+    v.addColorStop(0, "rgba(0, 0, 0, 0.45)"); v.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    document.documentElement.style.setProperty("--wall-blur", `url("${c.toDataURL("image/jpeg", 0.86)}")`);   // on :root, where --wall-layer is defined
+    document.body.dataset.wallReady = "";
+  }
+  let wallResize = null;
+  addEventListener("resize", () => { clearTimeout(wallResize); wallResize = setTimeout(blurWallpaper, 250); });
 
   // ---------- burn-in protection ----------
 

@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/settings.css">
+  <link rel="stylesheet" href="/static/css/glass.css">
   <script src="/static/js/icons.js" defer></script>
   <script src="/static/js/settings.js" defer></script>
 </head>
@@ -312,6 +313,29 @@
           <label><input type="radio" name="reduced_motion" value="system">Follow each device <small>Respects “Reduce motion”</small></label>
           <label><input type="radio" name="reduced_motion" value="reduce">Always minimal <small>No movement on any screen</small></label>
         </fieldset>
+        <div class="s-wall" id="wallpaper">
+          <fieldset class="s-choice" data-field="background">
+            <legend>Wallpaper</legend>
+            <label><input type="radio" name="background" value="aura">AURA light <small>Soft light that follows the time of day</small></label>
+            <label><input type="radio" name="background" value="image">My picture <small>Your photo behind the glass</small></label>
+          </fieldset>
+          <div class="s-wall__pick">
+            <div class="s-wall__frame"><img id="wall-preview" alt="Your wallpaper" hidden><span id="wall-none">No picture yet</span></div>
+            <div class="s-wall__side">
+              <div class="s-inline">
+                <label class="btn btn--primary" for="wall-file" id="wall-choose" tabindex="0" role="button">Choose picture…</label>
+                <input type="file" id="wall-file" accept="image/jpeg,image/png,image/webp" hidden>
+                <button type="button" class="btn" id="wall-remove" hidden>Remove picture</button>
+              </div>
+              <small class="s-help" id="wall-msg" role="status">JPEG, PNG or WebP, up to 12 MB. A landscape photo of at least 1920 × 1080 looks best on the TV.
+                The picture is used as soon as it's uploaded.</small>
+              <label class="s-field"><span>Dim the picture <output id="wall-dim-out"></output></span>
+                <input type="range" class="s-wall__dim" min="0" max="80" step="5" data-field="background_dim" data-type="int"
+                  aria-describedby="wall-dim-help"></label>
+              <small class="s-help" id="wall-dim-help">More dimming keeps text easy to read over bright photos.</small>
+            </div>
+          </div>
+        </div>
         <dl class="s-grid" id="display-info"></dl>
       </form>
 

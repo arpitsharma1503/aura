@@ -923,7 +923,9 @@ body.force-reduce *, body.force-reduce *::before, body.force-reduce *::after {
   display: flex; flex-direction: column; gap: var(--gap);
   transition: transform 2s ease, opacity 2s ease;
 }
-body[data-phase="night"] .shell { opacity: 0.9; }
+/* Night: dim the whole screen by 10%. An overlay, not opacity on .shell: opacity below 1
+   would cut every glass surface off from the background behind it (a "backdrop root"). */
+body[data-phase="night"]::after { content: ""; position: fixed; inset: 0; z-index: 40; pointer-events: none; background: rgba(0, 0, 0, 0.1); }
 [data-open] { cursor: pointer; }
 
 /* ---------- Header ---------- */
@@ -1492,74 +1494,3 @@ body.kiosk, body.kiosk * { cursor: none !important; }
 .sh-guides dt { font-weight: 600; margin-top: 0.6rem; }
 .sh-guides dd { margin: 0; color: var(--ink-2); line-height: 1.5; }
 @media (max-width: 560px) { .sh-ctl { grid-template-columns: minmax(0, 1fr); gap: 0.3rem; } }
-
-/* =====================================================================
-   Liquid Glass: AURA's surface system (inspired by, not copied from, Apple's).
-   Three levels; blur only where it earns its cost on the Pi:
-     primary     - view switcher, detail sheet, dialogs: blurred, brightest edge
-     secondary   - tiles: translucent tint + light-catching top edge, no blur
-                   (8-10 blurred tiles cost frames on the Pi; over the soft
-                   ambient background they read the same without it)
-     interactive - tabs, capsules, buttons: small glass pills, a lit "lens" when selected
-   Without backdrop-filter, or with "reduce transparency", surfaces become solid.
-   ===================================================================== */
-:root {
-  --glass-1: rgba(28, 32, 44, 0.52);                 /* primary tint (blurred) */
-  --glass-1-solid: #1a1e29;
-  --glass-2: rgba(255, 255, 255, 0.058);             /* tiles */
-  --glass-2-hover: rgba(255, 255, 255, 0.085);
-  --glass-3: rgba(255, 255, 255, 0.075);             /* controls */
-  --glass-3-hover: rgba(255, 255, 255, 0.12);
-  --glass-lens: rgba(255, 255, 255, 0.92);           /* selected tab: a bright lens with dark text */
-  --glass-edge: rgba(255, 255, 255, 0.10);           /* hairline all round */
-  --glass-rim: rgba(255, 255, 255, 0.16);            /* the brighter top edge that catches light */
-  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 38%);
-  --glass-blur: blur(22px) saturate(150%);
-  --glass-depth-1: 0 18px 50px -18px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --glass-depth-2: 0 10px 30px -16px rgba(0, 0, 0, 0.55);
-}
-
-/* ---- primary ---- */
-.views__tabs, .detail, .sheet {
-  background: var(--glass-1);
-  -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--glass-edge);
-  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-depth-1);
-}
-.views__tabs:not(:empty) { padding: 0.28rem; border-radius: var(--r-pill); }
-.detail { background: linear-gradient(180deg, rgba(34, 38, 52, 0.78), rgba(18, 21, 30, 0.86)); }
-.detail__head { background: var(--glass-sheen); }
-
-/* ---- secondary: tiles ---- */
-.tile {
-  background: var(--glass-sheen), var(--glass-2);
-  border: 1px solid var(--glass-edge);
-  box-shadow: inset 0 1px 0 var(--glass-rim), var(--glass-depth-2);
-}
-.tile[data-open]:hover { background: var(--glass-sheen), var(--glass-2-hover); }
-/* status is never colour alone: alert tiles also get a warm rim and their text says what's wrong */
-.tile[data-state="alert"], .tile[data-state="error"] { box-shadow: inset 0 1px 0 rgba(255, 179, 92, 0.35), var(--glass-depth-2); }
-
-/* ---- interactive ---- */
-.view-tab { background: transparent; color: var(--ink-2); }
-.view-tab:hover { background: var(--glass-3-hover); color: var(--ink); }
-.view-tab[aria-selected="true"] { background: var(--glass-lens); color: #0b0d12; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 1px 0 #fff; }
-.views__edit, .topbar__mic, .topbar__settings, .status__btn, .btn {
-  background: var(--glass-3);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 0 0 1px var(--glass-edge);
-}
-.views__edit:hover, .topbar__mic:hover, .topbar__settings:hover, .status__btn:hover, .btn:hover { background: var(--glass-3-hover); }
-.btn--primary { background: var(--accent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 14px -6px rgba(255, 207, 122, 0.6); }
-.btn--primary:hover { background: #ffd993; }
-.status__btn[data-kind="alert"] { background: rgba(255, 179, 92, 0.16); box-shadow: inset 0 1px 0 rgba(255, 179, 92, 0.3), 0 0 0 1px rgba(255, 179, 92, 0.25); }
-.topbar__mic.is-live { background: var(--danger); }
-
-/* ---- graceful degradation ---- */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .views__tabs, .detail, .sheet { background: var(--glass-1-solid); }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .views__tabs, .detail, .sheet { background: var(--glass-1-solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .tile { background: #171a22; }
-}
-body.force-reduce .views__tabs, body.force-reduce .detail, body.force-reduce .sheet { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-1-solid); }

@@ -47,6 +47,11 @@ class DisplaySettings(_Strict):
     weather_animations: bool = True
     # "system" follows the device's reduce-motion setting; "reduce" forces it.
     reduced_motion: Literal["system", "reduce"] = "system"
+    # Wallpaper behind the glass: AURA's own light, or the household's picture (uploaded
+    # separately, see app/background.py). Dim darkens the picture so text stays readable.
+    background: Literal["aura", "image"] = "aura"
+    background_dim: int = Field(default=40, ge=0, le=80)
+    background_version: str = Field(default="", max_length=40)     # set on upload: refreshes screens
 
 
 class WeatherSettings(_Strict):

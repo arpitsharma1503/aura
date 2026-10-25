@@ -133,6 +133,7 @@
   function fillForm(form) {
     const values = state.settings[form.dataset.section];
     for (const f of fieldsOf(form)) writeField(f, get(values, f.dataset.field));
+    if (form.id === "display") renderWallpaper();
     state.snapshot[form.dataset.section] = JSON.stringify(formValues(form));
     clearErrors(form);
     updateDirty(form);
@@ -487,6 +488,53 @@
     viewsChanged();
   }
 
+  // ---------- wallpaper (Display) ----------
+  // The picture is uploaded as soon as it's chosen; choosing "AURA light" or changing the dim
+  // is an ordinary setting saved with Save. Removing the picture switches back to AURA light.
+  function renderWallpaper() {
+    const d = state.settings?.display || {};
+    const has = !!d.background_version;
+    const img = $("wall-preview");
+    if (has) img.src = `/api/display/background?v=${encodeURIComponent(d.background_version)}`;
+    img.hidden = !has; $("wall-none").hidden = has; $("wall-remove").hidden = !has;
+    $("wall-choose").textContent = has ? "Change picture…" : "Choose picture…";
+    $("display").querySelector('input[name=background][value=image]').disabled = !has;
+    $("wall-dim-out").textContent = `${$("display").querySelector(".s-wall__dim").value}%`;
+    applyWallpaper(d);
+  }
+  function applyWallpaper(d) {                      // the Settings page shows it too
+    const on = d.background === "image" && d.background_version;
+    document.body.dataset.wallpaper = on ? "image" : "aura";
+    document.querySelector(".ambient").style.backgroundImage = on ? `url("/api/display/background?v=${encodeURIComponent(d.background_version)}")` : "";
+    document.body.style.setProperty("--wall-dim", String((d.background_dim ?? 40) / 100));
+  }
+  async function uploadWallpaper(file) {
+    const form = $("display"), msg = $("wall-msg");
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) { msg.textContent = "That picture is larger than 12 MB."; return; }
+    msg.textContent = "Uploading…";
+    try {
+      const res = await fetch("/api/display/background", { method: "PUT", body: file, credentials: "same-origin",
+        headers: { "Content-Type": file.type || "application/octet-stream" } });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : `HTTP ${res.status}`);
+      state.settings.display = data.display;
+      fillForm(form);
+      msg.textContent = `Done: ${data.picture.width} × ${data.picture.height}. Open screens switch to it within a few seconds.`;
+    } catch (err) {
+      msg.textContent = `Not uploaded: ${err.message}`;
+    } finally { $("wall-file").value = ""; }
+  }
+  async function removeWallpaper() {
+    if (!(await confirmDialog("Remove your picture?", "The dashboard goes back to AURA light. You can upload a picture again any time.", "Remove"))) return;
+    try {
+      const res = await api("/api/display/background", { method: "DELETE" });
+      state.settings.display = res.display;
+      fillForm($("display"));
+      $("wall-msg").textContent = "Picture removed.";
+    } catch (err) { $("wall-msg").textContent = `Couldn't remove it: ${err.message}`; }
+  }
+
   // ---------- place search (fills coordinates; nothing saved until Save) ----------
   let searchTimer = null;
   function wirePlaceSearch() {
@@ -764,6 +812,13 @@
     $("qa-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addQuickAdd(); } });
     $("room-add").addEventListener("click", addRoom);
     $("view-add").addEventListener("click", addView);
+    $("wall-file").addEventListener("change", (e) => uploadWallpaper(e.target.files[0]));
+    $("wall-choose").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("wall-file").click(); } });
+    $("wall-remove").addEventListener("click", removeWallpaper);
+    $("display").querySelector(".s-wall__dim").addEventListener("input", (e) => {
+      $("wall-dim-out").textContent = `${e.target.value}%`;
+      document.body.style.setProperty("--wall-dim", String(e.target.value / 100));     // live preview; saved with Save
+    });
     $("view-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addView(); } });
     $("room-new").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addRoom(); } });
     $("net-refresh").addEventListener("click", loadNetwork);

@@ -139,3 +139,39 @@ def test_reset_one_view_and_all_views(chrome, srv):
     p.wait_for("document.getElementById('s-confirm').open")
     p.js("document.getElementById('sc-ok').click()")
     p.wait_for("document.querySelectorAll('#view-editor .s-view').length === 4", timeout=10)
+
+
+def test_selection_lens_follows_the_selected_view(chrome, srv):
+    p = page(chrome, srv, 1920, 1080)
+    lens = """(() => { const l = document.querySelector('.view-indicator').getBoundingClientRect();
+      const t = document.querySelector('.view-tab[aria-selected=true]').getBoundingClientRect();
+      return Math.abs(l.left - t.left) < 2 && Math.abs(l.width - t.width) < 2; })()"""
+    assert p.js(lens)
+    p.js("document.querySelector('.view-tab[data-view=system]').click()")
+    p.wait_for(lens, timeout=3)                                  # glides over, ends under the new tab
+    p.viewport(1280, 720)
+    p.wait_for(lens, timeout=3)                                  # and stays put when the screen size changes
+    # the decorative layers never take clicks
+    assert p.js("getComputedStyle(document.querySelector('.view-indicator')).pointerEvents") == "none"
+    assert p.js("getComputedStyle(document.querySelector('.tile'), '::before').pointerEvents") == "none"
+
+
+@pytest.mark.parametrize("phase", ["night", "day"])
+def test_glass_can_see_the_background(chrome, srv, phase):
+    """Glass must see the background: an ancestor with opacity < 1, a filter, mask, clip-path or
+    blend mode would cut it off (a 'backdrop root'; the night dimming once did exactly that).
+    The dashboard itself uses no live blur (glass.css explains why); detail sheets do."""
+    p = page(chrome, srv, 1920, 1080)
+    p.js(f"document.body.dataset.phase = '{phase}'")
+    blockers = p.js("""(() => {
+      const out = [];
+      for (const g of document.querySelectorAll('.tile:not([hidden]), .views__tabs, .glass-cluster, .status__btn, #detail')) {
+        for (let e = g.parentElement; e && e !== document.body; e = e.parentElement) {
+          const cs = getComputedStyle(e);
+          if (cs.opacity !== '1' || cs.filter !== 'none' || cs.mixBlendMode !== 'normal' || cs.clipPath !== 'none' || (cs.maskImage && cs.maskImage !== 'none'))
+            out.push([g.id || g.className, e.id || e.className]);
+        }
+      }
+      return out; })()""")
+    assert blockers == []
+    assert p.js("getComputedStyle(document.getElementById('detail')).backdropFilter") != "none"   # sheets blur live

@@ -64,14 +64,16 @@ def test_switching_views_makes_no_requests(chrome, srv):
 
 def test_view_tabs_keyboard_and_number_keys(chrome, srv):
     p = dashboard(chrome, srv)
+    p.call("Page.bringToFront")               # key events go to the front tab
     p.js("document.querySelector('.view-tab').focus()")
+    p.wait_for("document.activeElement.classList.contains('view-tab')", timeout=3)
     p.call("Input.dispatchKeyEvent", type="keyDown", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
     p.call("Input.dispatchKeyEvent", type="keyUp", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
-    assert p.js("document.activeElement.dataset.view") == "daily"
+    p.wait_for("document.activeElement.dataset.view === 'daily'", timeout=3)
     p.call("Input.dispatchKeyEvent", type="keyDown", key="End", code="End", windowsVirtualKeyCode=35)
-    assert p.js("document.activeElement.dataset.view") == "system"
+    p.wait_for("document.activeElement.dataset.view === 'system'", timeout=3)
     p.call("Input.dispatchKeyEvent", type="keyDown", key="3", code="Digit3", text="3", windowsVirtualKeyCode=51)
-    assert p.js("document.querySelector('.view-tab[aria-selected=true]').dataset.view") == "smart-home"
+    p.wait_for("document.querySelector('.view-tab[aria-selected=true]').dataset.view === 'smart-home'", timeout=3)
 
 
 def test_custom_views_hidden_widgets_and_default_view(chrome, srv):
@@ -166,3 +168,11 @@ def test_assistant_tile_reflects_real_state(chrome, srv):
     assert p.text("#assistant-status") == "Listening…"
     p.js("window.AuraAssistant.onEvent({state: 'idle'})")
     assert p.text("#assistant-status") != "Listening…"
+
+
+def test_settings_refresh_keeps_keyboard_focus_on_the_tabs(chrome, srv):
+    p = dashboard(chrome, srv)
+    p.js("document.querySelector('.view-tab[data-view=daily]').focus()")
+    srv.api("PATCH", "/api/settings/display", {"clock_format": "24h"})     # screens re-read their settings
+    p.wait_for("/^\\d{2}:\\d{2}/.test(document.getElementById('clock').textContent)", timeout=10)   # the refresh happened
+    assert p.js("document.activeElement.dataset.view") == "daily"

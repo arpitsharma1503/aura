@@ -1,0 +1,349 @@
+/* =====================================================================
+   AURA Liquid Glass: the material system (inspired by Apple's Liquid Glass;
+   no Apple assets). Loaded after style.css on every page.
+
+   Three layers:
+     A  environment   a lit, atmospheric background the glass can transmit
+     B  material      translucent surfaces that blur and tint what is behind them,
+                      lit from the top-left: a bright specular rim on the lit edges,
+                      a soft inner reflection, an ambient shadow below
+     C  content       text and numbers sit on the material, never blurred
+
+   Material levels:
+     primary   floating chrome: view dock, header controls, detail sheets, dialogs
+     secondary widgets (tiles), Settings cards
+     compact   pills, buttons, toggles, segmented controls, inner chips
+
+   Lighting model: one light, above and to the left. Rims are brightest on the top
+   and left edges and fade to a faint glint at the bottom right.
+
+   Performance (Raspberry Pi 5), all measured on the Pi's Chromium: the dashboard uses no
+   live blur (see "Dashboard: blur the background once" below) and the light fields hold
+   still. Detail sheets and Settings blur live. Without backdrop-filter, or with "reduce
+   transparency", the material becomes a solid tinted surface with the same rims and
+   hierarchy.
+   ===================================================================== */
+
+:root {
+  /* environment light fields (night defaults; the time of day retints them) */
+  --env-1: #3a3fb3;           /* upper left: cool indigo */
+  --env-2: #0f7a86;           /* lower right: teal */
+  --env-3: #6a2c9c;           /* centre: violet */
+  --env-4: #b7672c;           /* low warm glow, very faint */
+  --env-base: #05060c;
+
+  /* materials */
+  --glass-primary: rgba(38, 44, 66, 0.42);
+  --glass-primary-solid: #1b2031;
+  --glass-secondary: rgba(255, 255, 255, 0.045);
+  --glass-secondary-solid: #151a28;
+  --glass-compact: rgba(255, 255, 255, 0.09);
+  --glass-compact-hover: rgba(255, 255, 255, 0.15);
+  --glass-compact-pressed: rgba(255, 255, 255, 0.06);
+  --glass-tint-top: rgba(255, 255, 255, 0.10);     /* a glass slab is a little brighter where the light enters */
+  --glass-blur-primary: blur(30px) saturate(180%);
+  --glass-blur-secondary: blur(18px) saturate(160%);
+  --glass-blur-compact: blur(12px) saturate(150%);
+
+  /* light */
+  --glass-edge-highlight: linear-gradient(145deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.16) 22%,
+                          rgba(255, 255, 255, 0.04) 50%, rgba(255, 255, 255, 0.03) 78%, rgba(255, 255, 255, 0.18) 100%);
+  --glass-edge-soft: linear-gradient(145deg, rgba(255, 255, 255, 0.36) 0%, rgba(255, 255, 255, 0.08) 26%,
+                     rgba(255, 255, 255, 0.02) 60%, rgba(255, 255, 255, 0.10) 100%);
+  --glass-inner-reflection: radial-gradient(120% 70% at 18% -12%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 58%);
+  --glass-inner-floor: linear-gradient(0deg, rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0) 38%);
+  --glass-shadow-elevated: 0 30px 60px -24px rgba(0, 0, 0, 0.75), 0 10px 24px -12px rgba(0, 0, 0, 0.5);
+  --glass-shadow-resting: 0 18px 40px -22px rgba(0, 0, 0, 0.7);
+  --glass-shadow-compact: 0 6px 16px -8px rgba(0, 0, 0, 0.6);
+  --glass-active-glow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 8px 26px -6px rgba(140, 170, 255, 0.45);
+
+  /* shape and motion */
+  --glass-radius-large: calc(var(--r-tile) * 1.35);
+  --glass-radius: var(--r-tile);
+  --glass-ease: cubic-bezier(0.22, 0.9, 0.25, 1);
+  --glass-dur: 260ms;
+
+  /* content on glass */
+  --on-glass-1: #f6f8fd;
+  --on-glass-2: rgba(240, 244, 252, 0.78);
+  --on-glass-3: rgba(232, 238, 250, 0.62);
+}
+body[data-phase="dawn"]  { --env-1: #7a3f68; --env-2: #3346a4; --env-3: #a3603e; --env-4: #d48a4a; }
+body[data-phase="day"]   { --env-1: #2457b8; --env-2: #158aa0; --env-3: #3b5fc4; --env-4: #c58a3d; }
+body[data-phase="dusk"]  { --env-1: #7a2f63; --env-2: #46309a; --env-3: #9a5530; --env-4: #d07a3a; }
+body[data-phase="night"] { --env-1: #3a3fb3; --env-2: #0f7a86; --env-3: #6a2c9c; --env-4: #b7672c; }
+
+/* ---------------------------------------------------------------- A. environment */
+body { background: var(--env-base); }
+.ambient { background:
+  radial-gradient(120% 80% at 50% 115%, rgba(0, 0, 0, 0.65), transparent 60%),
+  var(--env-base); }
+.ambient__orb { opacity: 0.78; filter: saturate(1.15); }
+.ambient__orb--a { background: radial-gradient(circle at center, var(--env-1) 0%, transparent 62%); }
+.ambient__orb--b { background: radial-gradient(circle at center, var(--env-2) 0%, transparent 62%); }
+.ambient__orb--c { opacity: 0.62; background: radial-gradient(circle at center, var(--env-3) 0%, transparent 62%); }
+.ambient::after {           /* a low warm horizon glow, and a fine light band across the top */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(60% 35% at 78% 108%, color-mix(in srgb, var(--env-4) 55%, transparent), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 22%);
+}
+.ambient__vignette { background:
+  radial-gradient(ellipse at 50% 130%, rgba(0, 0, 0, 0.5), transparent 58%),
+  radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.35) 100%); }
+/* Sky moods stay, but keep enough light for the glass to show it */
+body[data-sky="cloudy"] .ambient { filter: saturate(0.7) brightness(0.95); }
+body[data-sky="wet"]    .ambient { filter: saturate(0.6) brightness(0.88) hue-rotate(-10deg); }
+body[data-sky="storm"]  .ambient { filter: saturate(0.55) brightness(0.75); }
+
+/* ---------------------------------------------------------------- B. materials */
+/* Shared: the specular rim is a 1px masked gradient border that follows the radius
+   and never takes clicks. */
+.g-rim, .tile, .views__tabs, .glass-cluster, .status__btn, .detail, .sheet, .s-card, .s-nav a, .btn, .view-tab[aria-selected="true"],
+.views__edit, .topbar__mic, .topbar__settings, .daily li, .sh-card, .mp-meal, .dmetric, .sh-cand, .sh-scene {
+  position: relative;
+}
+.tile::before, .views__tabs::before, .glass-cluster::before, .status__btn::before, .detail::before, .sheet::before, .s-card::before,
+.views__edit::before, .topbar__mic::before, .topbar__settings::before, .btn::before, .view-indicator::before, .dmetric::before,
+.sh-card::before, .mp-meal::before, .sh-cand::before, .sh-scene::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 1;
+  background: var(--glass-edge-soft);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+
+/* primary: floating chrome */
+.views__tabs, .glass-cluster, .detail, .sheet {
+  background: var(--glass-inner-reflection), linear-gradient(180deg, var(--glass-tint-top), transparent 45%), var(--glass-primary);
+  -webkit-backdrop-filter: var(--glass-blur-primary); backdrop-filter: var(--glass-blur-primary);
+  border: 0;
+  box-shadow: var(--glass-shadow-elevated), inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+.views__tabs::before, .glass-cluster::before, .detail::before, .sheet::before { background: var(--glass-edge-highlight); }
+
+/* secondary: widgets */
+.tile {
+  background: var(--glass-inner-reflection), var(--glass-inner-floor),
+    linear-gradient(170deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02) 55%), var(--glass-secondary);
+  -webkit-backdrop-filter: var(--glass-blur-secondary); backdrop-filter: var(--glass-blur-secondary);
+  border: 0;
+  border-radius: var(--glass-radius);
+  box-shadow: var(--glass-shadow-resting);
+  transition: transform var(--glass-dur) var(--glass-ease), box-shadow var(--glass-dur) var(--glass-ease), background var(--glass-dur) var(--glass-ease);
+}
+.tile > * { position: relative; z-index: 2; }       /* content above the material and its rim */
+.tile > .wx-scene { position: absolute; z-index: 0; border-radius: inherit; }
+.tile > .tile-arrow { position: absolute; }
+.tile[data-open]:hover {
+  background: var(--glass-inner-reflection), var(--glass-inner-floor),
+    linear-gradient(170deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03) 55%), var(--glass-secondary);
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-elevated);
+}
+.tile[data-open]:hover::before { background: var(--glass-edge-highlight); }
+.tile[data-open]:active { transform: translateY(0) scale(0.993); transition-duration: 90ms; }
+/* status never by colour alone: alert tiles also say so in words; the rim warms */
+.tile[data-state="alert"]::before, .tile[data-state="error"]::before {
+  background: linear-gradient(145deg, rgba(255, 196, 120, 0.7), rgba(255, 179, 92, 0.15) 30%, rgba(255, 179, 92, 0.04) 60%, rgba(255, 179, 92, 0.2));
+}
+/* the icon chip in each tile header is a small glass lens tinted by the tile's tone */
+.tile__icon {
+  background: radial-gradient(80% 80% at 30% 20%, rgba(255, 255, 255, 0.28), transparent 60%),
+    color-mix(in srgb, var(--tone) 30%, rgba(255, 255, 255, 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 10px -4px color-mix(in srgb, var(--tone) 60%, transparent);
+}
+
+/* compact: pills, buttons, chips */
+.status__btn, .btn, .views__edit, .topbar__mic, .topbar__settings, .s-nav a {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02) 60%), var(--glass-compact);
+  -webkit-backdrop-filter: var(--glass-blur-compact); backdrop-filter: var(--glass-blur-compact);
+  border: 0; box-shadow: var(--glass-shadow-compact);
+  transition: background var(--glass-dur) var(--glass-ease), transform 140ms var(--glass-ease), box-shadow var(--glass-dur) var(--glass-ease);
+}
+.status__btn:hover, .btn:hover, .views__edit:hover, .topbar__mic:hover, .topbar__settings:hover, .s-nav a:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 60%), var(--glass-compact-hover);
+}
+.status__btn:active, .btn:active, .views__edit:active, .topbar__mic:active, .topbar__settings:active {
+  transform: scale(0.96); background: var(--glass-compact-pressed);
+}
+.btn--primary {
+  color: #1a1306;
+  background: radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.55), transparent 55%), var(--accent);
+  box-shadow: 0 8px 22px -8px rgba(255, 207, 122, 0.7);
+}
+.btn--primary:hover { background: radial-gradient(90% 120% at 30% 0%, rgba(255, 255, 255, 0.7), transparent 55%), #ffd993; }
+.status__btn[data-kind="alert"] { background: linear-gradient(180deg, rgba(255, 200, 130, 0.22), rgba(255, 179, 92, 0.08)), var(--glass-compact); }
+.status__icon { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.topbar__mic.is-live { background: var(--danger); }
+/* inner chips (forecast days, metric cells, device cards) are compact glass, unblurred: they sit on a tile */
+.daily li, .dmetric, .sh-card, .mp-meal, .sh-cand, .sh-scene {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+}
+.daily li { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.sh-card.is-on { background: linear-gradient(180deg, rgba(255, 210, 120, 0.22), rgba(255, 200, 97, 0.07)); }
+
+/* ---------------------------------------------------------------- navigation: the view dock */
+.views { gap: 0.7rem; }
+.views__tabs { position: relative; isolation: isolate; padding: 0.32rem; border-radius: var(--r-pill); gap: 0.2rem; overflow: visible; }
+.view-tab { position: relative; z-index: 2; background: transparent !important; color: var(--on-glass-2); font-weight: 560;
+  transition: color var(--glass-dur) var(--glass-ease); }
+.view-tab:hover { color: var(--on-glass-1); }
+.view-tab[aria-selected="true"] { color: #fff; box-shadow: none; }
+.view-tab:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9); }
+/* the selected view is a raised lens of brighter glass that glides between tabs */
+.view-indicator {
+  position: absolute; z-index: 1; top: 0.32rem; bottom: 0.32rem; left: 0; width: 0; border-radius: var(--r-pill);
+  background: radial-gradient(90% 140% at 30% 0%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 60%),
+    rgba(255, 255, 255, 0.16);
+  box-shadow: var(--glass-active-glow), inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 340ms var(--glass-ease), width 340ms var(--glass-ease);
+  pointer-events: none;
+}
+.view-indicator::before { background: var(--glass-edge-highlight); }
+.views__edit { width: 2.7rem; height: 2.7rem; }
+
+/* header controls float as one glass cluster */
+.glass-cluster { order: 98; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem; border-radius: var(--r-pill); }
+.glass-cluster .topbar__mic, .glass-cluster .topbar__settings { margin-block: 0; background: transparent; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.glass-cluster .topbar__mic::before, .glass-cluster .topbar__settings::before { display: none; }
+.glass-cluster .topbar__mic:hover, .glass-cluster .topbar__settings:hover { background: var(--glass-compact-hover); }
+.glass-cluster .topbar__mic.is-live { background: var(--danger); }
+
+/* ---------------------------------------------------------------- C. content on glass */
+.tile__title { font-weight: 560; letter-spacing: -0.01em; color: var(--on-glass-1); }
+.tile__aside, .tile__sub { color: var(--on-glass-2); }
+.tile__value { font-weight: 600; letter-spacing: -0.02em; }
+.status__label { color: var(--on-glass-3); }
+.status__value { font-weight: 600; }
+.weather__temp, .time__clock { text-shadow: 0 2px 24px rgba(0, 0, 0, 0.25); }
+
+/* ---------------------------------------------------------------- sheets and dialogs */
+.detail { border-radius: var(--glass-radius-large); }
+.detail::backdrop { background: rgba(3, 5, 12, 0.42); -webkit-backdrop-filter: blur(4px) saturate(120%); backdrop-filter: blur(4px) saturate(120%); }
+.detail[open] { animation: glass-in 320ms var(--glass-ease); }
+@keyframes glass-in { from { opacity: 0; transform: translateY(18px) scale(0.965); } }
+.detail__head { background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent); border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+.dmetric { border: 0; border-radius: calc(var(--r-sm) * 1.2); }
+
+/* ---------------------------------------------------------------- settings */
+.s-card {
+  background: var(--glass-inner-reflection), linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02) 55%), var(--glass-secondary);
+  -webkit-backdrop-filter: var(--glass-blur-secondary); backdrop-filter: var(--glass-blur-secondary);
+  border: 0; box-shadow: var(--glass-shadow-resting);
+}
+.s-card.is-dirty::before { background: linear-gradient(145deg, rgba(255, 220, 150, 0.8), rgba(255, 207, 122, 0.25) 40%, rgba(255, 207, 122, 0.35)); }
+.s-nav a[aria-current="true"], .s-nav a:focus-visible { background: rgba(255, 255, 255, 0.18); }
+.s-view { background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)); border-color: rgba(255, 255, 255, 0.08); }
+
+/* ---------------------------------------------------------------- motion */
+@media (prefers-reduced-motion: reduce) {
+  .view-indicator, .tile { transition: none; }
+  .tile[data-open]:hover { transform: none; }
+  .detail[open] { animation: none; }
+}
+body.force-reduce .view-indicator, body.force-reduce .tile { transition: none; }
+body.force-reduce .tile[data-open]:hover { transform: none; }
+
+/* ---------------------------------------------------------------- fallbacks */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .views__tabs, .glass-cluster, .detail, .sheet { background: var(--glass-inner-reflection), var(--glass-primary-solid); }
+  .tile, .s-card { background: var(--glass-inner-reflection), var(--glass-secondary-solid); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .views__tabs, .glass-cluster, .detail, .sheet, .tile, .s-card, .status__btn, .btn, .views__edit {
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .views__tabs, .glass-cluster, .detail, .sheet { background: var(--glass-primary-solid); }
+  .tile, .s-card { background: var(--glass-secondary-solid); }
+}
+
+/* the cluster must not make the top bar taller than the old round buttons did */
+.glass-cluster { margin-block: -0.75rem; }
+/* tile area scrolls on tall views: leave room for the resting shadow and the hover lift */
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  .tiles { padding: 4px 4px calc(var(--u) * 0.9); margin: -4px -4px calc(var(--u) * -0.9); }
+}
+/* Settings navigation: a quiet list, not a column of lit pills (blurring 13 links over the
+   indigo light field over-saturated them) */
+.s-nav a { -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02)); }
+.s-nav a:hover { background: rgba(255, 255, 255, 0.11); }
+/* While the weather tile animates (rain, snow, storm), its moving scene would force the blur
+   behind it to be redone every frame; it skips the blur then and keeps tint, rim and reflection. */
+.tile.weather:has(.wx-scene[data-motion="live"]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* ---------------------------------------------------------------- wallpaper (Settings → Display) */
+/* The household's picture replaces the light fields; the glass blurs and tints it like any
+   environment. --wall-dim darkens it evenly so text stays readable; sky moods don't tint photos. */
+body[data-wallpaper="image"] .ambient { background-size: cover; background-position: center; background-repeat: no-repeat;
+  background-color: var(--env-base); filter: none; }
+body[data-wallpaper="image"] .ambient__orb, body[data-wallpaper="image"] .ambient::after { display: none; }
+body[data-wallpaper="image"] .ambient__vignette { background:
+  linear-gradient(rgba(4, 6, 12, var(--wall-dim, 0.4)), rgba(4, 6, 12, var(--wall-dim, 0.4))),
+  radial-gradient(ellipse at 50% 120%, rgba(0, 0, 0, 0.45), transparent 60%),
+  linear-gradient(180deg, rgba(0, 0, 0, 0.25), transparent 30%); }
+
+/* Settings: the wallpaper picker */
+.s-wall { display: grid; gap: 0.8rem; }
+.s-wall__pick { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+.s-wall__frame { position: relative; width: min(100%, 16rem); aspect-ratio: 16 / 9; border-radius: var(--r-sm); overflow: hidden;
+  display: grid; place-items: center; background: rgba(0, 0, 0, 0.3); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); color: var(--ink-3); font-size: 0.85rem; }
+.s-wall__frame img { width: 100%; height: 100%; object-fit: cover; }
+.s-wall__side { flex: 1 1 16rem; display: grid; gap: 0.6rem; }
+.s-wall__dim { width: 100%; accent-color: var(--accent); }
+.s-wall output { color: var(--ink-2); margin-left: 0.4rem; font-variant-numeric: tabular-nums; }
+#wall-choose { cursor: pointer; }
+
+/* =====================================================================
+   Dashboard: blur the background once, not every frame.
+   Measured on the Pi's Chromium: with live backdrop-filter on the dashboard's 19 glass
+   surfaces, any running animation (the weather scene) made the browser redo every blur
+   each frame: about 75% of a core vs 20% without, over a photo. The background itself
+   never needs that: AURA light is soft gradients (blurring them looks the same), and a
+   photo is still. So on the dashboard:
+     - AURA light: pure translucency, no live blur;
+     - photo: app.js makes one blurred, dimmed copy (--wall-blur, a small JPEG drawn in a
+       canvas when the picture, dim or screen size changes) and every glass surface shows
+       the matching patch of it (fixed to the viewport). Same look, no per-frame cost.
+   Detail sheets and the Settings page keep live blur (no animation behind them).
+   ===================================================================== */
+:root {
+  --mat-primary: var(--glass-inner-reflection), linear-gradient(180deg, var(--glass-tint-top), transparent 45%),
+                 linear-gradient(var(--glass-primary), var(--glass-primary));
+  --mat-secondary: var(--glass-inner-reflection), var(--glass-inner-floor),
+                   linear-gradient(170deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.02) 55%),
+                   linear-gradient(var(--glass-secondary), var(--glass-secondary));
+  --mat-secondary-hover: var(--glass-inner-reflection), var(--glass-inner-floor),
+                   linear-gradient(170deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.03) 55%),
+                   linear-gradient(var(--glass-secondary), var(--glass-secondary));
+  --mat-compact: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.02) 60%),
+                 linear-gradient(var(--glass-compact), var(--glass-compact));
+  --mat-compact-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04) 60%),
+                 linear-gradient(var(--glass-compact-hover), var(--glass-compact-hover));
+  --wall-layer: var(--wall-blur, none) 0 0 / 100vw 100vh no-repeat fixed;
+}
+body.dash .tile, body.dash .views__tabs, body.dash .glass-cluster, body.dash .status__btn, body.dash .views__edit,
+body.dash .tiles .btn { -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* without live blur, AURA light needs a touch more body in the glass to read as a material */
+body.dash { --glass-secondary: rgba(255, 255, 255, 0.055); --glass-primary: rgba(40, 46, 70, 0.5); }
+
+body.dash[data-wallpaper="image"][data-wall-ready] .tile { background: var(--mat-secondary), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .tile[data-open]:hover { background: var(--mat-secondary-hover), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .views__tabs,
+body.dash[data-wallpaper="image"][data-wall-ready] .glass-cluster { background: var(--mat-primary), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .status__btn,
+body.dash[data-wallpaper="image"][data-wall-ready] .views__edit { background: var(--mat-compact), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .status__btn:hover,
+body.dash[data-wallpaper="image"][data-wall-ready] .views__edit:hover { background: var(--mat-compact-hover), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .status__btn[data-kind="alert"] {
+  background: linear-gradient(180deg, rgba(255, 200, 130, 0.22), rgba(255, 179, 92, 0.08)), var(--mat-compact), var(--wall-layer); }
+/* the hover lift would slide a fixed background against its tile: keep photo tiles still */
+body.dash[data-wallpaper="image"][data-wall-ready] .tile[data-open]:hover { transform: none; }
+
+/* The light fields hold still. Their slow drift (90-150 s cycles, barely visible) kept three
+   screen-sized layers in motion, so every frame of any other animation recomposited them:
+   about 104% of a core on the Pi's Chromium vs 24% still (measured). They still retint with
+   the time of day and dim with cloudy weather. */
+.ambient__orb { animation: none; will-change: auto; }
+.s-wall__dim { height: 2.75rem; }        /* a comfortable touch target on phones */

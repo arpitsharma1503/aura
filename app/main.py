@@ -7,7 +7,7 @@ import dataclasses
 import io
 import logging
 from contextlib import asynccontextmanager
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from datetime import time as dtime
 from types import SimpleNamespace
 from typing import Literal
@@ -60,6 +60,7 @@ from .security import LanOnlyMiddleware
 from .settings_store import SECTIONS, WIDGETS, SettingsError, SettingsStore
 from .voice import VoiceClient, VoiceError, VoiceSession
 from .astronomy import Astronomy, astronomy_for
+from .background import MAX_BYTES as BACKGROUND_MAX, BackgroundError, BackgroundStore
 from .weather import (
     MockWeatherProvider,
     WeatherProvider,
@@ -176,6 +177,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     prefs = SettingsStore(settings.data_dir / "aura.db", settings)
     network = NetworkService()
     started_at = sysinfo.now_utc()
+    wallpaper = BackgroundStore(settings.data_dir)
 
     commute_key = settings.tomtom_api_key.get_secret_value() if settings.tomtom_api_key else ""
 
@@ -446,7 +448,10 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         # API data is never cached; static assets revalidate via ETag so an
         # always-on display picks up new versions without a hard refresh.
         is_api = request.url.path.startswith("/api/")
-        response.headers["cache-control"] = "no-store" if is_api else "no-cache"
+        if request.url.path == "/api/display/background" and response.status_code == 200:
+            response.headers["cache-control"] = "private, max-age=604800"   # screens ask with ?v=<upload id>
+        else:
+            response.headers["cache-control"] = "no-store" if is_api else "no-cache"
         return response
 
     @app.get("/api/health")
@@ -699,6 +704,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             changes = await request.json()
         except ValueError:
             return JSONResponse(status_code=422, content={"detail": {"message": "Body must be JSON.", "errors": []}})
+        if section == "display" and isinstance(changes, dict) and changes.get("background") == "image" and wallpaper.current() is None:
+            return JSONResponse(status_code=422, content={"detail": {"message": "Upload a picture first.",
+                                "errors": [{"field": "background", "message": "Upload a picture first."}]}})
         try:
             new, diff = prefs.update(section, changes)
         except SettingsError as exc:
@@ -722,6 +730,40 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         if r is None:
             raise HTTPException(status_code=404, detail="That search result has expired. Search again.")
         return {"name": r.name, "latitude": round(r.latitude, 6), "longitude": round(r.longitude, 6)}
+
+    # ----- wallpaper (Settings → Display) -----
+
+    @app.get("/api/display/background", include_in_schema=False)
+    async def background_picture() -> Response:
+        cur = wallpaper.current()
+        if cur is None:
+            raise HTTPException(status_code=404, detail="No picture uploaded.")
+        return FileResponse(cur[0], media_type=cur[1])
+
+    @app.put("/api/display/background", dependencies=[Depends(editor)])
+    async def background_upload(request: Request) -> dict:
+        data = bytearray()
+        async for chunk in request.stream():
+            data += chunk
+            if len(data) > BACKGROUND_MAX:
+                raise HTTPException(status_code=413, detail=f"The picture is too large (at most {BACKGROUND_MAX // (1024 * 1024)} MB).")
+        try:
+            picture = wallpaper.save(bytes(data))
+        except BackgroundError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        new, _ = prefs.update("display", {"background": "image",
+                                          "background_version": datetime.now(UTC).strftime("%Y%m%d%H%M%S%f")})
+        await apply_settings("display")
+        logging.getLogger("aura").info("wallpaper: new %s picture, %dx%d", picture["type"], picture["width"], picture["height"])
+        return {"display": new.model_dump(mode="json"), "picture": picture}
+
+    @app.delete("/api/display/background", dependencies=[Depends(editor)])
+    async def background_remove() -> dict:
+        wallpaper.remove()
+        new, diff = prefs.update("display", {"background": "aura", "background_version": ""})
+        if diff:
+            await apply_settings("display")
+        return {"display": new.model_dump(mode="json")}
 
     @app.get("/api/system/info")
     async def system_info() -> sysinfo.SystemInfo:
