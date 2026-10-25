@@ -72,7 +72,9 @@ def test_two_kpi_tiles_with_day_on_day_change(chrome, srv, artifacts):
     assert k[0] == {"id": "gold24", "label": "24K Gold · per 10 g", "value": "₹1,41,630", "dod": "▲ ₹1,630 · +1.16%", "dir": "up",
                     "aria": "Up ₹1,630, +1.16% from yesterday", "vs": "vs ₹1,40,000 on 26 Oct"}
     assert k[1]["label"] == "Silver · per kg" and k[1]["value"] == "₹1,94,417" and k[1]["dod"] == "▼ ₹583 · -0.30%" and k[1]["dir"] == "down"
-    assert "22K" not in p.text("#prices-tile") and "18K" not in p.text("#prices-tile")
+    rows = p.js("[...document.querySelectorAll('#prices-tile .pt-kpi[data-id=gold24] .pt-purity li')].map(li => li.textContent)")
+    assert rows == ["22K₹1,29,733▲ ₹1,493 (+1.16%)", "20K₹1,18,020▲ ₹1,358 (+1.16%)", "18K₹1,06,223▲ ₹1,223 (+1.16%)", "14K₹82,613▲ ₹951 (+1.16%)"]
+    assert p.js("document.querySelectorAll('#prices-tile .pt-kpi[data-id=silver] .pt-purity').length") == 0
     p.screenshot(str(artifacts / "prices-view-1920x1080.png"))
     p.js("document.querySelector('#prices-tile .tile-arrow').click()")
     p.wait_for("document.getElementById('detail').open && !!document.querySelector('.pt-chart svg')", timeout=10)
@@ -84,7 +86,6 @@ def test_two_kpi_tiles_with_day_on_day_change(chrome, srv, artifacts):
     assert purity == [["22K Gold · per 10 g", "₹1,29,733", "▲ ₹1,493 · +1.16%"], ["20K Gold · per 10 g", "₹1,18,020", "▲ ₹1,358 · +1.16%"],
                       ["18K Gold · per 10 g", "₹1,06,223", "▲ ₹1,223 · +1.16%"], ["14K Gold · per 10 g", "₹82,613", "▲ ₹951 · +1.16%"]]
     assert "22K × 0.916, 20K × 0.8333, 18K × 0.75, 14K × 0.5833" in p.text("#detail-body")
-    assert "22K" not in p.text("#prices-tile")                                          # only in the gold detail
     p.screenshot(str(artifacts / "prices-detail-gold.png"))
     p.js("document.querySelector('.pt-kpis--detail .pt-kpi[data-id=silver]').click()")
     p.wait_for("[...document.querySelectorAll('.dsec__title')].some(t => t.textContent.startsWith('Silver · ₹ per kg'))", timeout=5)
@@ -112,9 +113,9 @@ def test_tiles_fit_in_every_size(chrome, srv, w, h, artifacts):
     for v in ("a", "b", "prices"):
         p.js(f"document.querySelector('.view-tab[data-view={v}]').click()")
         g = p.js("""(() => { const t = document.getElementById('prices-tile').getBoundingClientRect();
-          const parts = [...document.querySelectorAll('#prices-tile .pt-kpi__value, #prices-tile .pt-kpi__dod')].map(r => r.getBoundingClientRect());
-          return {n: parts.length, clipped: parts.filter(r => r.bottom > t.bottom + 1 || r.right > t.right + 1).length,
+          const parts = [...document.querySelectorAll('#prices-tile .pt-kpi__value, #prices-tile .pt-kpi__dod, #prices-tile .pt-purity li')]
+            .filter(e => e.offsetParent).map(e => [e, e.getBoundingClientRect(), e.closest('.pt-kpi').getBoundingClientRect()]);
+          return {n: parts.length, clipped: parts.filter(([e, r, k]) => r.bottom > Math.min(t.bottom, k.bottom) + 1 || r.right > k.right + 1).map(([e]) => e.textContent),
                   hscroll: document.documentElement.scrollWidth > innerWidth + 1}; })()""")
-        assert g["n"] == 4 and g["clipped"] == 0 and not g["hscroll"], (v, w, h, g)
-    if w == 1280:
-        p.screenshot(str(artifacts / "prices-view-1280x720.png"))
+        assert g["n"] == {"a": 8, "b": 4, "prices": 8}[v] and g["clipped"] == [] and not g["hscroll"], (v, w, h, g)
+        p.screenshot(str(artifacts / f"prices-{v}-{w}x{h}.png"))

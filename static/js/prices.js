@@ -43,7 +43,7 @@ window.AuraPrices = (() => {
     return { dir, text, label: dir === "flat" ? "Unchanged from yesterday" : `${dir === "up" ? "Up" : "Down"} ${INR.format(Math.abs(i.change))}, ${pct} from yesterday` };
   }
 
-  function kpi(i, { big = false, onclick = null, picked = false } = {}) {
+  function kpi(i, { big = false, onclick = null, picked = false, extra = null } = {}) {
     const c = dod(i);
     const tag = onclick ? "button" : "div";
     return el(tag, { class: `pt-kpi${big ? " pt-kpi--big" : ""}${picked ? " is-picked" : ""}`, "data-id": i.id,
@@ -51,7 +51,20 @@ window.AuraPrices = (() => {
       el("span", { class: "pt-kpi__label" }, i.label, el("small", {}, ` · per ${i.unit}`)),
       el("span", { class: "pt-kpi__value" }, INR.format(i.price)),
       el("span", { class: "pt-kpi__dod", "data-dir": c.dir, "aria-label": c.label }, c.text),
-      el("span", { class: "pt-kpi__vs" }, i.previous != null ? `vs ${INR.format(i.previous)} on ${shortDay(i.previous_day)}` : "Day-on-day from tomorrow"));
+      el("span", { class: "pt-kpi__vs" }, i.previous != null ? `vs ${INR.format(i.previous)} on ${shortDay(i.previous_day)}` : "Day-on-day from tomorrow"),
+      extra);
+  }
+
+  /** 22K/20K/18K/14K under the 24K figure (calculated from it on the Pi; see app/prices.py). */
+  function purityList(d, withChange) {
+    if (!d.gold_purities?.length) return null;
+    return el("ul", { class: "pt-purity", "aria-label": "Lower purities, calculated from 24K, per 10 g" },
+      d.gold_purities.map((g) => {
+        const c = dod(g);
+        return el("li", {}, el("b", {}, g.karat), el("span", { class: "pt-purity__price" }, INR.format(g.price)),
+          withChange ? el("span", { class: "pt-purity__dod", "data-dir": c.dir, "aria-label": c.label },
+            c.dir === "none" ? "" : c.text.replace(" · ", " (") + ")") : null);
+      }));
   }
 
   // ---------- tile ----------
@@ -66,7 +79,8 @@ window.AuraPrices = (() => {
       return;
     }
     tile.dataset.state = d.status === "stale" ? "alert" : "ok";
-    body.replaceChildren(el("div", { class: "pt-kpis", "data-size": size }, d.items.map((i) => kpi(i, { big: size === "l" }))),
+    body.replaceChildren(el("div", { class: "pt-kpis", "data-size": size }, d.items.map((i) => kpi(i, { big: size === "l",
+      extra: i.id === "gold24" && size !== "s" ? purityList(d, size === "l") : null }))),
       ...(d.status === "stale" ? [el("p", { class: "pt-stale" }, d.message)] : []),
       ...(size === "l" ? [el("p", { class: "pt-foot" }, `IBJA benchmark · checked once a day at 12:00 · excludes GST and making charges`)] : []));
   }

@@ -437,3 +437,23 @@ button.pt-kpi:focus-visible { box-shadow: var(--focus); }
 .pt-kpis--purity .pt-kpi__value { font-size: 1.45rem; }
 .pt-kpi[data-id^="gold"] .pt-kpi__value { color: #f6d58a; }
 .pt .dsec + .dsec { margin-top: 1.2rem; }
+/* 22K-14K inside the 24K gold KPI */
+.pt-purity { list-style: none; margin: 0.5rem 0 0; padding: 0.5rem 0 0; border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid; gap: 0.3rem; }
+.pt-purity li { display: grid; grid-template-columns: 2.6rem auto 1fr; align-items: baseline; column-gap: 0.6rem; }
+.pt-purity b { font-weight: 650; color: var(--on-glass-2); }
+.pt-purity__price { font-weight: 650; font-variant-numeric: tabular-nums; color: #f1d79a; }
+.pt-purity__dod { font-size: 0.85em; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--on-glass-3); }
+.pt-purity__dod[data-dir="up"] { color: #6fe39a; }
+.pt-purity__dod[data-dir="down"] { color: #ff8a8a; }
+.pt-kpi--big .pt-purity { font-size: 1.15rem; gap: 0.45rem; margin-top: 0.8rem; padding-top: 0.8rem; }
+.pt-kpi--big .pt-purity li { grid-template-columns: 3.2rem auto 1fr; }
+/* the wide tile: a compact 2 x 2 of prices; the "vs yesterday" line makes room */
+.pt-kpis[data-size="w"] .pt-kpi[data-id="gold24"] .pt-kpi__vs { display: none; }
+.pt-kpis[data-size="w"] .pt-purity { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.1rem 0.8rem; margin-top: 0.3rem; padding-top: 0.3rem; font-size: 0.82rem; }
+.pt-kpis[data-size="w"] .pt-purity li { grid-template-columns: 2.2rem auto; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  .pt-kpis[data-size="w"] .pt-kpi { padding: 0.35rem 0.7rem; gap: 0.1rem; }
+  .pt-kpis[data-size="w"] .pt-kpi__value { font-size: 1.3rem; }
+  .pt-kpi--big .pt-purity { font-size: calc(var(--u) * 1.15); }
+}
