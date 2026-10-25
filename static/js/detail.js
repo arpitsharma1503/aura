@@ -26,6 +26,7 @@ window.AuraDetail = (() => {
     system: { title: "System", render: renderSystem },
     meals: { title: "Meal plan", render: () => window.AuraMeals.view() },
     smarthome: { title: "Smart home", render: () => window.AuraSmartHome.view() },
+    prices: { title: "Price Tracker", render: () => window.AuraPrices.view() },
   };
 
   // ---------- tiny DOM helper (text only; never innerHTML with data) ----------
@@ -53,7 +54,7 @@ window.AuraDetail = (() => {
   // ---------- open / close with history ----------
 
   function parseHash(hash) {
-    const m = /^#\/(clock|weather|advice|commute|assistant|calendar|protection|system|meals|smarthome)(?:\/([a-z]+))?$/.exec(hash || "");
+    const m = /^#\/(clock|weather|advice|commute|assistant|calendar|protection|system|meals|smarthome|prices)(?:\/([a-z]+))?$/.exec(hash || "");
     return m ? { view: m[1], section: m[2] || null } : null;
   }
 
@@ -214,7 +215,78 @@ window.AuraDetail = (() => {
     const cal = ctx.calendar();
     const feeds = cal?.feeds || [];
     $("detail-sub").textContent = feeds.length ? feeds.map((f) => f.label).join(" · ") : "";
-    return [section("calendar", "Events, birthdays & holidays", calendarList())];
+    return [section("panchang", "Panchang", panchangPanel()), section("calendar", "Events, birthdays & holidays", calendarList())];
+  }
+
+  // ----- Panchang (calculated on the Pi; app/panchang.py) -----
+  // Today comes with the dashboard's data; other dates are fetched when chosen with ‹ ›.
+  const pan = { date: null, data: null, busy: false, error: null };
+  async function panchangGo(iso) {
+    pan.date = iso; pan.busy = true; pan.error = null;
+    refresh("calendar");
+    try { pan.data = await ctx.fetchPanchang(iso); } catch (err) { pan.data = null; pan.error = err.message; }
+    pan.busy = false;
+    refresh("calendar");
+  }
+  function pBtn(label, aria, fn) {                 // h() sets attributes only; handlers go on with addEventListener (CSP)
+    const b = h("button", { type: "button", class: "btn", "aria-label": aria }, label);
+    b.addEventListener("click", fn);
+    return b;
+  }
+  const shiftDay = (iso, n) => { const d = new Date(`${iso}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const pTime = (iso, tz) => ctx.formatTimeIn(tz, new Date(iso));
+  const pDay = (iso, tz) => new Intl.DateTimeFormat("en-GB", { timeZone: tz, weekday: "short", day: "numeric", month: "short" }).format(new Date(iso));
+
+  function panchangPanel() {
+    const today = ctx.panchang();
+    if (!pan.date && today) pan.date = today.date;
+    const p = pan.date && today && pan.date === today.date ? today : pan.data;
+    if (!today && !pan.data) {
+      return h("div", { class: "dempty" }, h("span", { html: ctx.icon("crescent") }), h("div", {},
+        h("strong", {}, "Panchang unavailable"),
+        h("p", {}, pan.error || "It needs the home location (the place changes sunrise and the day's Tithi). Set it with the Location button.")));
+    // (an "ok" answer is required for a day: ctx.panchang() is null until the home location is set)
+    }
+    const tz = (p || today).timezone;
+    const nav = h("div", { class: "pan-nav" },
+      pBtn("‹", "Previous day", () => panchangGo(shiftDay(pan.date, -1))),
+      h("strong", { class: "pan-nav__date" }, new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" })
+        .format(new Date(`${pan.date}T12:00:00Z`))),
+      pBtn("›", "Next day", () => panchangGo(shiftDay(pan.date, 1))),
+      today && pan.date !== today.date ? pBtn("Today", null, () => { pan.date = today.date; pan.data = null; refresh("calendar"); }) : null);
+    if (pan.busy || !p) return [nav, note(pan.error ? `Couldn't calculate this day: ${pan.error}` : "Calculating…")];
+    const seg = (list, label) => list.map((x, i) => h("li", {},
+      h("b", { lang: "hi" }, x.name_hi), h("span", {}, ` ${x.paksha_en && label === "tithi" ? `${x.paksha_en.replace(" Paksha", "")} ` : ""}${x.name_en}`),
+      h("small", {}, i === 0 ? `until ${pTime(x.end, tz)}${pDay(x.end, tz) !== pDay(p.sunrise, tz) ? `, ${pDay(x.end, tz)}` : ""}`
+        : `${pTime(x.start, tz)} – ${pTime(x.end, tz)}${pDay(x.end, tz) !== pDay(p.sunrise, tz) ? ` (${pDay(x.end, tz)})` : ""}`)));
+    const t = p.tithi;
+    const isToday = today && p.date === today.date;
+    const out = [nav];
+    out.push(h("div", { class: "pan-hero" },
+      h("span", { class: "pan-hero__icon", html: ctx.icon("crescent", 1.4) }),
+      h("div", {},
+        h("p", { class: "pan-hero__hi", lang: "hi" }, `${t.paksha_hi} — ${t.name_hi}`),
+        h("p", { class: "pan-hero__en" }, `${t.paksha_en} ${t.name_en}`),
+        h("p", { class: "pan-hero__sub" }, `${p.month.purnimanta_en} (purnimanta) · ${p.month.amanta_en} (amanta) · Vikram Samvat ${p.samvat.vikram}`)),
+      p.observance ? h("span", { class: "pan-hero__badge", lang: "hi" }, `${p.observance.name_hi} · ${p.observance.name_en}`) : null));
+    if (isToday && p.now) {
+      const n = p.now;
+      out.push(note(`Right now: ${n.tithi.paksha_en} ${n.tithi.name_en}, until ${pTime(n.tithi.end, tz)}. Then ${n.next.name_en}` +
+        `${n.next.paksha !== n.tithi.paksha ? ` (${n.next.paksha_en})` : ""}.`));
+    }
+    out.push(h("dl", { class: "dmetrics pan-grid" },
+      metric("Sunrise", pTime(p.sunrise, tz)), metric("Sunset", p.sunset ? pTime(p.sunset, tz) : "—"),
+      metric("Paksha", t.paksha_en, t.paksha_hi), metric("Lunar month", p.month.purnimanta_en, `amanta: ${p.month.amanta_en}`),
+      metric("Vikram Samvat", String(p.samvat.vikram), `Shaka ${p.samvat.shaka}`)));
+    out.push(h("div", { class: "pan-lists" },
+      h("div", {}, h("h4", {}, "Tithi"), h("ul", { class: "pan-list" }, seg(p.tithis, "tithi"))),
+      h("div", {}, h("h4", {}, "Nakshatra"), h("ul", { class: "pan-list" }, seg(p.nakshatras))),
+      h("div", {}, h("h4", {}, "Yoga"), h("ul", { class: "pan-list" }, seg(p.yogas))),
+      h("div", {}, h("h4", {}, "Karana"), h("ul", { class: "pan-list" }, seg(p.karanas)))));
+    out.push(note(`For ${p.place || "home"}, from sunrise to the next sunrise. The day's Tithi is the one at sunrise. ` +
+      "Calculated on the Pi with the Swiss Ephemeris (Lahiri ayanamsa); times usually agree with Drik Panchang within a minute or two. " +
+      "Festivals other than Ekadashi, Purnima and Amavasya aren't calculated: your holiday calendar lists them.", "dnote--muted"));
+    return out;
   }
 
   // ----- network protection (read-only) -----

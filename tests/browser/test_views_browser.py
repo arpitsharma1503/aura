@@ -87,7 +87,7 @@ def test_views_editor_round_trip(chrome, srv, artifacts):
     p = chrome.new_page()
     p.viewport(1440, 900)
     p.goto(f"{srv.url}/settings#views")
-    p.wait_for("!document.getElementById('s-main').hidden && document.querySelectorAll('#view-editor .s-view').length === 4", timeout=15)
+    p.wait_for("!document.getElementById('s-main').hidden && document.querySelectorAll('#view-editor .s-view').length === 5", timeout=15)
     card = "document.querySelector('#view-editor .s-view[data-id=daily]')"
     p.js(f"""(() => {{ const n = {card}.querySelector('.s-view__name'); n.value = 'Today'; n.dispatchEvent(new Event('input', {{bubbles: true}})); }})()""")
     p.js(f"""(() => {{ const s = {card}.querySelector('.s-view__tiles li[data-id=calendar] select'); s.value = 'w'; s.dispatchEvent(new Event('change')); }})()""")
@@ -106,18 +106,18 @@ def test_views_editor_round_trip(chrome, srv, artifacts):
     p.wait_for("document.querySelector('#views .s-status').dataset.kind === 'ok'", timeout=10)
     status, cfg = srv.api("GET", "/api/config")
     v = cfg["views"]
-    assert [x["id"] for x in v["views"]] == ["daily", "home", "system", "system-copy", "fitness"] and v["default_view"] == "daily"
+    assert [x["id"] for x in v["views"]] == ["daily", "home", "system", "system-copy", "prices", "fitness"] and v["default_view"] == "daily"
     daily = v["views"][0]
     assert daily["name"] == "Today" and [t["id"] for t in daily["tiles"]] == ["calendar", "meals", "groceries", "commute", "weather"]
-    assert daily["tiles"][0]["size"] == "w" and v["views"][3]["name"] == "System copy" and v["views"][4]["tiles"] == []
+    assert daily["tiles"][0]["size"] == "w" and v["views"][3]["name"] == "System copy" and v["views"][5]["tiles"] == []
     # the dashboard opens on the new default view
     d = chrome.new_page()
     d.viewport(1920, 1080)
     d.goto(f"{srv.url}/")
-    d.wait_for("document.querySelectorAll('.view-tab').length === 5")
+    d.wait_for("document.querySelectorAll('.view-tab').length === 6")
     assert d.js("document.querySelector('.view-tab[aria-selected=true]').textContent") == "Today"
     # the only view can't be deleted
-    for vid in ["home", "system", "system-copy", "fitness"]:
+    for vid in ["home", "system", "system-copy", "prices", "fitness"]:
         p.js(f"[...document.querySelectorAll('#view-editor .s-view[data-id={vid}] .btn')].find(b => b.textContent === 'Delete').click()")
         p.wait_for("document.getElementById('s-confirm').open")
         p.js("document.getElementById('sc-ok').click()")
@@ -138,7 +138,7 @@ def test_reset_one_view_and_all_views(chrome, srv):
     p.js("document.querySelector('#views .s-reset').click()")
     p.wait_for("document.getElementById('s-confirm').open")
     p.js("document.getElementById('sc-ok').click()")
-    p.wait_for("document.querySelectorAll('#view-editor .s-view').length === 4", timeout=10)
+    p.wait_for("document.querySelectorAll('#view-editor .s-view').length === 5", timeout=10)
 
 
 def test_selection_lens_follows_the_selected_view(chrome, srv):
@@ -175,3 +175,15 @@ def test_glass_can_see_the_background(chrome, srv, phase):
       return out; })()""")
     assert blockers == []
     assert p.js("getComputedStyle(document.getElementById('detail')).backdropFilter") != "none"   # sheets blur live
+
+
+@pytest.mark.parametrize("w, h", [(320, 568), (390, 844)])
+def test_many_views_never_widen_a_phone_page(chrome, srv, w, h):
+    """The tab bar scrolls sideways instead of making the page wider (phones would zoom out)."""
+    p = chrome.new_page()
+    p.viewport(w, h, mobile=True)
+    p.fixture("/api/weather", weather_payload(63, 12))
+    p.goto(f"{srv.url}/")
+    p.wait_for("document.querySelectorAll('.view-tab').length >= 5", timeout=15)
+    assert p.js("[document.documentElement.scrollWidth, innerWidth]") == [w, w]
+    assert p.js("document.getElementById('views-tabs').scrollWidth > document.getElementById('views-tabs').clientWidth")

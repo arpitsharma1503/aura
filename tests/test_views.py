@@ -20,7 +20,7 @@ def cells(view) -> int:
 
 def test_presets_use_real_widgets_and_fit_the_screen():
     v = ViewsSettings()
-    assert [x.id for x in v.views] == ["home", "daily", "smart-home", "system"] and v.default_view == "home"
+    assert [x.id for x in v.views] == ["home", "daily", "smart-home", "system", "prices"] and v.default_view == "home"
     for view in v.views:
         assert cells(view) <= 12, view.id                                 # 3 rows x 4 columns on the entrance screen
         assert all(t.id in WIDGETS and t.size in WIDGETS[t.id]["sizes"] for t in view.tiles)
@@ -30,10 +30,10 @@ def test_presets_use_real_widgets_and_fit_the_screen():
 
 def test_config_exposes_views_and_registry(tmp_path):
     cfg = lan(tmp_path).get("/api/config").json()
-    assert cfg["views"]["default_view"] == "home" and len(cfg["views"]["views"]) == 4
+    assert cfg["views"]["default_view"] == "home" and len(cfg["views"]["views"]) == 5
     assert cfg["widgets"]["weather"] == {"name": "Weather", "sizes": ["w", "l"], "size": "w", "about": "Now, 5-day outlook, Sun & Moon"}
     assert set(cfg["widgets"]) == {"weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "smarthome",
-                                   "protection", "system"}
+                                   "protection", "system", "prices"}
     assert [r["id"] for r in cfg["home"]["rooms"]] == ["living-room", "bedroom", "kitchen", "entrance"]
 
 
@@ -98,7 +98,7 @@ def test_old_tab_arrangement_is_migrated_once(tmp_path):
                         rooms=[{"id": "living-room", "name": "Living room", "tiles": ["weather", "calendar", "system"]},
                                {"id": "bedroom", "name": "Bedroom", "tiles": []}])
     views = views_from_home(home)
-    assert [v.id for v in views] == ["home", "living-room", "smart-home", "system"]
+    assert [v.id for v in views] == ["home", "living-room", "smart-home", "system", "prices"]
     assert [t.id for t in views[0].tiles][:2] == ["groceries", "weather"] and "advice" not in [t.id for t in views[0].tiles]
     assert [t.id for t in views[1].tiles] == ["weather", "calendar"]                        # hidden everywhere stays hidden
     # through the store: saved old settings, no views yet -> migrated views served

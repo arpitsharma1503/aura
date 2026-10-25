@@ -134,9 +134,13 @@ def test_keyboard_open_and_focus_return(chrome, srv):
 
 def test_touch_tap_opens_tile(chrome, srv):
     p = dashboard(chrome, srv, 390, 844, touch=True)
+    # Let the last startup requests (Panchang, prices) settle so the layout holds still under the finger.
+    pos = "(() => { const r = document.querySelector('.commute__time').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; })()"
+    p.wait_for("window.performance.getEntriesByType('resource').some(r => r.name.includes('/api/prices'))", timeout=10)
     p.js("document.getElementById('commute').scrollIntoView({block: 'center'})")
-    x, y = p.js("""(() => { const r = document.querySelector('.commute__time').getBoundingClientRect();
-                   return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; })()""")
+    p.js("new Promise(r => setTimeout(r, 500))")
+    x, y = p.js(pos)
+    assert p.js(f"document.elementFromPoint({x}, {y}).closest('[data-tile]').dataset.tile") == "commute"
     # Real touch events (headless Chromium's synthesizeTapGesture never emits the click).
     p.call("Input.dispatchTouchEvent", type="touchStart", touchPoints=[{"x": x, "y": y}])
     p.call("Input.dispatchTouchEvent", type="touchEnd", touchPoints=[])

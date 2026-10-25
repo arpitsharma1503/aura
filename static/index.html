@@ -16,6 +16,7 @@
   <script src="/static/js/assistant.js" defer></script>
   <script src="/static/js/meals.js" defer></script>
   <script src="/static/js/smarthome.js" defer></script>
+  <script src="/static/js/prices.js" defer></script>
   <script src="/static/js/app.js" defer></script>
 </head>
 <body class="dash" data-phase="night" data-sky="clear">
@@ -139,6 +140,10 @@
         <header class="tile__head"><span class="tile__icon" data-icon="calendar" aria-hidden="true"></span><h2 class="tile__title" id="calendar-title">Calendar</h2><span class="tile__aside" id="calendar-when"></span></header>
         <ul class="agenda" id="agenda" aria-label="Upcoming events and holidays"></ul>
         <p class="tile__empty" id="calendar-empty" hidden></p>
+        <button type="button" class="panchang" id="panchang" data-open="calendar#panchang" hidden aria-label="Panchang for today">
+          <span class="panchang__icon" aria-hidden="true"></span>
+          <span class="panchang__text"><span class="panchang__hi" id="panchang-hi" lang="hi"></span><span class="panchang__en" id="panchang-en"></span></span>
+        </button>
         <button type="button" class="tile-arrow" data-open="calendar" aria-haspopup="dialog" aria-label="Calendar details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
@@ -162,6 +167,12 @@
         <p class="tile__value" id="assistant-status">&nbsp;</p>
         <p class="tile__sub" id="assistant-sub"></p>
         <button type="button" class="tile-arrow" data-open="assistant" aria-haspopup="dialog" aria-label="Open the assistant"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+      </article>
+
+      <article class="tile card prices-tile" id="prices-tile" data-tile="prices" data-tone="amber" aria-labelledby="prices-title" data-open="prices" data-state="loading">
+        <header class="tile__head"><span class="tile__icon" data-icon="coins" aria-hidden="true"></span><h2 class="tile__title" id="prices-title">Price Tracker</h2><span class="tile__aside" id="prices-aside"></span></header>
+        <div class="pt-body" id="prices-body"></div>
+        <button type="button" class="tile-arrow" data-open="prices" aria-haspopup="dialog" aria-label="Gold and silver price details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
       </article>
 
       <article class="tile card smarthome-tile" id="smarthome-tile" data-tile="smarthome" data-tone="amber" aria-labelledby="smarthome-title" data-open="smarthome" data-state="loading">

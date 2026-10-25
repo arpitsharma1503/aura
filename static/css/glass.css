@@ -185,7 +185,11 @@ body[data-sky="storm"]  .ambient { filter: saturate(0.55) brightness(0.75); }
 
 /* ---------------------------------------------------------------- navigation: the view dock */
 .views { gap: 0.7rem; }
-.views__tabs { position: relative; isolation: isolate; padding: 0.32rem; border-radius: var(--r-pill); gap: 0.2rem; overflow: visible; }
+/* The tab bar scrolls sideways when the views don't fit (phones): overflow must stay "auto",
+   or the whole page grows wider than the screen and phones zoom out. */
+.views__tabs { position: relative; isolation: isolate; padding: 0.32rem; border-radius: var(--r-pill); gap: 0.2rem;
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.views { min-width: 0; }
 .view-tab { position: relative; z-index: 2; background: transparent !important; color: var(--on-glass-2); font-weight: 560;
   transition: color var(--glass-dur) var(--glass-ease); }
 .view-tab:hover { color: var(--on-glass-1); }
@@ -347,3 +351,93 @@ body.dash[data-wallpaper="image"][data-wall-ready] .tile[data-open]:hover { tran
    the time of day and dim with cloudy weather. */
 .ambient__orb { animation: none; will-change: auto; }
 .s-wall__dim { height: 2.75rem; }        /* a comfortable touch target on phones */
+
+/* ---------------------------------------------------------------- Panchang (Calendar) */
+.panchang { all: unset; box-sizing: border-box; cursor: pointer; margin-top: auto; display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.4rem 0.6rem; border-radius: var(--r-sm); position: relative; z-index: 2;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1); }
+.panchang:hover { background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)); }
+.panchang:focus-visible { box-shadow: var(--focus); }
+.panchang__icon { flex: none; width: 1.35rem; height: 1.35rem; color: #f3dfb0; }
+.panchang__icon svg { width: 100%; height: 100%; }
+.panchang__text { min-width: 0; display: grid; }
+.panchang__hi { font-size: 1rem; font-weight: 600; color: var(--on-glass-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.panchang__en { font-size: 0.8rem; color: var(--on-glass-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.pan-nav { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.8rem; }
+.pan-nav .btn { min-width: 2.6rem; }
+.pan-nav__date { font-weight: 600; padding: 0 0.4rem; }
+.pan-hero { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.1rem; border-radius: var(--r-sm); margin-bottom: 0.8rem;
+  background: radial-gradient(120% 140% at 10% 0%, rgba(243, 223, 176, 0.14), transparent 60%), rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12); }
+.pan-hero__icon { width: 2.6rem; height: 2.6rem; color: #f3dfb0; flex: none; }
+.pan-hero__icon svg { width: 100%; height: 100%; }
+.pan-hero > div { flex: 1; min-width: 14rem; }
+.pan-hero p { margin: 0; }
+.pan-hero__hi { font-size: 1.6rem; font-weight: 600; }
+.pan-hero__en { font-size: 1.05rem; color: var(--on-glass-2); }
+.pan-hero__sub { font-size: 0.85rem; color: var(--on-glass-3); margin-top: 0.3rem !important; }
+.pan-hero__badge { padding: 0.3rem 0.8rem; border-radius: var(--r-pill); background: rgba(243, 223, 176, 0.16); color: #f3dfb0; font-weight: 600; }
+.pan-grid { margin-bottom: 0.8rem; }
+.pan-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 0.8rem 1.4rem; margin-bottom: 0.6rem; }
+.pan-lists h4 { margin: 0 0 0.35rem; font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.pan-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.pan-list li { display: grid; grid-template-columns: auto 1fr; column-gap: 0.4rem; }
+.pan-list b { font-weight: 600; }
+.pan-list span { color: var(--on-glass-2); }
+.pan-list small { grid-column: 1 / -1; color: var(--on-glass-3); font-size: 0.8rem; }
+
+/* ---------------------------------------------------------------- Price Tracker */
+.pt-body { display: flex; flex-direction: column; gap: 0.4rem; min-height: 0; }
+.pt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+.pt-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: baseline; column-gap: 0.9rem;
+  padding: 0.3rem 0.55rem; border-radius: var(--r-sm); background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); }
+.pt-row__name { font-weight: 560; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-row__name small { margin-left: 0.35rem; font-size: 0.75rem; font-weight: 400; color: var(--on-glass-3); }
+.pt-row__price { font-size: 1.15rem; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.pt-chg { font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pt-chg[data-dir="up"] { color: #6fe39a; }
+.pt-chg[data-dir="down"] { color: #ff8a8a; }
+.pt-chg[data-dir="flat"], .pt-chg[data-dir="none"] { color: var(--on-glass-3); font-weight: 500; }
+.pt-row[data-id="gold24"] .pt-row__price { color: #f6d58a; }
+.pt-row[data-id="silver"] .pt-row__price { color: #dfe6f0; }
+.pt-list[data-size="l"] { gap: 0.55rem; }
+.pt-list[data-size="l"] .pt-row { padding: 0.7rem 0.9rem; }
+.pt-list[data-size="l"] .pt-row__name { font-size: 1.15rem; }
+.pt-list[data-size="l"] .pt-row__price { font-size: 1.7rem; }
+.pt-list[data-size="l"] .pt-chg { font-size: 1.05rem; }
+.pt-list[data-size="s"] .pt-row { grid-template-columns: minmax(0, 1fr) auto; }
+.pt-list[data-size="s"] .pt-chg { grid-column: 1 / -1; font-size: 0.78rem; }
+.pt-stale { margin: 0; font-size: 0.8rem; color: var(--warn); }
+/* the wide tile has to fit five rows: tighter */
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  .pt-list[data-size="w"] { gap: 0.18rem; }
+  .pt-list[data-size="w"] .pt-row { padding: 0.12rem 0.5rem; }
+  .pt-list[data-size="w"] .pt-row__price { font-size: 1rem; }
+}
+
+.pt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.8rem; }
+.pt-src { margin: 0; font-weight: 600; }
+.pt-meta { margin: 0.2rem 0 0; color: var(--on-glass-3); font-size: 0.88rem; }
+.pt-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12.5rem), 1fr)); gap: 0.7rem; margin-bottom: 1rem; }
+.pt-card { all: unset; box-sizing: border-box; cursor: pointer; display: grid; gap: 0.25rem; padding: 0.9rem 1rem; border-radius: var(--r-sm); position: relative;
+  background: radial-gradient(120% 100% at 15% 0%, rgba(255, 255, 255, 0.12), transparent 60%), rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 8px 20px -14px rgba(0, 0, 0, 0.7); transition: background var(--glass-dur) var(--glass-ease); }
+.pt-card:hover { background: radial-gradient(120% 100% at 15% 0%, rgba(255, 255, 255, 0.16), transparent 60%), rgba(255, 255, 255, 0.08); }
+.pt-card:focus-visible { box-shadow: var(--focus); }
+.pt-card.is-picked { box-shadow: inset 0 0 0 1px rgba(246, 213, 138, 0.6), 0 8px 24px -10px rgba(246, 213, 138, 0.35); }
+.pt-card__name { font-size: 0.85rem; color: var(--on-glass-2); font-weight: 600; }
+.pt-card__price { font-size: 1.55rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.pt-card__price small { font-size: 0.8rem; font-weight: 400; color: var(--on-glass-3); }
+.pt-card__note { font-size: 0.75rem; color: var(--on-glass-3); }
+.pt-ranges { margin-bottom: 0.6rem; }
+.pt-chart { border-radius: var(--r-sm); background: rgba(0, 0, 0, 0.18); padding: 0.4rem; }
+.pt-chart__svg { width: 100%; height: auto; display: block; }
+.pt-grid { stroke: rgba(255, 255, 255, 0.08); }
+.pt-axis { fill: var(--on-glass-3); font-size: 12px; }
+.pt-line { fill: none; stroke: #f6d58a; stroke-width: 2.4; stroke-linejoin: round; }
+.pt-area { fill: rgba(246, 213, 138, 0.10); }
+.pt-dot { fill: #f6d58a; }
+.pt-about { margin: 0; padding-left: 1.2rem; color: var(--on-glass-2); line-height: 1.6; }
+.pt-card__price { font-size: 1.4rem; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 0.3rem; }
+.pt-card__price small { white-space: nowrap; }

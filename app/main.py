@@ -30,6 +30,8 @@ from .assistant import Assistant, Sources, Turn
 from .dnsfilter import DnsFilterMonitor, DnsFilterStatus
 from . import nutrition
 from . import smarthome
+from . import panchang as panchang_calc
+from .prices import PriceError, PriceTracker
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -266,6 +268,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         host = urlsplit(url).hostname if url else None
         return f"{ha.scheme}://{host}:{ha.port or 8123}" if host else None
 
+    prices = PriceTracker(settings.data_dir / "aura.db",
+                          settings.metals_dev_api_key.get_secret_value() if settings.metals_dev_api_key else None, client)
+    prices.on_change = lambda: broker.publish("prices", {})
     smart = smarthome.SmartHome(ha_registry, ha_link, lambda: [r.model_dump() for r in prefs.home.rooms], ha_public_url)
     meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
     plan_groceries = nutrition.PlanGroceries(settings.data_dir / "aura.db", groceries)
@@ -402,11 +407,13 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         spawn(meal_grocery_sync())
         spawn(wake_sync())
         ha_link.start()
+        prices.start()
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
         await agenda.stop()
         await ha_link.stop()
+        await prices.stop()
         commute_store.close()
         for t in list(background):
             t.cancel()
@@ -417,6 +424,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         meal_log.close()
         plan_groceries.close()
         ha_registry.close()
+        prices.close()
         prefs.close()
 
     app = FastAPI(
@@ -639,6 +647,52 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         except Exception:  # never let the extra break the weather card
             logging.getLogger("aura").exception("Sun & Moon computation failed")
             return None
+
+    # ----- Price Tracker -----
+
+    @app.get("/api/prices")
+    async def prices_view() -> dict:
+        return prices.view()
+
+    @app.post("/api/prices/refresh", dependencies=[Depends(editor)])
+    async def prices_refresh() -> dict:
+        try:
+            return await prices.fetch(manual=True)
+        except PriceError as exc:
+            raise HTTPException(status_code=429 if "try again" in str(exc) or "used up" in str(exc) else 502,
+                                detail=str(exc)) from exc
+
+    # ----- Panchang (Calendar) -----
+    panchang_cache: dict[tuple, dict] = {}
+
+    @app.get("/api/panchang")
+    async def panchang_day(date_: str | None = Query(default=None, alias="date")) -> dict:
+        """Tithi, Nakshatra, Yoga, Karana, month and Samvat for a date at the home location,
+        calculated on the Pi (app/panchang.py). Never for a guessed place."""
+        loc = weather_location()
+        if loc is None or getattr(loc, "latitude", None) is None:
+            return {"status": "no_location", "message": "Set the home location first: the Panchang depends on the place."}
+        tz_name = getattr(loc, "timezone", None) or timezone()
+        now = datetime.now(ZoneInfo(tz_name))
+        try:
+            d = date.fromisoformat(date_) if date_ else now.date()
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Use a date like 2026-10-25.") from None
+        if not date(1900, 1, 1) <= d <= date(2100, 12, 31):
+            raise HTTPException(status_code=422, detail="Dates from 1900 to 2100 are supported.")
+        key = (d.isoformat(), round(loc.latitude, 4), round(loc.longitude, 4), tz_name)
+        try:
+            day = panchang_cache.get(key)
+            if day is None:
+                day = await asyncio.to_thread(panchang_calc.panchang, d, tz_name, loc.latitude, loc.longitude)
+                if len(panchang_cache) > 120:
+                    panchang_cache.clear()
+                panchang_cache[key] = day
+            current = (await asyncio.to_thread(panchang_calc.panchang, now.date(), tz_name, loc.latitude, loc.longitude, now))["now"]
+        except Exception as exc:  # the Calendar must keep working without it
+            logging.getLogger("aura").exception("Panchang calculation failed")
+            raise HTTPException(status_code=503, detail="The Panchang couldn't be calculated right now.") from exc
+        return {**day, "status": "ok", "now": current, "today": now.date().isoformat(), "place": getattr(loc, "city", None) or "Home"}
 
     # ----- calendar -----
 

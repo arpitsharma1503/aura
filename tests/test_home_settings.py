@@ -2,7 +2,7 @@
 
 from conftest import make_client
 
-TILES = ["weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "smarthome", "protection", "system"]
+TILES = ["weather", "commute", "meals", "groceries", "advice", "calendar", "assistant", "smarthome", "protection", "system", "prices"]
 
 
 def lan(tmp_path):

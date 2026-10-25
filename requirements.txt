@@ -5,6 +5,7 @@ uvicorn==0.54.0
 pydantic-settings==2.16.0
 httpx==0.28.1
 segno==1.6.6
+pyswisseph==2.10.3.2      # Panchang (Tithi, Nakshatra...): Swiss Ephemeris, offline Moshier model
 icalendar==7.3.0
 recurring-ical-events==3.8.2
 

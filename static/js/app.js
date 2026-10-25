@@ -32,6 +32,8 @@
     view: null,             // selected view (tab)
     meals: null,            // last /api/meals/day response (today)
     smarthome: null,        // last /api/smarthome response
+    panchang: null,         // last /api/panchang response (today)
+    prices: null,           // last /api/prices response
     groceryRevision: null,
     events: null,
     configTimer: null,
@@ -870,7 +872,9 @@
       list.replaceChildren();
       tile.dataset.state = kind;
       $("calendar-when").textContent = "";
-      empty.replaceChildren(Object.assign(document.createElement("b"), { textContent: title }), document.createTextNode(text));
+      // With the Tithi line below, a small tile has room for the title only (details are in the Calendar view).
+      const short = !$("panchang").hidden && sizeOf("calendar") !== "l";
+      empty.replaceChildren(Object.assign(document.createElement("b"), { textContent: title }), document.createTextNode(short ? "" : text));
       empty.hidden = false;
     };
     if (!cal || cal.status === "unconfigured") {
@@ -890,7 +894,8 @@
     // Small and wide: at most three rows (three items, or two plus "+N more").
     // Large (2x2): up to eight rows, continuing into the following days with a day label.
     const large = sizeOf("calendar") === "l";
-    const cap = large ? 8 : 3;
+    const withTithi = !$("panchang").hidden;          // the Tithi line takes a row at the bottom
+    const cap = large ? (withTithi ? 7 : 8) : (withTithi ? 2 : 3);
     const shown = day.items.length > cap ? day.items.slice(0, cap - 1) : day.items;
     $("calendar-when").textContent = dayLabel(day.date, cal.today);
     const later = [];
@@ -924,6 +929,42 @@
       more.textContent = `+ ${day.items.length - shown.length} more`;
       list.append(more);
     }
+  }
+
+  // ---------- Price Tracker (gold and silver; app/prices.py) ----------
+  async function loadPrices() {
+    try { state.prices = await fetchJSON("/api/prices"); } catch { /* keep the last answer */ }
+    window.AuraPrices.renderTile(state.prices, sizeOf("prices"));
+    window.AuraPrices.refresh(state.prices);
+  }
+
+  // ---------- Panchang (Tithi under the events; details in the Calendar view) ----------
+  async function loadPanchang() {
+    clearTimeout(state.panchangTimer);
+    try {
+      const p = await fetchJSON("/api/panchang");
+      state.panchang = p.status === "ok" ? p : null;
+      state.panchangWhy = p.message || null;
+    } catch { state.panchang = null; }          // no location or not available: the Calendar stays as it is
+    renderPanchang(state.panchang);
+    Detail.refresh("calendar");
+    // Recalculate right after the current Tithi ends (and in 30 min at the latest).
+    const end = state.panchang?.now?.tithi?.end ? new Date(state.panchang.now.tithi.end) - Date.now() + 5000 : Infinity;
+    state.panchangTimer = setTimeout(loadPanchang, Math.max(5000, Math.min(end, 30 * 60_000)));
+  }
+
+  function renderPanchang(p) {
+    const box = $("panchang");
+    const t = p?.now?.tithi;
+    if (box.hidden !== !t) {
+      box.hidden = !t;
+      if (state.calendar) renderAgenda(state.calendar);   // one row fewer (or more) for events
+    }
+    if (!t) return;
+    box.querySelector(".panchang__icon").innerHTML = icon("crescent", 1.6);
+    $("panchang-hi").textContent = `${t.paksha_hi} · ${t.name_hi}`;
+    $("panchang-en").textContent = `${t.paksha_en.replace(" Paksha", "")} ${t.name_en} · until ${clockTime(new Date(t.end))}`;
+    box.setAttribute("aria-label", `Tithi: ${t.paksha_en} ${t.name_en}, until ${clockTime(new Date(t.end))}. Open the Panchang`);
   }
 
   async function loadCalendar() {
@@ -1286,6 +1327,7 @@
       if (state.calendar) renderAgenda(state.calendar);
       if (state.groceries) renderGroceries(state.groceries);
       if (state.smarthome) renderSmartHome(state.smarthome);
+      if (state.prices) window.AuraPrices.renderTile(state.prices, sizeOf("prices"));
     }
     tiles.dataset.view = view.id;
     tiles.dataset.cols = String(cols);
@@ -1353,7 +1395,7 @@
     let connected = false;
     es.addEventListener("hello", (e) => {
       if (state.config) loadConfig();      // after a reconnect: catch server restarts quickly
-      if (connected) { loadMeals(); loadCommute(); loadCalendar(); loadSmartHome(); }   // events missed while disconnected
+      if (connected) { loadMeals(); loadCommute(); loadCalendar(); loadPanchang(); loadSmartHome(); }   // events missed while disconnected
       connected = true;
       // (Re)connected: re-sync everything we might have missed.
       try {
@@ -1367,11 +1409,12 @@
         if (revision !== state.groceryRevision) loadGroceries();
       } catch { loadGroceries(); }
     });
-    es.addEventListener("location", () => { loadConfig().then(loadMeals); });
+    es.addEventListener("location", () => { loadConfig().then(() => { loadMeals(); loadPanchang(); }); });
     es.addEventListener("commute", () => { loadCommute(); });
     es.addEventListener("calendar", () => { loadCalendar(); });
     es.addEventListener("meals", () => { loadMeals(); });
     es.addEventListener("smarthome", () => { loadSmartHome(); });
+    es.addEventListener("prices", () => { loadPrices(); });
     es.addEventListener("assistant", (e) => {
       try { window.AuraAssistant.onEvent(JSON.parse(e.data)); } catch { /* ignore malformed */ }
     });
@@ -1505,6 +1548,8 @@
     network: () => state.network,
     reloadProtection: () => loadProtection(),
     reloadMeals: () => loadMeals(),
+    panchang: () => state.panchang,
+    fetchPanchang: (isoDate) => fetchJSON(`/api/panchang?date=${encodeURIComponent(isoDate)}`),
     calendarTime: (item, tzName) => calTime(item, tzName),
     calendarDay: (isoDate, today) => dayLabel(isoDate, today),
     icon,
@@ -1527,6 +1572,11 @@
   });
   window.AuraMeals.init({ icon });
   window.AuraSmartHome.init({ icon, formatTime: clockTime });
+  window.AuraPrices.init({ icon, formatTime: clockTime, refresh: async () => {
+    state.prices = await fetchJSON("/api/prices/refresh", { method: "POST" });
+    window.AuraPrices.renderTile(state.prices, sizeOf("prices"));
+    return state.prices;
+  } });
   window.AuraAssistant.init({ icon, formatTime: clockTime, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather ? window.AuraSky.visualFor(state.weather, window.AuraSky.picture(state.weather).day) : null);
   loadConfig().then(async () => {
@@ -1535,6 +1585,8 @@
     loadGroceries();
     loadCommute();
     loadCalendar();
+    loadPanchang();
+    loadPrices();
     loadProtection();
     loadSmartHome();
     loadSystem();
@@ -1552,6 +1604,7 @@
   }, GROCERY_POLL_MS);
   setInterval(refreshQr, QR_REFRESH_MS);
   setInterval(loadProtection, 60_000);
+  setInterval(loadPrices, 30 * 60_000);      // the Pi itself fetches once a day; this just picks it up (and marks it stale)
   // Fallback only: device changes normally arrive as "smarthome" events.
   setInterval(() => { if (!state.events || state.events.readyState !== EventSource.OPEN) loadSmartHome(); }, 60_000);
   setInterval(loadMeals, 5 * 60_000);

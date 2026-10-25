@@ -1036,6 +1036,55 @@ rooms, favourites and scenes. It never invents a device, a state or a success.
 - **Resources:** Home Assistant uses about 200–400 MB of memory. History is kept for
   3 days (`recorder: purge_keep_days: 3`).
 
+## Panchang (Calendar)
+
+The Calendar tile shows the **current Tithi** at the bottom, for example
+*शुक्ल पक्ष · चतुर्दशी — Shukla Chaturdashi · until 11:56 AM*. Tap it (or open the
+Calendar) for the **Panchang** panel:
+- **What it shows:** the Tithi in Hindi and English, Paksha, lunar month (purnimanta and
+  amanta), Vikram and Shaka Samvat, sunrise and sunset, and every Tithi, Nakshatra, Yoga and
+  Karana from sunrise to the next sunrise with their times. **‹ ›** step through other dates.
+- **How it's calculated:** on the Pi with the **Swiss Ephemeris** (`pyswisseph`, its
+  offline Moshier model, no internet needed):
+  - **Tithi:** the Moon's apparent longitude minus the Sun's, in 12° steps; Karana uses
+    6° steps.
+  - **Nakshatra and Yoga:** sidereal positions with the **Lahiri** ayanamsa.
+  - **The day's Tithi:** the one at local sunrise (upper limb, with refraction).
+  - **Lunar months:** an Adhik month is detected when no sankranti falls inside it.
+  - Everything uses the **home location** and its time zone, and nothing is shown without
+    a location. The tile refreshes itself just after each Tithi ends.
+- **Checked against Drik Panchang** (New Delhi, three dates covering both Pakshas, a Tithi
+  that ends after midnight, and Adhik Jyeshtha 2026):
+  - sunrise, Nakshatra and Yoga within a minute;
+  - Tithi and Karana end times 1–1.6 minutes later than Drik's minute display;
+  - full and new moons within a minute or two of the US Naval Observatory times.
+- **Not calculated:** festivals beyond Ekadashi, Purnima and Amavasya, because they follow
+  regional rules. Your holiday calendar lists them. Nothing is added to your personal
+  calendar.
+
+## Price Tracker
+
+The **Price Tracker** view (and widget) shows gold and silver in India in rupees:
+24K, 22K, 20K and 18K gold per 10 g, and silver per kg. Each price shows its change since
+the previous day's reading in ₹ and %, with ▲/▼ (green/red).
+
+- **Source:** the **IBJA** benchmark (India Bullion and Jewellers Association) via
+  **metals.dev** (free plan; key in `.env` as `AURA_METALS_DEV_API_KEY`, never sent to
+  browsers). IBJA publishes 999 gold and 999 silver. **22K, 20K and 18K are estimates**
+  (24K × 22/24, 20/24, 18/24) and are labelled so.
+- **Bullion benchmark, not a shop price:** before 3% GST, making charges and the jeweller's
+  margin, and national, not city-specific.
+- **Once a day at 12:00 India time.** If it fails, it retries at 12:15, 12:30 and 13:00, and
+  it catches up if the Pi was off at noon. That's about 30 of the free plan's 100 requests
+  a month.
+  - Manual **Refresh** is allowed once every 3 hours.
+  - A monthly cap of 90 protects the quota.
+- **History** is AURA's own record of each day's reading (`metal_price` in `data/aura.db`),
+  so the chart (7 days to 1 year) fills in from the day the tracker was set up. No made-up
+  past values.
+- **When it can't update:** the last price stays on screen, marked stale with its date.
+  With no key, the tracker says it isn't set up.
+
 ## Configuration
 
 All settings use the `AURA_` prefix and go in `.env`. Restart the server after

@@ -119,6 +119,9 @@ class Settings(BaseSettings):
     homeassistant_url: str = "http://127.0.0.1:8123"
     homeassistant_token: SecretStr | None = None
 
+    # Price Tracker: IBJA gold and silver via metals.dev (free plan); fetched once a day at 12:00 IST.
+    metals_dev_api_key: SecretStr | None = None
+
     # Network. Bind to IPv4 only by default; see README "Security".
     host: str = "0.0.0.0"
     port: int = 8080
