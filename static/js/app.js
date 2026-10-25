@@ -1572,11 +1572,7 @@
   });
   window.AuraMeals.init({ icon });
   window.AuraSmartHome.init({ icon, formatTime: clockTime });
-  window.AuraPrices.init({ icon, formatTime: clockTime, refresh: async () => {
-    state.prices = await fetchJSON("/api/prices/refresh", { method: "POST" });
-    window.AuraPrices.renderTile(state.prices, sizeOf("prices"));
-    return state.prices;
-  } });
+  window.AuraPrices.init({ icon, formatTime: clockTime });
   window.AuraAssistant.init({ icon, formatTime: clockTime, openView: () => { if (!Detail.isOpen() || $("detail").dataset.view !== "assistant") Detail.open("assistant"); } });
   Scene.watch($("wx-scene"), () => state.weather ? window.AuraSky.visualFor(state.weather, window.AuraSky.picture(state.weather).day) : null);
   loadConfig().then(async () => {

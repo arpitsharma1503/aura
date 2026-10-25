@@ -41,7 +41,7 @@ def dashboard(chrome, srv, w=1920, h=1080, dns=DNS, storage_room=None):
 def test_view_tabs_show_each_views_widgets(chrome, srv):
     p = dashboard(chrome, srv)
     tabs = p.js("[...document.querySelectorAll('.view-tab')].map(t => [t.textContent, t.getAttribute('aria-selected')])")
-    assert tabs == [["Home", "true"], ["Daily planning", "false"], ["Smart home", "false"], ["System", "false"], ["Price Tracker", "false"]]
+    assert tabs == [["Home", "true"], ["Daily planning", "false"], ["Smart home", "false"], ["Price Tracker", "false"], ["System", "false"]]
     assert p.js(VISIBLE) == ["weather", "commute", "meals", "advice", "calendar", "groceries", "assistant", "smarthome"]
     p.js("document.querySelector('.view-tab[data-view=daily]').click()")
     assert sorted(p.js(VISIBLE)) == ["advice", "calendar", "commute", "groceries", "meals"]
@@ -71,7 +71,7 @@ def test_view_tabs_keyboard_and_number_keys(chrome, srv):
     p.call("Input.dispatchKeyEvent", type="keyUp", key="ArrowRight", code="ArrowRight", windowsVirtualKeyCode=39)
     p.wait_for("document.activeElement.dataset.view === 'daily'", timeout=3)
     p.call("Input.dispatchKeyEvent", type="keyDown", key="End", code="End", windowsVirtualKeyCode=35)
-    p.wait_for("document.activeElement.dataset.view === 'prices'", timeout=3)
+    p.wait_for("document.activeElement.dataset.view === 'system'", timeout=3)
     p.call("Input.dispatchKeyEvent", type="keyDown", key="3", code="Digit3", text="3", windowsVirtualKeyCode=51)
     p.wait_for("document.querySelector('.view-tab[aria-selected=true]').dataset.view === 'smart-home'", timeout=3)
 

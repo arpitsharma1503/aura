@@ -106,10 +106,10 @@ def test_views_editor_round_trip(chrome, srv, artifacts):
     p.wait_for("document.querySelector('#views .s-status').dataset.kind === 'ok'", timeout=10)
     status, cfg = srv.api("GET", "/api/config")
     v = cfg["views"]
-    assert [x["id"] for x in v["views"]] == ["daily", "home", "system", "system-copy", "prices", "fitness"] and v["default_view"] == "daily"
+    assert [x["id"] for x in v["views"]] == ["daily", "home", "prices", "system", "system-copy", "fitness"] and v["default_view"] == "daily"
     daily = v["views"][0]
     assert daily["name"] == "Today" and [t["id"] for t in daily["tiles"]] == ["calendar", "meals", "groceries", "commute", "weather"]
-    assert daily["tiles"][0]["size"] == "w" and v["views"][3]["name"] == "System copy" and v["views"][5]["tiles"] == []
+    assert daily["tiles"][0]["size"] == "w" and v["views"][4]["name"] == "System copy" and v["views"][5]["tiles"] == []
     # the dashboard opens on the new default view
     d = chrome.new_page()
     d.viewport(1920, 1080)
@@ -117,7 +117,7 @@ def test_views_editor_round_trip(chrome, srv, artifacts):
     d.wait_for("document.querySelectorAll('.view-tab').length === 6")
     assert d.js("document.querySelector('.view-tab[aria-selected=true]').textContent") == "Today"
     # the only view can't be deleted
-    for vid in ["home", "system", "system-copy", "prices", "fitness"]:
+    for vid in ["home", "prices", "system", "system-copy", "fitness"]:
         p.js(f"[...document.querySelectorAll('#view-editor .s-view[data-id={vid}] .btn')].find(b => b.textContent === 'Delete').click()")
         p.wait_for("document.getElementById('s-confirm').open")
         p.js("document.getElementById('sc-ok').click()")

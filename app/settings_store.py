@@ -293,7 +293,7 @@ WIDGETS: dict[str, dict[str, Any]] = {
     "smarthome": {"name": "Smart home", "sizes": ("s", "w", "l"), "size": "s", "about": "Devices, favourites, rooms"},
     "protection": {"name": "Network protection", "sizes": ("s", "w"), "size": "s", "about": "Pi-hole ad blocking"},
     "system": {"name": "System", "sizes": ("s", "w"), "size": "s", "about": "Raspberry Pi health"},
-    "prices": {"name": "Price Tracker", "sizes": ("s", "w", "l"), "size": "w", "about": "Gold and silver in India (IBJA)"},
+    "prices": {"name": "Price Tracker", "sizes": ("s", "w", "l"), "size": "w", "about": "24K gold and silver in India (IBJA)"},
 }
 Size = Literal["s", "w", "l"]
 CELLS = {"s": 1, "w": 2, "l": 4}
@@ -360,9 +360,9 @@ PRESET_VIEWS: dict[str, View] = {v.id: v for v in (
           [("calendar", "l"), ("meals", "w"), ("groceries", "w"), ("commute", "w"), ("advice", "w")]),
     _view("smart-home", "Smart home", "Devices, rooms, scenes and the assistant",
           [("smarthome", "l"), ("assistant", "w"), ("weather", "w")]),
+    _view("prices", "Price Tracker", "Gold & Silver · India", [("prices", "l")], columns="2"),
     _view("system", "System", "Pi health, network protection and services",
           [("system", "w"), ("protection", "w"), ("assistant", "w"), ("smarthome", "w")]),
-    _view("prices", "Price Tracker", "Gold & Silver · India", [("prices", "l")], columns="2"),
 )}
 
 
@@ -380,7 +380,7 @@ def views_from_home(home: HomeSettings) -> list[View]:
         tiles = [t for t in r.tiles if t not in hidden]
         if tiles and r.id != "home" and len(views) < 8:
             views.append(_view(r.id, r.name, "", [(t, None) for t in tiles]))
-    for preset in ("smart-home", "system", "prices"):       # the new widgets get somewhere to live
+    for preset in ("smart-home", "prices", "system"):       # the new widgets get somewhere to live
         if len(views) < 8 and all(v.id != preset and v.name.casefold() != PRESET_VIEWS[preset].name.casefold() for v in views):
             views.append(PRESET_VIEWS[preset].model_copy(deep=True))
     return views

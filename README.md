@@ -266,6 +266,7 @@ sizes and layout, so the screen shows what matters rather than everything at onc
   - **Daily planning**: a large calendar (today, then the next days), meals, groceries,
     commute and tips.
   - **Smart home**: a large smart-home tile (favourites, rooms), the assistant and weather.
+  - **Price Tracker**: 24K gold and silver KPI tiles (see Price Tracker).
   - **System**: Pi health, network protection, the assistant and the smart-home connection.
 - **Switching:**
   - Tap a tab, use ←/→ on the tabs, or press **1–9**.
@@ -1064,26 +1065,23 @@ Calendar) for the **Panchang** panel:
 
 ## Price Tracker
 
-The **Price Tracker** view (and widget) shows gold and silver in India in rupees:
-24K, 22K, 20K and 18K gold per 10 g, and silver per kg. Each price shows its change since
-the previous day's reading in ₹ and %, with ▲/▼ (green/red).
+The **Price Tracker** view (4th tab, also available as a widget) shows two KPI tiles:
+**24K Gold per 10 g** and **Silver per kg**, in rupees with Indian grouping (₹1,41,630).
+Each tile shows the **day-on-day change** in ₹ and % with ▲ green or ▼ red, and yesterday's
+price ("vs ₹1,40,000 on 26 Oct"). Open it for the price history chart (7 days to 1 year).
 
-- **Source:** the **IBJA** benchmark (India Bullion and Jewellers Association) via
-  **metals.dev** (free plan; key in `.env` as `AURA_METALS_DEV_API_KEY`, never sent to
-  browsers). IBJA publishes 999 gold and 999 silver. **22K, 20K and 18K are estimates**
-  (24K × 22/24, 20/24, 18/24) and are labelled so.
+- **Source:** the **IBJA** benchmark (India Bullion and Jewellers Association, 999 gold and
+  999 silver) via **metals.dev** (free plan; key in `.env` as `AURA_METALS_DEV_API_KEY`,
+  never sent to browsers).
 - **Bullion benchmark, not a shop price:** before 3% GST, making charges and the jeweller's
   margin, and national, not city-specific.
-- **Once a day at 12:00 India time.** If it fails, it retries at 12:15, 12:30 and 13:00, and
-  it catches up if the Pi was off at noon. That's about 30 of the free plan's 100 requests
-  a month.
-  - Manual **Refresh** is allowed once every 3 hours.
-  - A monthly cap of 90 protects the quota.
-- **History** is AURA's own record of each day's reading (`metal_price` in `data/aura.db`),
-  so the chart (7 days to 1 year) fills in from the day the tracker was set up. No made-up
-  past values.
-- **When it can't update:** the last price stays on screen, marked stale with its date.
-  With no key, the tracker says it isn't set up.
+- **Checked once a day, at 12:00 India time.** There's no manual refresh.
+  - It tries again (12:15, 12:30, 13:00) only if that check fails.
+  - If the Pi was off at noon, it checks once when it starts.
+  - That's about 31 requests a month, with a cap of 40 (the free plan allows 100).
+- **History and the day-on-day change** come from AURA's own record of each day's reading
+  (`metal_price` in `data/aura.db`), so they start from the day the tracker was set up. If a
+  day's check fails, the last price stays on screen, marked stale with its date.
 
 ## Configuration
 

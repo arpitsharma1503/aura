@@ -31,7 +31,7 @@ from .dnsfilter import DnsFilterMonitor, DnsFilterStatus
 from . import nutrition
 from . import smarthome
 from . import panchang as panchang_calc
-from .prices import PriceError, PriceTracker
+from .prices import PriceTracker
 from .commute import CommuteConfig, CommuteMonitor, CommuteStatus, CommuteStore, Point, TomTomProvider
 from .events import Broker, TooManySubscribers, stream
 from .groceries import (
@@ -653,14 +653,6 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/api/prices")
     async def prices_view() -> dict:
         return prices.view()
-
-    @app.post("/api/prices/refresh", dependencies=[Depends(editor)])
-    async def prices_refresh() -> dict:
-        try:
-            return await prices.fetch(manual=True)
-        except PriceError as exc:
-            raise HTTPException(status_code=429 if "try again" in str(exc) or "used up" in str(exc) else 502,
-                                detail=str(exc)) from exc
 
     # ----- Panchang (Calendar) -----
     panchang_cache: dict[tuple, dict] = {}

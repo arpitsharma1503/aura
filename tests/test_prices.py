@@ -37,11 +37,8 @@ def tracker(tmp_path, answers, clock, key="SECRET-KEY-123"):
     return PriceTracker(tmp_path / "aura.db", key, client, now=clock), calls
 
 
-def test_units_and_purities():
-    d = derive(14163.0225, 194.4171)
-    assert d["gold24"] == 141630                            # ₹ per 10 g (141,630.225 -> nearest rupee)
-    assert d["gold22"] == 129828 and d["gold20"] == 118025 and d["gold18"] == 106223    # x 22/24, 20/24, 18/24
-    assert d["silver"] == 194417                            # ₹ per kg (194.4171 x 1000)
+def test_units():
+    assert derive(14163.0225, 194.4171) == {"gold24": 141630, "silver": 194417}   # ₹ per 10 g; ₹ per kg (nearest rupee)
 
 
 @pytest.mark.parametrize("payload, says", [
@@ -65,9 +62,8 @@ def test_daily_readings_changes_and_history(tmp_path):
     v = asyncio.run(t.fetch())
     g24 = next(i for i in v["items"] if i["id"] == "gold24")
     assert g24["change"] == 1630 and g24["change_pct"] == round(1630 / 140000 * 100, 2)
-    assert g24["previous_day"] == "2026-10-26" and not g24["estimate"]
-    g22 = next(i for i in v["items"] if i["id"] == "gold22")
-    assert g22["estimate"] and g22["unit"] == "10 g"
+    assert g24["previous_day"] == "2026-10-26" and g24["unit"] == "10 g"
+    assert [i["id"] for i in v["items"]] == ["gold24", "silver"] and g24["previous"] == 140000
     silver = next(i for i in v["items"] if i["id"] == "silver")
     assert silver["unit"] == "kg" and silver["change"] == 194417 - 190000
     assert [h["day"] for h in v["history"]] == ["2026-10-26", "2026-10-27"]
@@ -93,17 +89,18 @@ def test_noon_schedule_retries_and_catch_up(tmp_path):
     assert t2.due() and t2.next_run() == clock.t
 
 
-def test_manual_refresh_and_monthly_cap_protect_the_free_quota(tmp_path):
+def test_one_check_a_day_and_the_monthly_cap(tmp_path):
     clock = Clock(datetime(2026, 10, 26, 12, 0, tzinfo=IST))
     t, calls = tracker(tmp_path, [ok(), ok()], clock)
     asyncio.run(t.fetch())
-    with pytest.raises(PriceError) as e:
-        asyncio.run(t.fetch(manual=True))
-    assert "try again in" in str(e.value) and len(calls) == 1
+    clock.t += timedelta(hours=6)
+    with pytest.raises(PriceError) as e:                          # the same day: no second request
+        asyncio.run(t.fetch())
+    assert "already in" in str(e.value) and len(calls) == 1 and not t.due()
     t._db.execute("UPDATE metal_request SET n = ?", (MONTHLY_CAP,))
-    clock.t += timedelta(hours=4)
+    clock.t = datetime(2026, 10, 27, 12, 0, tzinfo=IST)
     with pytest.raises(PriceError) as e:
-        asyncio.run(t.fetch(manual=True))
+        asyncio.run(t.fetch())
     assert "used up" in str(e.value) and len(calls) == 1
 
 

@@ -4,16 +4,15 @@ Source: the IBJA benchmark (India Bullion and Jewellers Association), fetched fr
 (``/v1/metal/authority?authority=ibja&currency=INR&unit=g``) with the household's free API key
 (``AURA_METALS_DEV_API_KEY`` in ``.env``; never sent to browsers).
 
-* **Once a day at 12:00 India time** (the household's choice). If that fails it retries at
-  12:15, 12:30 and 13:00; if the Pi was off at noon it catches up when it starts. That is
-  about 30 of the free plan's 100 requests a month; a monthly cap keeps manual refreshes
-  from using the rest.
+* **Once a day at 12:00 India time** (the household's choice), and never more: no manual
+  refresh. Only if that one check fails does it try again (12:15, 12:30, 13:00); if the Pi was
+  off at noon it checks when it starts. About 30 of the free plan's 100 requests a month;
+  a monthly cap is a last safety net.
 * Every successful reading is stored (``metal_price`` in ``data/aura.db``), one per day.
   Changes are against the previous stored day; charts show only these real readings,
   so history starts on the day the tracker was set up.
-* IBJA publishes 999 (24K) gold and 999 silver. 22K, 20K and 18K are **estimates**:
-  24K x 22/24, 20/24, 18/24, labelled as such. Prices are bullion benchmarks: they exclude
-  GST, making charges and a jeweller's margin.
+* Shown: 24K gold (IBJA 999) per 10 g and silver (IBJA 999) per kg, as published. Bullion
+  benchmarks: they exclude GST, making charges and a jeweller's margin.
 """
 
 from __future__ import annotations
@@ -35,11 +34,8 @@ IST = ZoneInfo("Asia/Kolkata")
 URL = "https://api.metals.dev/v1/metal/authority"
 FETCH_AT = time(12, 0)
 RETRIES = (timedelta(minutes=15), timedelta(minutes=30), timedelta(minutes=60))
-MONTHLY_CAP = 90                       # of the free plan's 100
-MANUAL_GAP = timedelta(hours=3)
-
-PURITIES = [("gold24", "24K Gold", 24, "99.9% (IBJA 999)"), ("gold22", "22K Gold", 22, "91.7%, estimated from 24K"),
-            ("gold20", "20K Gold", 20, "83.3%, estimated from 24K"), ("gold18", "18K Gold", 18, "75.0%, estimated from 24K")]
+MONTHLY_CAP = 40                       # of the free plan's 100; a daily check needs ~31
+ITEMS = [("gold24", "24K Gold", "10 g"), ("silver", "Silver", "kg")]
 
 
 class PriceError(Exception):
@@ -66,11 +62,8 @@ def _rupees(x: Decimal) -> int:
 
 
 def derive(gold_g: float, silver_g: float) -> dict[str, int]:
-    """Whole rupees: ₹ per 10 g for each purity, ₹ per kg for silver (half-up, as price lists round)."""
-    g = Decimal(str(gold_g))
-    out = {pid: _rupees(g * 10 * karat / 24) for pid, _, karat, _ in PURITIES}
-    out["silver"] = _rupees(Decimal(str(silver_g)) * 1000)
-    return out
+    """Whole rupees (half-up, as price lists round): 24K gold per 10 g, silver per kg."""
+    return {"gold24": _rupees(Decimal(str(gold_g)) * 10), "silver": _rupees(Decimal(str(silver_g)) * 1000)}
 
 
 class PriceTracker:
@@ -117,17 +110,15 @@ class PriceTracker:
                              (self.now().strftime("%Y-%m"),))
 
     # ----- fetching -----
-    async def fetch(self, manual: bool = False) -> dict:
+    async def fetch(self) -> dict:
         if not self.key:
             raise PriceError("No metals.dev API key is set (AURA_METALS_DEV_API_KEY in .env).")
         async with self._lock:
             now = self.now()
             if self.requests_this_month() >= MONTHLY_CAP:
                 raise PriceError(f"This month's {MONTHLY_CAP} requests are used up; prices resume next month.")
-            if manual and self.last_attempt and now - self.last_attempt < MANUAL_GAP:
-                wait = MANUAL_GAP - (now - self.last_attempt)
-                raise PriceError(f"Prices were checked recently; try again in {int(wait.total_seconds() // 60) + 1} min "
-                                 "(the free plan allows about 3 checks a day).")
+            if self._db.execute("SELECT 1 FROM metal_price WHERE day = ?", (now.date().isoformat(),)).fetchone():
+                raise PriceError("Today's price is already in: one check a day.")
             self.last_attempt = now
             self._count_request()
             try:
@@ -213,11 +204,12 @@ class PriceTracker:
         if rows:
             cur = derive(rows[-1]["gold_g"], rows[-1]["silver_g"])
             prev = derive(rows[-2]["gold_g"], rows[-2]["silver_g"]) if len(rows) > 1 else None
-            for pid, label, karat, note in PURITIES + [("silver", "Silver", None, "99.9% (IBJA 999)")]:
+            for pid, label, unit in ITEMS:
                 change = cur[pid] - prev[pid] if prev else None
-                items.append({"id": pid, "label": label, "unit": "kg" if pid == "silver" else "10 g", "price": cur[pid],
-                              "change": change, "change_pct": round(change / prev[pid] * 100, 2) if prev and prev[pid] else None,
-                              "previous_day": rows[-2]["day"] if prev else None, "estimate": karat not in (None, 24), "note": note})
+                items.append({"id": pid, "label": label, "unit": unit, "price": cur[pid],
+                              "previous": prev[pid] if prev else None, "change": change,
+                              "change_pct": round(change / prev[pid] * 100, 2) if prev and prev[pid] else None,
+                              "previous_day": rows[-2]["day"] if prev else None})
         history = [{"day": r["day"], **derive(r["gold_g"], r["silver_g"])} for r in rows[-400:]]
         return {
             "status": status, "message": {"not_configured": "Add a metals.dev API key to show prices.",
