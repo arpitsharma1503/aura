@@ -1070,7 +1070,7 @@ The **Price Tracker** view (4th tab, also available as a widget) shows two KPI t
 Each tile shows the **day-on-day change** in ₹ and % with ▲ green or ▼ red, and yesterday's
 price ("vs ₹1,40,000 on 26 Oct"). Open it for the price history chart (7 days to 1 year)
 and, under gold, **22K, 20K, 18K and 14K per 10 g**:
-- They're calculated on the Pi from the 24K price, not fetched: 22K × 0.91, 20K × 0.8333,
+- They're calculated on the Pi from the 24K price, not fetched: 22K × 0.916 (the 916 hallmark), 20K × 0.8333,
   18K × 0.75 and 14K × 0.5833 (14/24).
 - Each has its own day-on-day change.
 - They're labelled as estimates, not jewellers' quotes.
