@@ -280,7 +280,10 @@ def test_detail_hero_matches_the_tile(chrome, srv, artifacts, w, h, hour):
     # The hero picture fills the hero's own art box, larger than the tile's.
     sizes = p.js("""(() => [document.querySelector('.dhero__art svg'), document.querySelector('#weather-art svg')]
         .map(e => e.getBoundingClientRect().width))()""")
-    assert sizes[0] > sizes[1] > 0
+    if night:
+        assert sizes[0] > sizes[1] > 0
+    else:                                   # on a clear day the tile's sun is the scene's rays: no second, small sun
+        assert sizes[0] > 0 and sizes[1] == 0
     p.js("new Promise(r => setTimeout(r, 400))")
     sideways = p.js("(() => { const b = document.getElementById('detail-body'); return b.scrollWidth - b.clientWidth; })()")
     assert sideways <= 1

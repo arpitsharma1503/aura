@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/settings.css">
   <link rel="stylesheet" href="/static/css/glass.css">
+  <link rel="stylesheet" href="/static/css/home.css">
   <script src="/static/js/icons.js" defer></script>
   <script src="/static/js/settings.js" defer></script>
 </head>
@@ -58,7 +59,7 @@
 
       <form class="s-card s-card--wide" id="views" data-section="views" aria-labelledby="views-h" novalidate>
         <header class="s-card__head"><h2 id="views-h">Views</h2></header>
-        <p class="s-help">Views are the tabs under the clock: each one shows the widgets you pick, in your order and size.
+        <p class="s-help">Views are the icons at the side of the screen (the tab bar on phones): each one shows the widgets you pick, in your order and size.
           Taking a widget out of a view only hides it there; its data and settings stay. The entrance screen fits
           12 spaces per view (3 rows of 4); a taller view scrolls inside the tile area.</p>
         <div id="view-editor" data-field="views" data-type="views"></div>
@@ -265,23 +266,11 @@
         <div class="s-sub" id="wifi-panel">
           <h3>Wi-Fi</h3>
           <p class="s-help" id="wifi-help"></p>
-          <button type="button" class="btn" id="wifi-scan">Find Wi-Fi networks</button>
-          <ul class="s-nets" id="wifi-list" aria-label="Wi-Fi networks"></ul>
-          <form class="s-connect" id="wifi-form" hidden novalidate>
-            <p class="s-connect__to">Connect to <strong id="wifi-target"></strong></p>
-            <label class="s-field" id="wifi-pass-row">
-              <span>Password</span>
-              <span class="s-pass">
-                <input class="sheet__input" id="wifi-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" aria-describedby="wifi-pass-err">
-                <button type="button" class="btn s-small" id="wifi-show" aria-pressed="false">Show</button>
-              </span>
-              <small class="s-err" id="wifi-pass-err"></small>
-            </label>
-            <div class="s-actions">
-              <button type="button" class="btn" id="wifi-cancel">Cancel</button>
-              <button type="submit" class="btn btn--primary" id="wifi-connect">Connect</button>
-            </div>
+          <form class="s-inline s-wifi-unlock" id="wifi-unlock" hidden novalidate>
+            <input class="sheet__input" id="wifi-pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Household PIN" aria-label="Household PIN">
+            <button class="btn btn--primary" type="submit">Unlock Wi-Fi</button>
           </form>
+          <button type="button" class="btn btn--primary" id="wifi-scan" aria-haspopup="dialog">Find Wi-Fi</button>
           <details class="s-details">
             <summary>Other ways to change Wi-Fi</summary>
             <ul>
@@ -371,6 +360,35 @@
       </section>
     </main>
   </div>
+
+  <!-- Find Wi-Fi: nearby networks; tap one, type its password, Connect (all in here) -->
+  <dialog class="sheet s-wifi" id="wifi-dialog" aria-labelledby="wifi-dialog-title">
+    <div class="sheet__inner">
+      <header class="s-wifi__head">
+        <h2 id="wifi-dialog-title">Wi-Fi</h2>
+        <button type="button" class="btn s-small" id="wifi-close">Done</button>
+      </header>
+      <p class="s-wifi__now" id="wifi-now"></p>
+      <p class="s-msg" id="wifi-msg" role="status" aria-live="polite"></p>
+      <ul class="s-nets" id="wifi-list" aria-label="Wi-Fi networks"></ul>
+              <form class="s-connect" id="wifi-form" hidden novalidate>
+                <p class="s-connect__to">Connect to <strong id="wifi-target"></strong></p>
+                <label class="s-field" id="wifi-pass-row">
+                  <span>Password</span>
+                  <span class="s-pass">
+                    <input class="sheet__input" id="wifi-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="64" aria-describedby="wifi-pass-err">
+                    <button type="button" class="btn s-small" id="wifi-show" aria-pressed="false">Show</button>
+                  </span>
+                  <small class="s-err" id="wifi-pass-err"></small>
+                </label>
+                <div class="s-actions">
+                  <button type="button" class="btn" id="wifi-cancel">Cancel</button>
+                  <button type="submit" class="btn btn--primary" id="wifi-connect">Connect</button>
+                </div>
+              </form>
+      <button type="button" class="btn s-wifi__rescan" id="wifi-rescan">Scan again</button>
+    </div>
+  </dialog>
 
   <dialog class="sheet g-confirm s-dialog" id="s-confirm" aria-labelledby="sc-title">
     <div class="sheet__inner">

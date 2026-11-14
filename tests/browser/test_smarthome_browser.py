@@ -86,7 +86,10 @@ def test_tile_summary_and_devices_by_room(chrome, srv, artifacts):
     assert p.text("#smarthome-status") == "3 of 4 online"
     assert "Attic light is offline" in p.text("#smarthome-sub")
     assert p.js("[...document.querySelectorAll('.shtile__fav')].map(f => [f.textContent, f.dataset.on])") == [["Kitchen light", "true"], ["Kettle", "false"]]
-    assert "1 offline" in p.text("#status-row")             # capsule, from the same data
+    assert "1 offline" not in p.text("#status-row")         # the tile already says so: no pill for it
+    p.js("document.querySelector('.view-tab[data-view=daily]').click()")
+    p.wait_for("document.getElementById('status-row').textContent.includes('1 offline')")   # alert pill, from the same data
+    p.js("document.querySelector('.view-tab[data-view=home]').click()")
     open_view(p)
     sections = p.js("[...document.querySelectorAll('.sh .dsec__title')].map(t => t.textContent)")
     assert sections[0].startswith("Kitchen · 3 devices · 1 on") and sections[1].startswith("No room")

@@ -116,7 +116,8 @@ def test_escape_backdrop_and_browser_history(chrome, srv):
 
 def test_keyboard_open_and_focus_return(chrome, srv):
     p = dashboard(chrome, srv)
-    p.js("document.querySelector('.tile-hit').focus()")
+    hit = "[...document.querySelectorAll('.tile-hit')].find(e => e.getClientRects().length)"   # the clock tile on TVs
+    p.js(f"{hit}.focus()")
     key(p, "Enter", vk=13)
     p.wait_for(f"{IS_OPEN} && {VIEW} === 'clock'")
     assert p.js("document.activeElement.id") == "detail-back"
@@ -128,7 +129,7 @@ def test_keyboard_open_and_focus_return(chrome, srv):
     p.wait_for(f"{IS_OPEN} && {VIEW} === 'commute'")
     # Visible focus ring for keyboard users.
     assert p.js("getComputedStyle(document.getElementById('detail-back'), ':focus-visible') !== null")
-    assert p.js("document.querySelector('.tile-hit').getAttribute('aria-label')") == "Time and date details"
+    assert p.js(f"{hit}.getAttribute('aria-label')") == "Time and date details"
     assert p.js("document.querySelector('.commute .tile-arrow').getAttribute('aria-haspopup')") == "dialog"
 
 
@@ -137,6 +138,8 @@ def test_touch_tap_opens_tile(chrome, srv):
     # Let the last startup requests (Panchang, prices) settle so the layout holds still under the finger.
     pos = "(() => { const r = document.querySelector('.commute__time').getBoundingClientRect(); return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; })()"
     p.wait_for("window.performance.getEntriesByType('resource').some(r => r.name.includes('/api/prices'))", timeout=10)
+    p.js("document.querySelector('.view-tab[data-view=daily]').click()")      # the full commute tile
+    p.wait_for("document.getElementById('tiles').dataset.view === 'daily' && !!document.querySelector('.commute__time')")
     p.js("document.getElementById('commute').scrollIntoView({block: 'center'})")
     p.js("new Promise(r => setTimeout(r, 500))")
     x, y = p.js(pos)

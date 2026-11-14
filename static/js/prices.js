@@ -36,11 +36,26 @@ window.AuraPrices = (() => {
 
   /** Day-on-day: direction (for colour), "▲ ₹1,630 · +1.16%" and words for screen readers. */
   function dod(i) {
+    if (i.change == null && i.missed_day) return { dir: "none", text: `No reading on ${shortDay(i.missed_day)}`,
+      label: `No day-on-day change: there was no reading on ${shortDay(i.missed_day)}` };
     if (i.change == null) return { dir: "none", text: "First reading", label: "First reading: the comparison starts tomorrow" };
     const dir = i.change > 0 ? "up" : i.change < 0 ? "down" : "flat";
     const pct = `${i.change_pct > 0 ? "+" : ""}${i.change_pct.toFixed(2)}%`;
     const text = dir === "flat" ? `▬ ${INR.format(0)} · 0.00%` : `${dir === "up" ? "▲" : "▼"} ${INR.format(Math.abs(i.change))} · ${pct}`;
     return { dir, text, label: dir === "flat" ? "Unchanged from yesterday" : `${dir === "up" ? "Up" : "Down"} ${INR.format(Math.abs(i.change))}, ${pct} from yesterday` };
+  }
+
+  /** A small trend line of AURA's own recorded readings (nothing drawn without at least two). */
+  function spark(history, id) {
+    const pts = history.slice(-30).map((h) => h[id]).filter((v) => typeof v === "number");
+    if (pts.length < 2) return el("p", { class: "pt-spark pt-spark--empty" }, "The trend line starts after a few daily readings.");
+    const W = 300, H = 64, lo = Math.min(...pts), hi = Math.max(...pts), span = hi - lo || 1;
+    const xy = pts.map((v, k) => [(k / (pts.length - 1)) * W, H - 4 - ((v - lo) / span) * (H - 8)]);
+    const line = xy.map(([x, y], k) => `${k ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", class: "pt-spark__svg", "aria-hidden": "true" });
+    s.append(svg("path", { d: `${line} L${W},${H} L0,${H} Z`, class: "pt-spark__area" }), svg("path", { d: line, class: "pt-spark__line" }));
+    return el("div", { class: "pt-spark" }, s,
+      el("span", { class: "pt-spark__note" }, `${pts.length} daily readings · low ${INR.format(lo)} · high ${INR.format(hi)}`));
   }
 
   function kpi(i, { big = false, onclick = null, picked = false, extra = null } = {}) {
@@ -51,7 +66,8 @@ window.AuraPrices = (() => {
       el("span", { class: "pt-kpi__label" }, i.label, el("small", {}, ` · per ${i.unit}`)),
       el("span", { class: "pt-kpi__value" }, INR.format(i.price)),
       el("span", { class: "pt-kpi__dod", "data-dir": c.dir, "aria-label": c.label }, c.text),
-      el("span", { class: "pt-kpi__vs" }, i.previous != null ? `vs ${INR.format(i.previous)} on ${shortDay(i.previous_day)}` : "Day-on-day from tomorrow"),
+      el("span", { class: "pt-kpi__vs" }, i.previous != null ? `vs ${INR.format(i.previous)} yesterday (${shortDay(i.previous_day)})`
+        : i.missed_day ? "Compares with yesterday again tomorrow" : "Day-on-day from tomorrow"),
       extra);
   }
 
@@ -80,7 +96,7 @@ window.AuraPrices = (() => {
     }
     tile.dataset.state = d.status === "stale" ? "alert" : "ok";
     body.replaceChildren(el("div", { class: "pt-kpis", "data-size": size }, d.items.map((i) => kpi(i, { big: size === "l",
-      extra: i.id === "gold24" && size !== "s" ? purityList(d, size === "l") : null }))),
+      extra: [i.id === "gold24" && size !== "s" ? purityList(d, size === "l") : null, size === "l" ? spark(d.history || [], i.id) : null] }))),
       ...(d.status === "stale" ? [el("p", { class: "pt-stale" }, d.message)] : []),
       ...(size === "l" ? [el("p", { class: "pt-foot" }, `IBJA benchmark · checked once a day at 12:00 · excludes GST and making charges`)] : []));
   }

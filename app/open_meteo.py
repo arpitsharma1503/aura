@@ -159,8 +159,18 @@ def parse_forecast(data: dict, city: str, aq: dict | None = None) -> WeatherSnap
     air = None
     if aq:
         cur_aq = aq.get("current") or {}
-        if cur_aq.get("us_aqi") is not None:
-            v = int(round(cur_aq["us_aqi"]))
+        v = cur_aq.get("us_aqi")
+        if v is None:
+            # Just after the hour "current" can be empty while the hourly list has this hour's
+            # value: use that (only this hour's or the next one's, never an older value).
+            aq_h = aq.get("hourly") or {}
+            want = cur_aq.get("time", "")[:13]
+            for t, hv in zip(aq_h.get("time") or [], aq_h.get("us_aqi") or []):
+                if hv is not None and (not want or t[:13] >= want):
+                    v = hv
+                    break
+        if v is not None:
+            v = int(round(v))
             air = AirQuality(us_aqi=v, category=aqi_category(v), pm2_5=_opt_float(cur_aq.get("pm2_5")))
 
     today = daily[0]
@@ -227,6 +237,6 @@ class OpenMeteoProvider:
             raise forecast
         if isinstance(aq, BaseException):
             # Air quality is optional; weather still works without it.
-            log.info("Air quality unavailable: %s", aq)
+            log.warning("Air quality unavailable: %r", aq)
             aq = None
         return parse_forecast(forecast, location.city, aq)

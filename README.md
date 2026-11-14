@@ -208,9 +208,12 @@ buttons stay pinned to the bottom of the screen, and leaving the page asks first
 **Who can change settings:**
 - **Settings:** the same people who can edit groceries (`AURA_EDIT_ACCESS`; today,
   anyone on your Wi-Fi).
-- **Wi-Fi changes are stricter:** only on the **entrance display itself**
-  (`127.0.0.1`), or from a phone unlocked with the household PIN if you set one.
-  Phones on the Wi-Fi can view the network status but not change it.
+- **Wi-Fi, like on a phone:** Settings → Network & Wi-Fi lists nearby networks; tap one,
+  type its password, Connect. In LAN mode any device on your Wi-Fi can do this (the
+  household's choice). Joining still needs that network's password, and if it fails the
+  Pi goes back to its previous network. In PIN mode it needs the household PIN.
+- **Unlocking doors stays stricter:** only the entrance display itself (`127.0.0.1`), or
+  a phone unlocked with the household PIN.
 
 ### Wi-Fi management
 
@@ -293,7 +296,23 @@ sizes and layout, so the screen shows what matters rather than everything at onc
 - **Rooms** (Settings → Home & rooms) are now only the rooms of the home, used for
   smart-home devices.
 
-### Look: Liquid Glass
+### Look: Home app style
+
+The dashboard is styled after Apple's Home app and its wall-display look
+(`static/css/home.css`, loaded after the glass layer below; no Apple assets):
+
+- **Wallpaper:** teal folds and leaves (`static/img/wall-teal.svg`, original art) when no
+  photo is set in Settings → Display; a photo shows through instead.
+- **Glass tiles:** light, tinted glass with big rounded corners and a bright rim; white type
+  with big bold numbers and a lighter tinted second line; large white glyphs.
+- **Sidebar (TVs and laptops):** an analog clock, the time and place, then the views as a
+  list. **Phones:** the views are a tab bar at the bottom.
+- **Title:** the home's name, large and bold; round header buttons.
+- **Settings and Groceries:** Home's dark grouped lists on black.
+- **Type:** San Francisco on Apple devices; elsewhere (the Pi) Inter, bundled in
+  `static/fonts` under the SIL Open Font License.
+
+### Look: Liquid Glass (the layer underneath)
 
 AURA's look is a glass material system (`static/css/glass.css`) inspired by Apple's
 Liquid Glass. It is the closest web version that runs well on the Pi; it isn't Apple's
@@ -1083,11 +1102,15 @@ the detail page adds the price history chart (7 days to 1 year). About the lower
   margin, and national, not city-specific.
 - **Checked once a day, at 12:00 India time.** There's no manual refresh.
   - It tries again (12:15, 12:30, 13:00) only if that check fails.
+  - If 12:00 still gives yesterday's price (IBJA's new rate often reaches metals.dev later),
+    it checks again at 12:45 and 13:30, then keeps what it has (holidays have no new rate).
   - If the Pi was off at noon, it checks once when it starts.
-  - That's about 31 requests a month, with a cap of 40 (the free plan allows 100).
+  - That's about 30-70 requests a month, with a cap of 90 (the free plan allows 100).
 - **History and the day-on-day change** come from AURA's own record of each day's reading
-  (`metal_price` in `data/aura.db`), so they start from the day the tracker was set up. If a
-  day's check fails, the last price stays on screen, marked stale with its date.
+  (`metal_price` in `data/aura.db`), so they start from the day the tracker was set up.
+  Day-on-day is always against yesterday: after a missed day it says so instead of
+  comparing with an older day. If a day's check fails, the last price stays on screen,
+  marked stale with its date.
 
 ## Configuration
 
@@ -1196,6 +1219,15 @@ Coverage:
   headers get `400` (which blocks DNS rebinding).
 - **Strict headers:** the pages are served with a strict CSP (`'self'` only),
   `X-Frame-Options: DENY`, `nosniff` and `no-referrer`. API docs are turned off.
+- **Internet speed pill:** every 10 minutes the Pi times a 10 MB download (and three
+  empty requests for ping) from Cloudflare's free speed test, about 1.4 GB a day. It
+  measures the Pi's own link, so on Wi-Fi it can read lower than a wired device.
+  `AURA_SPEEDTEST_MINUTES=0` turns it off.
+- **Request size caps:** bodies over 1 MB get `413` before they are read (wallpapers
+  may be up to 12 MB). The `data/` folder is `700` and its secrets `600`.
+- **Home Assistant** (port 8123) listens on IPv4 only (`server_host` in
+  `~/homeassistant/config/.storage/http`, because Home Assistant ignores the YAML
+  setting once it has migrated) and bans an address after 5 failed logins.
 - **Anyone on your home Wi-Fi can view and edit** (`AURA_EDIT_ACCESS=lan`). Switch
   to PIN mode if that ever stops being acceptable; see *Who can make changes*.
 - **In PIN mode the PIN travels over plain HTTP** inside your home network. Wi-Fi

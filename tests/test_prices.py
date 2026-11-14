@@ -137,4 +137,71 @@ def test_lower_purities_are_calculated_from_24k(tmp_path):
     asyncio.run(t.fetch())
     g22 = t.view()["gold_purities"][0]
     assert g22 == {"id": "gold22", "karat": "22K", "factor": "0.916", "unit": "10 g", "price": 129733, "previous": 128240,
-                   "change": 1493, "change_pct": round(1493 / 128240 * 100, 2)}      # 140000 x 0.916 = 128240
+                   "change": 1493, "change_pct": round(1493 / 128240 * 100, 2), "missed_day": None}   # 140000 x 0.916 = 128240
+
+
+def test_day_on_day_compares_with_yesterday_only(tmp_path):
+    """A missed day (Pi off, network down) leaves no comparison; it never compares with an older day."""
+    clock = Clock(datetime(2026, 11, 1, 12, 0, tzinfo=IST))
+    t, _ = tracker(tmp_path, [ok(14005, 181), ok(13758, 176), ok(13800, 177)], clock)
+    asyncio.run(t.fetch())
+    clock.t = datetime(2026, 11, 3, 12, 0, tzinfo=IST)                   # 2 Nov missed
+    asyncio.run(t.fetch())
+    v = t.view()
+    for item in v["items"] + v["gold_purities"]:
+        assert item["change"] is None and item["previous"] is None and item["change_pct"] is None
+        assert item["missed_day"] == "2026-11-02"
+    clock.t = datetime(2026, 11, 4, 12, 0, tzinfo=IST)
+    asyncio.run(t.fetch())
+    g = t.view()["items"][0]
+    assert g["previous_day"] == "2026-11-03" and g["change"] == 138000 - 137580 and g["missed_day"] is None
+
+
+def test_only_the_noon_check_fetches(tmp_path):
+    clock = Clock(datetime(2026, 11, 3, 0, 45, tzinfo=IST))
+    t, calls = tracker(tmp_path, [ok()], clock)
+    assert not t.due() and t.next_run() == datetime(2026, 11, 3, 12, 0, tzinfo=IST)
+    import inspect
+    assert list(inspect.signature(t.fetch).parameters) == []             # no early or manual readings
+
+
+def test_noon_price_same_as_yesterday_is_checked_again(tmp_path):
+    """Seen live on 4 Nov: at 12:00 metals.dev still had yesterday's IBJA rate; the new one came
+    later. An unchanged noon price is checked again at 12:45 and 13:30, then accepted."""
+    clock = Clock(datetime(2026, 11, 3, 12, 0, tzinfo=IST))
+    # live values: the same IBJA rate comes back with tiny conversion jitter (13758.0178 -> 13758.0192)
+    t, calls = tracker(tmp_path, [ok(13758.0178, 176.4245), ok(13758.0192, 176.4249), ok(13758.0185, 176.4247), ok(14106.0217, 184.1991)], clock)
+    asyncio.run(t.fetch())
+    clock.t = datetime(2026, 11, 4, 12, 0, tzinfo=IST)
+    asyncio.run(t.fetch())                                           # still yesterday's rate
+    assert not t.due() and t.next_run() == datetime(2026, 11, 4, 12, 45, tzinfo=IST)
+    clock.t = datetime(2026, 11, 4, 12, 45, tzinfo=IST)
+    assert t.due()
+    asyncio.run(t.fetch())                                           # still the same
+    assert t.next_run() == datetime(2026, 11, 4, 13, 30, tzinfo=IST)
+    clock.t = datetime(2026, 11, 4, 13, 30, tzinfo=IST)
+    asyncio.run(t.fetch())                                           # the new rate
+    g = t.view()["items"][0]
+    assert g["price"] == 141060 and g["previous"] == 137580 and len(t.rows()) == 2 and len(calls) == 4
+    assert not t.due() and t.next_run() == datetime(2026, 11, 5, 12, 0, tzinfo=IST)
+
+
+def test_unchanged_after_the_last_recheck_is_accepted(tmp_path):
+    """A holiday (IBJA doesn't publish): after 13:30 the same price stands; no more requests."""
+    clock = Clock(datetime(2026, 11, 7, 12, 0, tzinfo=IST))
+    t, calls = tracker(tmp_path, [ok(), ok(), ok(), ok()], clock)
+    asyncio.run(t.fetch())
+    clock.t = datetime(2026, 11, 8, 12, 0, tzinfo=IST)
+    asyncio.run(t.fetch())
+    for hm in ((12, 45), (13, 30)):
+        clock.t = datetime(2026, 11, 8, *hm, tzinfo=IST)
+        asyncio.run(t.fetch())
+    clock.t = datetime(2026, 11, 8, 18, 0, tzinfo=IST)
+    assert not t.due() and len(calls) == 4
+    with pytest.raises(PriceError):
+        asyncio.run(t.fetch())
+    # the Pi was off at noon and started at 15:00: one catch-up, no rechecks after it
+    clock.t = datetime(2026, 11, 9, 15, 0, tzinfo=IST)
+    t2, calls2 = tracker(tmp_path, [ok()], clock)
+    asyncio.run(t2.fetch())
+    assert not t2.due() and len(calls2) == 1

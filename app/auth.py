@@ -135,10 +135,20 @@ class AccessControl:
         return self.open_lan or self.is_local(request) or self.verify(request.cookies.get(COOKIE_NAME))
 
     def can_admin(self, request: Request) -> bool:
-        """Privileged system changes (Wi-Fi). Stricter than editing: even in
-        "lan" mode only the Pi's own screen, or a phone that unlocked with the
-        household PIN, may do this."""
+        """Privileged changes (unlocking doors). Stricter than editing: even in "lan" mode only
+        the Pi's own screen, or a phone that unlocked with the household PIN, may do this."""
         return self.is_local(request) or (self.pin_configured and self.verify(request.cookies.get(COOKIE_NAME)))
+
+    def can_change_wifi(self, request: Request) -> bool:
+        """Wi-Fi, like a phone's Wi-Fi settings (the household's choice): in "lan" mode any home
+        device; joining still needs the network's password, and a failed join falls back to the
+        old network. In "pin" mode it's as strict as can_admin."""
+        return self.open_lan or self.can_admin(request)
+
+    def require_wifi(self, request: Request) -> None:
+        if not self.can_change_wifi(request):
+            raise HTTPException(status_code=403, detail="Wi-Fi can only be changed on the entrance display itself, "
+                                                         "or after unlocking with the household PIN.")
 
     def require_admin(self, request: Request) -> None:
         if not self.can_admin(request):

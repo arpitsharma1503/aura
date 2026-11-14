@@ -74,7 +74,7 @@ def test_gear_never_overlaps_header_content(chrome, srv, w, h, touch):
 
 def test_tiles_show_only_a_bare_arrow(chrome, srv):
     p = dashboard(chrome, srv)
-    info = p.js("""(() => [...document.querySelectorAll('.card[data-open]')].map(card => {
+    info = p.js("""(() => [...document.querySelectorAll('.card[data-open]:not(.clock-tile)')].map(card => {
         const arrows = card.querySelectorAll(':scope > .tile-arrow');
         const a = arrows[0]; const cs = a && getComputedStyle(a); const r = a?.getBoundingClientRect(), c = card.getBoundingClientRect();
         return {card: card.className, n: arrows.length, text: a?.textContent.trim(), bg: cs?.backgroundColor,
@@ -323,3 +323,79 @@ def test_network_protection_problems_shown(chrome, srv):
     p.wait_for("document.getElementById('dns-problems').children.length === 1", timeout=15)
     text = p.text("#protection")
     assert "Stopped" in text and "Not answering" in text and "systemctl start pihole-FTL" in text
+
+
+@pytest.mark.parametrize("w, h, touch", [(1440, 900, False), (390, 844, True)])
+def test_section_menu_and_save_bar(chrome, srv, w, h, touch):
+    """Settings is a long page: the menu has an icon per section and marks the one on screen,
+    and a card with unsaved changes keeps its Save bar in view."""
+    p = settings_page(chrome, srv, w, h, touch)
+    assert p.js("document.querySelectorAll('.s-nav a .s-nav__icon svg').length") == p.js("document.querySelectorAll('.s-nav a').length")
+    p.wait_for("document.querySelector('.s-nav a[aria-current]')?.hash === '#views'")
+    p.js("document.getElementById('display').scrollIntoView()")
+    p.wait_for("document.querySelector('.s-nav a[aria-current]')?.hash === '#display'")
+    p.js("""(() => { const f = document.getElementById('display'); const r = f.querySelector('input[type=radio]:not(:checked)');
+        r.click(); scrollTo(0, f.getBoundingClientRect().top + scrollY - 20); })()""")
+    p.wait_for("document.getElementById('display').classList.contains('is-dirty')")
+    save = p.js("(() => { const r = document.querySelector('#display .s-save').getBoundingClientRect(); return [r.top >= 0, r.bottom <= innerHeight]; })()")
+    assert save == [True, True], save                       # in view without scrolling to the card's end
+    assert p.js("document.documentElement.scrollWidth <= innerWidth")
+
+
+NETS = [{"ssid": "Home-5G", "signal": 92, "security": "WPA2", "band": "5 GHz", "in_use": True, "saved": True},
+        {"ssid": "Neighbour", "signal": 61, "security": "WPA2", "band": "2.4 GHz", "in_use": False, "saved": False},
+        {"ssid": "Cafe", "signal": 40, "security": "", "band": "2.4 GHz", "in_use": False, "saved": False}]
+
+
+def net_status(srv):
+    _, n = srv.api("GET", "/api/system/network")
+    return {**n, "can_manage": True, "manage_reason": None}
+
+
+def test_wifi_lists_networks_and_asks_for_the_password_in_place(chrome, srv):
+    """Network & Wi-Fi has one "Find Wi-Fi" button (no scanning until asked). It opens a popup
+    listing nearby networks; tapping one opens the password form right under it; Cancel puts it
+    away; Done closes the popup."""
+    p = chrome.new_page()
+    p.viewport(1440, 900)
+    p.fixture("/api/system/network", net_status(srv))
+    p.fixture("/api/system/wifi/scan", NETS)
+    p.goto(f"{srv.url}/settings")
+    p.wait_for("!document.getElementById('wifi-scan').disabled", timeout=15)
+    assert p.text("#wifi-scan") == "Find Wi-Fi" and not p.js("document.getElementById('wifi-dialog').open")
+    assert p.js("document.querySelectorAll('#wifi-list .s-net').length") == 0          # nothing scanned yet
+    p.js("document.getElementById('wifi-scan').click()")
+    p.wait_for("document.getElementById('wifi-dialog').open && document.querySelectorAll('#wifi-list .s-net').length === 3", timeout=10)
+    assert p.js("[...document.querySelectorAll('#wifi-list .s-net__name')].map(e => e.textContent)") == ["Home-5G", "Neighbour", "Cafe"]
+    assert "Connected to" in p.text("#wifi-now")
+    p.js("document.querySelectorAll('#wifi-list .s-net')[1].click()")
+    p.wait_for("!document.getElementById('wifi-form').hidden")
+    assert p.js("document.getElementById('wifi-form').closest('li')?.previousElementSibling?.textContent.includes('Neighbour')")
+    assert p.js("document.activeElement.id") == "wifi-pass" and p.text("#wifi-target") == "Neighbour"
+    p.js("document.getElementById('wifi-pass').value = 'short'")
+    p.js("document.getElementById('wifi-connect').click()")
+    p.wait_for("document.getElementById('wifi-pass-err').textContent.includes('at least 8')")   # checked before anything is sent
+    p.js("document.getElementById('wifi-cancel').click()")
+    p.wait_for("document.getElementById('wifi-form').hidden && !document.querySelector('.s-net-form')")
+    p.js("document.getElementById('wifi-close').click()")
+    p.wait_for("!document.getElementById('wifi-dialog').open")
+
+
+def test_phone_unlocks_wifi_with_the_household_pin(chrome, srv):
+    """In PIN mode, a phone's Wi-Fi panel offers the household PIN; once unlocked, Find Wi-Fi works."""
+    _, data = srv.api("GET", "/api/settings")
+    p = chrome.new_page()
+    p.viewport(390, 844, mobile=True)
+    p.fixture("/api/settings", {**data, "can_admin": False, "can_wifi": False})
+    p.fixture("/api/system/network", net_status(srv))
+    p.fixture("/api/session", {"can_edit": True, "method": "pin", "pin_configured": True, "can_admin": True, "can_wifi": True})
+    p.fixture("/api/system/wifi/scan", NETS)
+    p.goto(f"{srv.url}/settings")
+    p.wait_for("!document.getElementById('wifi-unlock').hidden", timeout=15)
+    assert p.js("document.getElementById('wifi-scan').disabled") is True
+    p.js("document.getElementById('wifi-pin').value = '482916'; document.querySelector('#wifi-unlock button').click()")
+    p.wait_for("document.getElementById('wifi-unlock').hidden && !document.getElementById('wifi-scan').disabled", timeout=10)
+    assert "Unlocked" in p.text("#net-msg")
+    p.js("document.getElementById('wifi-scan').click()")
+    p.wait_for("document.querySelectorAll('#wifi-list .s-net').length === 3", timeout=10)
+    assert p.js("document.documentElement.scrollWidth <= innerWidth")

@@ -9,6 +9,7 @@
   <link rel="icon" href="/static/img/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/style.css">
   <link rel="stylesheet" href="/static/css/glass.css">
+  <link rel="stylesheet" href="/static/css/home.css">
   <script src="/static/js/icons.js" defer></script>
   <script src="/static/js/weather-scene.js" defer></script>
   <script src="/static/js/sky.js" defer></script>
@@ -28,31 +29,18 @@
   </div>
 
   <main class="shell" id="shell">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand__mark" aria-hidden="true"></span>
-        <span class="brand__name">AURA</span>
-        <span class="brand__home" id="home-name">Home</span>
-      </div>
-      <div class="topbar__right">
-        <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
-        <span class="pill pill--offline" id="offline-pill" role="status" hidden>
-          <span class="dot"></span>Connection lost · retrying
-        </span>
-        <span class="pill pill--live" id="listening-pill" role="status" hidden><span class="dot"></span>Listening</span>
-        <span class="pill pill--wake" id="wake-pill" title="The Pi is listening for “Hey Aura”" hidden>Hey Aura</span>
-        <span class="glass-cluster" id="controls">
-        <button class="topbar__mic" id="mic-btn" type="button" aria-label="Ask AURA" title="Ask AURA" data-state="idle"></button>
-        <a class="topbar__settings" href="/settings" id="settings-link" aria-label="Settings" title="Settings">
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </a>
-        </span>
-      </div>
-    </header>
-
-    <!-- Overview: greeting, time, place, and status capsules built only from live data -->
-    <section class="hero time" aria-label="Home overview">
+    <!-- Sidebar (large screens; on phones its parts flow into the page and the views become a tab bar):
+         greeting, time and place, then the views -->
+    <aside class="side time" aria-label="Home overview">
       <div class="hero__main">
+        <svg class="aclock" id="aclock" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="aclock__face" cx="50" cy="50" r="48"/>
+          <g class="aclock__ticks"><line x1="50" y1="7" x2="50" y2="15" transform="rotate(0 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(30 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(60 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(90 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(120 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(150 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(180 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(210 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(240 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(270 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(300 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(330 50 50)"/></g>
+          <line class="aclock__h" id="aclock-h" x1="50" y1="50" x2="50" y2="28"/>
+          <line class="aclock__m" id="aclock-m" x1="50" y1="50" x2="50" y2="16"/>
+          <line class="aclock__s" id="aclock-s" x1="50" y1="58" x2="50" y2="12"/>
+          <circle class="aclock__pin" cx="50" cy="50" r="1.8"/>
+        </svg>
         <p class="hero__greeting" id="greeting">&nbsp;</p>
         <button type="button" class="tile-hit hero__time" data-open="clock" aria-haspopup="dialog" aria-describedby="date"
                 aria-label="Time and date details">
@@ -71,134 +59,177 @@
         </div>
         <p class="place__note" id="location-note" hidden></p>
       </div>
-      <ul class="status" id="status-row" aria-label="At a glance"></ul>
-    </section>
+      <nav class="views" id="views" aria-label="Views"><div class="views__tabs" id="views-tabs" role="tablist" aria-label="Views"></div></nav>
+    </aside>
 
-    <nav class="views" id="views" aria-label="Views"><div class="views__tabs" id="views-tabs" role="tablist" aria-label="Views"></div></nav>
-
-    <section class="tiles" id="tiles" role="tabpanel" aria-label="Tiles">
-
-      <article class="tile card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
-        <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
-        <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2><span class="tile__aside weather__moon" id="weather-moon" data-open="weather#astro" hidden></span></header>
-        <div class="weather__loading">
-          <div class="skeleton skeleton--icon"></div>
-          <div class="skeleton-stack"><div class="skeleton skeleton--xl"></div><div class="skeleton skeleton--md"></div></div>
+    <div class="main">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand__mark" aria-hidden="true"></span>
+          <span class="brand__name">AURA</span>
+          <span class="brand__home" id="home-name">Home</span><span class="brand__view" id="view-title"></span>
         </div>
-        <div class="weather__message" id="weather-message">
-          <div class="weather__message-icon" id="weather-message-icon"></div>
-          <div>
-            <h3 class="weather__message-title" id="weather-message-title"></h3>
-            <p class="weather__message-body" id="weather-message-body"></p>
+        <div class="topbar__right">
+          <span class="topbar__time" id="top-time" aria-hidden="true"></span>
+          <span class="pill pill--preview" id="preview-pill" hidden>Development preview · sample data</span>
+          <span class="pill pill--offline" id="offline-pill" role="status" hidden>
+            <span class="dot"></span>Connection lost · retrying
+          </span>
+          <span class="pill pill--live" id="listening-pill" role="status" hidden><span class="dot"></span>Listening</span>
+          <span class="pill pill--wake" id="wake-pill" title="The Pi is listening for “Hey Aura”" hidden>Hey Aura</span>
+          <span class="glass-cluster" id="controls">
+          <button class="topbar__mic" id="mic-btn" type="button" aria-label="Ask AURA" title="Ask AURA" data-state="idle"></button>
+          <a class="topbar__settings" href="/settings" id="settings-link" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </a>
+          </span>
+        </div>
+      </header>
+
+      <!-- status capsules (Home's category buttons), built only from live data -->
+        <ul class="status" id="status-row" aria-label="At a glance"></ul>
+
+      <section class="tiles" id="tiles" role="tabpanel" aria-label="Tiles">
+
+        <article class="tile card weather" id="weather" data-tile="weather" data-tone="sky" aria-label="Weather" data-state="loading" data-open="weather">
+          <div class="wx-scene" id="wx-scene" aria-hidden="true" data-motion="none"></div>
+          <header class="tile__head"><span class="tile__icon" data-icon="cloud" aria-hidden="true"></span><h2 class="tile__title">Weather</h2><span class="tile__aside weather__moon" id="weather-moon" data-open="weather#astro" hidden></span></header>
+          <div class="weather__loading">
+            <div class="skeleton skeleton--icon"></div>
+            <div class="skeleton-stack"><div class="skeleton skeleton--xl"></div><div class="skeleton skeleton--md"></div></div>
           </div>
-        </div>
-        <div class="weather__content">
-          <div class="weather__now">
-            <div class="weather__art" id="weather-art"></div>
-            <div class="weather__reading">
-              <div class="weather__temp" id="weather-temp"></div>
-              <div class="weather__desc" id="weather-desc"></div>
-              <div class="weather__range" id="weather-range"></div>
-              <div class="weather__sun" id="weather-sun"></div>
+          <div class="weather__message" id="weather-message">
+            <div class="weather__message-icon" id="weather-message-icon"></div>
+            <div>
+              <h3 class="weather__message-title" id="weather-message-title"></h3>
+              <p class="weather__message-body" id="weather-message-body"></p>
             </div>
           </div>
-          <ol class="daily" id="daily" aria-label="Coming days" data-open="weather#daily"></ol>
-          <dl class="weather__stats" id="weather-stats" data-open="weather#metrics"></dl>
-          <ol class="hourly" id="hourly" aria-label="Next hours" data-open="weather#hourly"></ol>
-          <div class="weather__meta" id="weather-meta"></div>
-        </div>
-        <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+          <div class="weather__content">
+            <div class="weather__now">
+              <div class="weather__art" id="weather-art"></div>
+              <div class="weather__reading">
+                <div class="weather__temp" id="weather-temp"></div>
+                <div class="weather__desc" id="weather-desc"></div>
+                <div class="weather__range" id="weather-range"></div>
+                <div class="weather__sun" id="weather-sun"></div>
+              </div>
+            </div>
+            <ol class="daily" id="daily" aria-label="Coming days" data-open="weather#daily"></ol>
+            <dl class="weather__stats" id="weather-stats" data-open="weather#metrics"></dl>
+            <ol class="hourly" id="hourly" aria-label="Next hours" data-open="weather#hourly"></ol>
+            <div class="weather__meta" id="weather-meta"></div>
+          </div>
+          <button type="button" class="tile-arrow" data-open="weather" aria-haspopup="dialog" aria-label="Weather details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card commute" id="commute" data-tile="commute" data-tone="green" aria-labelledby="commute-title" data-state="loading" data-open="commute">
-        <header class="tile__head"><span class="tile__icon" data-icon="car" aria-hidden="true"></span><h2 class="tile__title" id="commute-title">Commute</h2><span class="tile__aside" id="commute-route"></span></header>
-        <div class="commute__body" id="commute-body">
-          <div class="skeleton skeleton--row"></div>
-          <div class="skeleton skeleton--row"></div>
-        </div>
-        <div class="commute__meta" id="commute-meta"></div>
-        <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card commute" id="commute" data-tile="commute" data-tone="green" aria-labelledby="commute-title" data-state="loading" data-open="commute">
+          <header class="tile__head"><span class="tile__icon" data-icon="car" aria-hidden="true"></span><h2 class="tile__title" id="commute-title">Commute</h2><span class="tile__aside" id="commute-route"></span></header>
+          <div class="commute__body" id="commute-body">
+            <div class="skeleton skeleton--row"></div>
+            <div class="skeleton skeleton--row"></div>
+          </div>
+          <div class="commute__meta" id="commute-meta"></div>
+          <button type="button" class="tile-arrow" data-open="commute" aria-haspopup="dialog" aria-label="Commute details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card meals" id="meals-tile" data-tile="meals" data-tone="lime" aria-labelledby="meals-title" data-open="meals" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="bowl" aria-hidden="true"></span><h2 class="tile__title" id="meals-title">Today's meals</h2><span class="tile__aside" id="meals-day"></span></header>
-        <ul class="meals__list" id="meals-list" aria-label="Today's meals"></ul>
-        <p class="meals__prep" id="meals-prep"></p>
-        <button type="button" class="tile-arrow" data-open="meals" aria-haspopup="dialog" aria-label="Meal plan details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card meals" id="meals-tile" data-tile="meals" data-tone="lime" aria-labelledby="meals-title" data-open="meals" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="bowl" aria-hidden="true"></span><h2 class="tile__title" id="meals-title">Today's meals</h2><span class="tile__aside" id="meals-day"></span></header>
+          <ul class="meals__list" id="meals-list" aria-label="Today's meals"></ul>
+          <p class="meals__prep" id="meals-prep"></p>
+          <button type="button" class="tile-arrow" data-open="meals" aria-haspopup="dialog" aria-label="Meal plan details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card advice" id="advice" data-tile="advice" data-tone="amber" aria-labelledby="advice-title" data-open="advice">
-        <header class="tile__head"><span class="tile__icon" data-icon="compass" aria-hidden="true"></span><h2 class="tile__title" id="advice-title">Before you go</h2></header>
-        <ul class="advice__list" id="advice-list" data-state="loading">
-          <li class="skeleton skeleton--row"></li>
-          <li class="skeleton skeleton--row"></li>
-        </ul>
-        <button type="button" class="tile-arrow" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
-
-      <article class="tile card calendar" id="calendar-tile" data-tile="calendar" data-tone="red" aria-labelledby="calendar-title" data-open="calendar" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="calendar" aria-hidden="true"></span><h2 class="tile__title" id="calendar-title">Calendar</h2><span class="tile__aside" id="calendar-when"></span></header>
-        <ul class="agenda" id="agenda" aria-label="Upcoming events and holidays"></ul>
-        <p class="tile__empty" id="calendar-empty" hidden></p>
-        <button type="button" class="panchang" id="panchang" data-open="calendar#panchang" hidden aria-label="Panchang for today">
-          <span class="panchang__icon" aria-hidden="true"></span>
-          <span class="panchang__text"><span class="panchang__hi" id="panchang-hi" lang="hi"></span><span class="panchang__en" id="panchang-en"></span></span>
-        </button>
-        <button type="button" class="tile-arrow" data-open="calendar" aria-haspopup="dialog" aria-label="Calendar details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
-
-      <article class="tile card grocery" id="grocery-tile" data-tile="groceries" data-tone="orange" aria-labelledby="grocery-title" data-open="groceries">
-        <header class="tile__head"><span class="tile__icon" data-icon="cart" aria-hidden="true"></span><h2 class="tile__title" id="grocery-title">Groceries</h2><span class="tile__aside card__count" id="grocery-count"></span></header>
-        <div class="grocery__body">
-          <ul class="grocery__list" id="grocery-list" data-state="loading">
+        <article class="tile card advice" id="advice" data-tile="advice" data-tone="amber" aria-labelledby="advice-title" data-open="advice">
+          <header class="tile__head"><span class="tile__icon" data-icon="compass" aria-hidden="true"></span><h2 class="tile__title" id="advice-title">Before you go</h2></header>
+          <ul class="advice__list" id="advice-list" data-state="loading">
             <li class="skeleton skeleton--row"></li>
             <li class="skeleton skeleton--row"></li>
           </ul>
-          <a class="grocery__qr" id="grocery-qr" href="/groceries" hidden>
-            <img id="grocery-qr-img" alt="QR code that opens the grocery list on your phone">
-            <span class="grocery__qr-label">Scan to edit</span>
-          </a>
-        </div>
-        <a class="tile-arrow" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-      </article>
+          <button type="button" class="tile-arrow" data-open="advice" aria-haspopup="dialog" aria-label="All recommendations"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card assistant-tile" id="assistant-tile" data-tile="assistant" data-tone="violet" aria-labelledby="assistant-title" data-open="assistant" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="mic" aria-hidden="true"></span><h2 class="tile__title" id="assistant-title">Ask AURA</h2></header>
-        <p class="tile__value" id="assistant-status">&nbsp;</p>
-        <p class="tile__sub" id="assistant-sub"></p>
-        <button type="button" class="tile-arrow" data-open="assistant" aria-haspopup="dialog" aria-label="Open the assistant"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card calendar" id="calendar-tile" data-tile="calendar" data-tone="red" aria-labelledby="calendar-title" data-open="calendar" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="calendar" aria-hidden="true"></span><h2 class="tile__title" id="calendar-title">Calendar</h2><span class="tile__aside" id="calendar-when"></span></header>
+          <ul class="agenda" id="agenda" aria-label="Upcoming events and holidays"></ul>
+          <p class="tile__empty" id="calendar-empty" hidden></p>
+          <button type="button" class="panchang" id="panchang" data-open="calendar#panchang" hidden aria-label="Panchang for today">
+            <span class="panchang__icon" aria-hidden="true"></span>
+            <span class="panchang__text"><span class="panchang__hi" id="panchang-hi" lang="hi"></span><span class="panchang__en" id="panchang-en"></span></span>
+          </button>
+          <button type="button" class="tile-arrow" data-open="calendar" aria-haspopup="dialog" aria-label="Calendar details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card prices-tile" id="prices-tile" data-tile="prices" data-tone="amber" aria-labelledby="prices-title" data-open="prices" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="coins" aria-hidden="true"></span><h2 class="tile__title" id="prices-title">Price Tracker</h2><span class="tile__aside" id="prices-aside"></span></header>
-        <div class="pt-body" id="prices-body"></div>
-        <button type="button" class="tile-arrow" data-open="prices" aria-haspopup="dialog" aria-label="Gold and silver price details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card grocery" id="grocery-tile" data-tile="groceries" data-tone="orange" aria-labelledby="grocery-title" data-open="groceries">
+          <header class="tile__head"><span class="tile__icon" data-icon="cart" aria-hidden="true"></span><h2 class="tile__title" id="grocery-title">Groceries</h2><span class="tile__aside card__count" id="grocery-count"></span></header>
+          <div class="grocery__body">
+            <ul class="grocery__list" id="grocery-list" data-state="loading">
+              <li class="skeleton skeleton--row"></li>
+              <li class="skeleton skeleton--row"></li>
+            </ul>
+            <a class="grocery__qr" id="grocery-qr" href="/groceries" hidden>
+              <img id="grocery-qr-img" alt="QR code that opens the grocery list on your phone">
+              <span class="grocery__qr-label">Scan to edit</span>
+            </a>
+          </div>
+          <a class="tile-arrow" href="/groceries?from=dashboard" data-open="groceries" aria-label="Open the full grocery list"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </article>
 
-      <article class="tile card smarthome-tile" id="smarthome-tile" data-tile="smarthome" data-tone="amber" aria-labelledby="smarthome-title" data-open="smarthome" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="bulb" aria-hidden="true"></span><h2 class="tile__title" id="smarthome-title">Smart home</h2><span class="tile__aside" id="smarthome-aside"></span></header>
-        <p class="tile__value" id="smarthome-status">&nbsp;</p>
-        <ul class="shtile__favs" id="smarthome-favs" aria-label="Favourite devices"></ul>
-        <ul class="shtile__rooms" id="smarthome-rooms" aria-label="Rooms" hidden></ul>
-        <p class="tile__sub" id="smarthome-sub"></p>
-        <button type="button" class="tile-arrow" data-open="smarthome" aria-haspopup="dialog" aria-label="Smart home details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card assistant-tile" id="assistant-tile" data-tile="assistant" data-tone="violet" aria-labelledby="assistant-title" data-open="assistant" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="mic" aria-hidden="true"></span><h2 class="tile__title" id="assistant-title">Ask AURA</h2></header>
+          <p class="tile__value" id="assistant-status">&nbsp;</p>
+          <p class="tile__sub" id="assistant-sub"></p>
+          <button type="button" class="tile-arrow" data-open="assistant" aria-haspopup="dialog" aria-label="Open the assistant"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card protection" id="protection-tile" data-tile="protection" data-tone="teal" aria-labelledby="protection-title" data-open="protection" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="shield" aria-hidden="true"></span><h2 class="tile__title" id="protection-title">Network protection</h2></header>
-        <p class="tile__value" id="protection-status">&nbsp;</p>
-        <p class="tile__sub" id="protection-sub"></p>
-        <button type="button" class="tile-arrow" data-open="protection" aria-haspopup="dialog" aria-label="Network protection details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card prices-tile" id="prices-tile" data-tile="prices" data-tone="amber" aria-labelledby="prices-title" data-open="prices" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="coins" aria-hidden="true"></span><h2 class="tile__title" id="prices-title">Price Tracker</h2><span class="tile__aside" id="prices-aside"></span></header>
+          <div class="pt-body" id="prices-body"></div>
+          <button type="button" class="tile-arrow" data-open="prices" aria-haspopup="dialog" aria-label="Gold and silver price details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <article class="tile card system" id="system-tile" data-tile="system" data-tone="slate" aria-labelledby="system-title" data-open="system" data-state="loading">
-        <header class="tile__head"><span class="tile__icon" data-icon="chip" aria-hidden="true"></span><h2 class="tile__title" id="system-title">System</h2><span class="tile__aside" id="system-aside"></span></header>
-        <dl class="sysgrid" id="system-stats"></dl>
-        <button type="button" class="tile-arrow" data-open="system" aria-haspopup="dialog" aria-label="System details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-      </article>
+        <article class="tile card smarthome-tile" id="smarthome-tile" data-tile="smarthome" data-tone="amber" aria-labelledby="smarthome-title" data-open="smarthome" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="bulb" aria-hidden="true"></span><h2 class="tile__title" id="smarthome-title">Smart home</h2><span class="tile__aside" id="smarthome-aside"></span></header>
+          <p class="tile__value" id="smarthome-status">&nbsp;</p>
+          <ul class="shtile__favs" id="smarthome-favs" aria-label="Favourite devices"></ul>
+          <ul class="shtile__rooms" id="smarthome-rooms" aria-label="Rooms" hidden></ul>
+          <p class="tile__sub" id="smarthome-sub"></p>
+          <button type="button" class="tile-arrow" data-open="smarthome" aria-haspopup="dialog" aria-label="Smart home details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
 
-      <p class="tiles__empty" id="tiles-empty" hidden></p>
-    </section>
+        <article class="tile card protection" id="protection-tile" data-tile="protection" data-tone="teal" aria-labelledby="protection-title" data-open="protection" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="shield" aria-hidden="true"></span><h2 class="tile__title" id="protection-title">Network protection</h2></header>
+          <p class="tile__value" id="protection-status">&nbsp;</p>
+          <p class="tile__sub" id="protection-sub"></p>
+          <button type="button" class="tile-arrow" data-open="protection" aria-haspopup="dialog" aria-label="Network protection details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
+
+        <article class="tile card system" id="system-tile" data-tile="system" data-tone="slate" aria-labelledby="system-title" data-open="system" data-state="loading">
+          <header class="tile__head"><span class="tile__icon" data-icon="chip" aria-hidden="true"></span><h2 class="tile__title" id="system-title">System</h2><span class="tile__aside" id="system-aside"></span></header>
+          <dl class="sysgrid" id="system-stats"></dl>
+          <button type="button" class="tile-arrow" data-open="system" aria-haspopup="dialog" aria-label="System details"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </article>
+
+        <!-- The calm Home view's clock (home.css shows it only there, on large screens) -->
+        <article class="tile card clock-tile" id="clock-tile" data-open="clock" data-tone="slate" aria-label="Time and date">
+          <button type="button" class="tile-hit clock-tile__hit" data-open="clock" aria-haspopup="dialog" aria-label="Time and date details">
+              <svg class="aclock aclock--tile" viewBox="0 0 100 100" aria-hidden="true">
+                <circle class="aclock__face" cx="50" cy="50" r="48"/>
+                <g class="aclock__ticks"><line x1="50" y1="7" x2="50" y2="15" transform="rotate(0 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(30 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(60 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(90 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(120 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(150 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(180 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(210 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(240 50 50)"/><line x1="50" y1="7" x2="50" y2="15" transform="rotate(270 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(300 50 50)"/><line x1="50" y1="8" x2="50" y2="13" transform="rotate(330 50 50)"/></g>
+                <line class="aclock__h" x1="50" y1="50" x2="50" y2="28"/>
+                <line class="aclock__m" x1="50" y1="50" x2="50" y2="16"/>
+                <line class="aclock__s" x1="50" y1="58" x2="50" y2="12"/>
+                <circle class="aclock__pin" cx="50" cy="50" r="1.8"/>
+              </svg>
+            <div class="clock-tile__text">
+              <span class="clock-tile__time" id="ctile-time"></span>
+              <span class="clock-tile__date" id="ctile-date"></span>
+            </div>
+          </button>
+        </article>
+        <p class="tiles__empty" id="tiles-empty" hidden></p>
+      </section>
+    </div>
   </main>
 
   <!-- Detail view for a tile. Opened via #/clock, #/weather[/section], #/advice, #/commute, #/calendar, ... -->

@@ -132,10 +132,18 @@
     const hm = parts.filter((p) => ["hour", "minute", "literal"].includes(p.type) && p.value.trim() !== "")
       .map((p) => p.value).join("");
     $("clock-hm").textContent = hm;
+    const { hour: ah, minute: am } = zonedParts(now), as = now.getSeconds();   // the sidebar's analog clock
+    const turn = { h: (ah % 12) * 30 + am * 0.5, m: am * 6 + as * 0.1, s: as * 6 };
+    for (const [k, deg] of Object.entries(turn)) {
+      for (const hand of document.querySelectorAll(`.aclock__${k}`)) hand.setAttribute("transform", `rotate(${deg} 50 50)`);
+    }
     $("clock-ampm").textContent = parts.find((p) => p.type === "dayPeriod")?.value ?? "";
     $("date").textContent = new Intl.DateTimeFormat("en-GB", {
       timeZone: tz(), weekday: "long", day: "numeric", month: "long",
     }).format(now);
+    $("ctile-time").textContent = `${hm}${$("clock-ampm").textContent ? ` ${$("clock-ampm").textContent}` : ""}`;
+    $("ctile-date").textContent = $("date").textContent;
+    $("top-time").textContent = $("ctile-time").textContent;          // the header clock on the other views
     document.body.dataset.phase = phaseFor(now);
     const { hour } = zonedParts(now);
     const greeting = hour < 5 ? "Good night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : hour < 22 ? "Good evening" : "Good night";
@@ -425,6 +433,11 @@
     const art = window.AuraSky.picture(payload);
     $("weather-art").innerHTML = art.html;
     $("weather").dataset.art = art.kind;
+    // the header glyph follows the sky (a cloud on a clear day looked wrong)
+    const glyph = c.condition === "thunderstorm" ? "storm" : c.condition === "snow" ? "snow" : c.condition === "fog" ? "fog"
+      : art.kind === "sun" && c.condition === "clear" ? "sun" : "cloud";
+    const head = $("weather").querySelector(".tile__icon");
+    if (head.dataset.icon !== glyph) { head.dataset.icon = glyph; head.innerHTML = icon(glyph, 1.7); }
     const visual = window.AuraSky.visualFor(payload, art.day);
     renderScene(stale && visual ? { ...visual, motion: "static" } : visual);
     $("weather-temp").textContent = fmtTemp(c.temperature_c);
@@ -449,6 +462,7 @@
     stats.push(stat("Wind", `${Math.round(c.wind_kph)} km/h`));
     if (c.uv_index != null) stats.push(stat("UV", c.is_day ? String(Math.round(c.uv_index)) : "0"));
     if (w.air_quality) stats.push(stat("AQI", String(w.air_quality.us_aqi)));
+    for (const st of stats) st.dataset.k = st.querySelector("dt")?.textContent.toLowerCase().replace(/\s+/g, "-") ?? "";   // home.css picks three
     $("weather-stats").replaceChildren(...stats);
     const aqiEl = stats.at(-1);
     if (w.air_quality) aqiEl.title = `US AQI · ${w.air_quality.category}`;
@@ -615,7 +629,9 @@
     count.textContent = `${open.length} to buy`;
     // On the entrance screen a wide tile has room for two columns of three; a large one for more.
     const tv = matchMedia("(min-width: 1200px) and (min-aspect-ratio: 4/3)").matches;
-    const max = !tv ? MAX_GROCERIES : sizeOf("groceries") === "l" ? 16 : 6;
+    // a wide tile shows as many rows of two as its height allows (3 on Home's grid, up to 5)
+    const share = tv ? $("grocery-tile").getBoundingClientRect().height / innerHeight : 0;
+    const max = !tv ? MAX_GROCERIES : sizeOf("groceries") === "l" ? 16 : share > 0.36 ? 10 : share > 0.25 ? 8 : 6;
     const shown = open.slice(0, max);
     const canEdit = state.session?.can_edit;
     list.toggleAttribute("data-readonly", !canEdit);
@@ -1029,6 +1045,7 @@
         : `nothing to soak or prepare for tomorrow (${d.tomorrow.meals.map((m) => m.code).join(", ")}).`);
       prep.dataset.kind = "ok";
     }
+    renderGlance();
   }
 
   // ---------- smart home (Home Assistant) ----------
@@ -1046,6 +1063,7 @@
   function renderSmartHome(d) {
     const tile = $("smarthome-tile");
     const val = $("smarthome-status"), sub = $("smarthome-sub"), favs = $("smarthome-favs");
+    $("smarthome-tile").querySelector(".sh-empty-cta")?.remove();      // only while there are no devices
     if (!d) { tile.dataset.state = "loading"; val.textContent = "Checking…"; sub.textContent = ""; favs.replaceChildren(); return; }
     const c = d.connection, n = d.counts;
     $("smarthome-aside").textContent = c.status === "connected" && d.scenes.length ? `${d.scenes.length} scene${d.scenes.length === 1 ? "" : "s"}` : "";
@@ -1061,6 +1079,12 @@
       tile.dataset.state = "ok";
       val.textContent = "No devices yet";
       sub.textContent = "Home Assistant is connected. Open to add devices.";
+      // a clear next step on the empty tile (the tile itself opens the same place)
+      if (!tile.querySelector(".sh-empty-cta")) {
+        const b = document.createElement("button");
+        b.type = "button"; b.className = "btn sh-empty-cta"; b.dataset.open = "smarthome"; b.textContent = "Add devices";
+        sub.after(b);
+      }
       return;
     }
     tile.dataset.state = d.alerts.length || n.offline ? "alert" : "ok";
@@ -1091,6 +1115,17 @@
       li.querySelector("span").textContent = `${r.on} of ${r.total} on${r.offline ? ` · ${r.offline} offline` : ""}`;
       return li;
     }));
+  }
+
+  // ---------- internet speed (the Pi checks every few minutes; shown as a status capsule) ----------
+
+  const fmtMbps = (v) => (v >= 100 ? Math.round(v) : v.toFixed(1));
+
+  async function loadSpeed() {
+    try {
+      state.speed = await fetchJSON("/api/system/speed");
+    } catch { /* keep the last reading */ }
+    renderStatus();
   }
 
   // ---------- network protection (read-only Pi-hole status) ----------
@@ -1219,7 +1254,13 @@
       if (ps.state === "alert") cap("shieldOff", "Ad blocking", ps.capsule, "protection", "var(--tone-teal)", "alert");
       else cap("shield", "Ad blocking", ps.capsule, "protection", "var(--tone-teal)");
     }
-    $("status-row").replaceChildren(...caps.slice(0, 6).map((x) => {
+    const sp = state.speed;     // measured on the Pi every few minutes (app/speedtest.py)
+    if (sp?.status === "ok") cap("gauge", "Internet", `↓ ${fmtMbps(sp.down_mbps)} Mbps · ${sp.ping_ms} ms`, "system", "var(--tone-sky)");
+    else if (sp?.status === "offline") cap("wifi", "Internet", "No internet", "system", "var(--tone-sky)", "alert");
+    const onScreen = (open) => !!document.querySelector(`#tiles .tile[data-open="${open}"]:not([hidden])`);
+    // Every view is calm: only alerts (not already on a tile) and the internet speed.
+    const shown = caps.filter((x) => x.label === "Internet" || (x.kind === "alert" && !onScreen(x.open)));
+    $("status-row").replaceChildren(...shown.slice(0, 7).map((x) => {
       const li = document.createElement("li");
       const b = document.createElement("button");
       b.type = "button";
@@ -1234,13 +1275,83 @@
       li.append(b);
       return li;
     }));
+    renderGlance();
   }
 
-  // ---------- views: the tabs under the clock (Settings → Views) ----------
+  // ---------- glance: the calm Home view shows one fact per tile (home.css hides the rest) ----------
+  const MEAL_END = { breakfast: 10.5, lunch: 15.5, dinner: 24 };   // hour each meal stops being "next"
+
+  function glanceFacts() {
+    const facts = {};
+    const c = state.commute;
+    if (c?.recommendation && ["active", "prefetch", "before_window"].includes(c.state)) {
+      const r = c.recommendation;
+      const t = new Intl.DateTimeFormat("en-US", { timeZone: c.timezone, hour: "numeric", minute: "2-digit", hour12: twelve() }).format(new Date(r.departure_at));
+      facts.commute = [r.leave_now ? "Leave now" : `Leave ${t}`, `${r.duration_min} min to ${c.office_label}`];
+    } else if (c) {
+      const row = $("commute-body").querySelector(".state span");
+      // one short line: "Next check Monday at 7:45 AM" rather than the whole explanation
+      const sentences = (row?.querySelector("small")?.textContent || "").split(/(?<=\.)\s+/).filter(Boolean);
+      const line = (sentences.find((x) => /^Next\b/.test(x)) || sentences[0] || "").replace(/\.$/, "");
+      facts.commute = [row?.firstChild?.textContent || "No commute", line];
+    }
+    const m = state.meals;
+    if (m?.meals?.length) {
+      const { hour, minute } = zonedParts(new Date());
+      const h = hour + minute / 60;
+      const next = m.meals.find((x) => h < (MEAL_END[x.meal] ?? 24)) || m.meals.at(-1);
+      facts.meals = [next.label, MEAL_LABEL[next.meal] || ""];
+    }
+    const cal = state.calendar;
+    const day = cal?.days?.find((d) => d.date === cal.today && d.items.length) || cal?.days?.find((d) => d.items.length);
+    if (day) {
+      const it = day.items[0];
+      facts.calendar = [it.title, `${day.date === cal.today ? "Today" : $("calendar-when").textContent || day.date}${day.items.length > 1 ? ` · +${day.items.length - 1} more` : ""}`];
+    } else if (cal) {
+      facts.calendar = ["Nothing planned", "Calendar"];
+    }
+    const open = (state.groceries?.items || []).filter((i) => !i.purchased).length;
+    if (state.groceries) facts.groceries = [open ? String(open) : "All done", open ? "to buy" : "Nothing to buy"];
+    const sh = state.smarthome;
+    if (sh) {
+      const n = sh.counts || {};
+      const line = sh.connection?.status !== "connected" ? "Tap to connect"
+        : !n.total ? "Tap to add devices" : n.offline ? `${n.offline} of ${n.total} offline` : `${n.total} device${n.total === 1 ? "" : "s"}`;
+      facts.smarthome = [$("smarthome-status").textContent.trim() || "Smart home", line];
+    }
+    const recs = state.weather?.recommendations;
+    if (recs) facts.advice = recs.length ? [recs[0].title, recs.length > 1 ? `+${recs.length - 1} more` : "Before you go"] : ["All clear", "Nothing to plan for"];
+    return facts;
+  }
+
+  const GLANCE_TILES = ["commute", "meals", "calendar", "groceries", "smarthome"];
+
+  function renderGlance() {
+    const facts = glanceFacts();
+    for (const id of GLANCE_TILES) facts[id] ??= document.querySelector(`#tiles [data-tile="${id}"] .glance`) ? undefined : ["—", "Loading…"];
+    for (const [id, fact] of Object.entries(facts)) {
+      if (!fact) continue;
+      const [big, line] = fact;
+      const tile = document.querySelector(`#tiles [data-tile="${id}"]`);
+      if (!tile) continue;
+      let g = tile.querySelector(".glance");
+      if (!g) {
+        g = document.createElement("div");
+        g.className = "glance";
+        g.innerHTML = `<b class="glance__big"></b><span class="glance__line"></span>`;
+        tile.append(g);
+      }
+      g.querySelector(".glance__big").textContent = big;
+      g.querySelector(".glance__line").textContent = line;
+    }
+  }
+
+  // ---------- views: the icon rail on TVs, pills on tablets, the tab bar on phones (Settings → Views) ----------
   // A view is a named set of widgets with their order, sizes and layout. Switching views only
   // shows other tiles: every tile keeps loading as before (the status capsules use them), so a
   // switch makes no requests and adds no listeners.
 
+  const VIEW_ICON = { home: "home", daily: "calendar", "smart-home": "bulb", prices: "coins", system: "chip" };
   const VIEW_KEY = "aura.view";            // this screen's view, for this browser session
   /** The size a widget has in the current view ("s", "w" or "l"). */
   const sizeOf = (id) => document.querySelector(`#tiles [data-tile="${id}"]`)?.dataset.size || "w";
@@ -1279,7 +1390,11 @@
         b.setAttribute("aria-controls", "tiles");
         if (i < 9) b.setAttribute("aria-keyshortcuts", String(i + 1));
         if (v.description) b.title = v.description;
-        b.textContent = v.name;
+        const ic = document.createElement("span");          // sidebar row / tab bar icon (home.css)
+        ic.className = "view-tab__icon";
+        ic.setAttribute("aria-hidden", "true");
+        ic.innerHTML = icon(VIEW_ICON[v.id] || "home", 1.8);
+        b.append(ic, v.name);
         b.addEventListener("click", () => selectView(v.id));
         return b;
       });
@@ -1320,7 +1435,15 @@
       el.style.order = String(p.i);
       cells += Math.min(SPAN[p.size], cols) * (p.size === "l" ? 2 : 1);
     }
-    // Widgets that show more when large: redraw from the data already loaded (no requests).
+    document.body.dataset.view = view.id;          // home.css: the calm Home layout
+    $("view-title").textContent = view.id === "home" ? "" : view.name;
+    document.body.classList.toggle("has-view-title", view.id !== "home");
+    if (tiles.dataset.view !== view.id) { tiles.dataset.view = view.id; renderStatus(); }
+    tiles.dataset.cols = String(cols);
+    tiles.style.setProperty("--cols", String(cols));
+    tiles.style.setProperty("--rows", String(Math.max(2, Math.ceil(cells / cols))));
+    // Widgets that show more when large: redraw from the data already loaded (no requests),
+    // after the grid has its rows (a tile's height decides how much it shows).
     const sizes = view.tiles.map((t) => `${t.id}:${t.size}`).join();
     if (sizes !== state.viewSizes) {
       state.viewSizes = sizes;
@@ -1329,10 +1452,6 @@
       if (state.smarthome) renderSmartHome(state.smarthome);
       if (state.prices) window.AuraPrices.renderTile(state.prices, sizeOf("prices"));
     }
-    tiles.dataset.view = view.id;
-    tiles.dataset.cols = String(cols);
-    tiles.style.setProperty("--cols", String(cols));
-    tiles.style.setProperty("--rows", String(Math.max(2, Math.ceil(cells / cols))));
     tiles.setAttribute("aria-label", view.name ? `${view.name} view` : "Tiles");
     const empty = $("tiles-empty");
     empty.hidden = view.tiles.length > 0;
@@ -1415,6 +1534,7 @@
     es.addEventListener("meals", () => { loadMeals(); });
     es.addEventListener("smarthome", () => { loadSmartHome(); });
     es.addEventListener("prices", () => { loadPrices(); });
+    es.addEventListener("speed", () => { loadSpeed(); });
     es.addEventListener("assistant", (e) => {
       try { window.AuraAssistant.onEvent(JSON.parse(e.data)); } catch { /* ignore malformed */ }
     });
@@ -1584,6 +1704,7 @@
     loadPanchang();
     loadPrices();
     loadProtection();
+    loadSpeed();
     loadSmartHome();
     loadSystem();
     loadMeals();
@@ -1600,6 +1721,7 @@
   }, GROCERY_POLL_MS);
   setInterval(refreshQr, QR_REFRESH_MS);
   setInterval(loadProtection, 60_000);
+  setInterval(loadSpeed, 5 * 60_000);        // fallback only: new readings arrive as "speed" events
   setInterval(loadPrices, 30 * 60_000);      // the Pi itself fetches once a day; this just picks it up (and marks it stale)
   // Fallback only: device changes normally arrive as "smarthome" events.
   setInterval(() => { if (!state.events || state.events.readyState !== EventSource.OPEN) loadSmartHome(); }, 60_000);

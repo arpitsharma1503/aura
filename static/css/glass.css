@@ -452,6 +452,16 @@ button.pt-kpi:focus-visible { box-shadow: var(--focus); }
 .pt-kpis[data-size="w"] .pt-kpi[data-id="gold24"] .pt-kpi__vs { display: none; }
 .pt-kpis[data-size="w"] .pt-purity { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.1rem 0.8rem; margin-top: 0.3rem; padding-top: 0.3rem; font-size: 0.82rem; }
 .pt-kpis[data-size="w"] .pt-purity li { grid-template-columns: 2.2rem auto; }
+/* phones: one KPI per row, so a big price and its change never push the page wider */
+@media (max-width: 600px) {
+  .pt-kpis { grid-template-columns: minmax(0, 1fr); }
+  .pt-kpi--big { padding: 0.9rem 1rem; }
+  .pt-kpi--big .pt-kpi__value, .pt-kpis--detail .pt-kpi--big .pt-kpi__value { font-size: 2.3rem; }
+  .pt-kpi--big .pt-kpi__dod { font-size: 1rem; }
+  .pt-kpi--big .pt-purity { font-size: 1rem; }
+  .pt-purity li, .pt-kpi--big .pt-purity li { grid-template-columns: 2.6rem auto minmax(0, 1fr); }
+  .pt-purity__dod { white-space: normal; }
+}
 @media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
   .pt-kpis[data-size="w"] .pt-kpi { padding: 0.35rem 0.7rem; gap: 0.1rem; }
   .pt-kpis[data-size="w"] .pt-kpi__value { font-size: 1.3rem; }

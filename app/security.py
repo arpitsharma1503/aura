@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import ipaddress
 
+from starlette.exceptions import HTTPException
 from starlette.responses import PlainTextResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -106,3 +107,39 @@ class LanOnlyMiddleware:
             await send(message)
 
         await self.app(scope, receive, send_with_headers)
+
+
+class BodyLimitMiddleware:
+    """Caps request bodies before they are read whole: a stated Content-Length over the limit
+    is refused at once, and a body sent without one is cut off as soon as it passes it."""
+
+    def __init__(self, app: ASGIApp, max_bytes: int, per_path: dict[str, int] | None = None) -> None:
+        self.app = app
+        self.max_bytes = max_bytes
+        self.per_path = per_path or {}
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        limit = self.per_path.get(scope.get("path", ""), self.max_bytes)
+        length = dict(scope.get("headers") or []).get(b"content-length")
+        try:
+            too_big = length is not None and int(length) > limit
+        except ValueError:
+            too_big = True
+        if too_big:
+            await PlainTextResponse("Request too large", status_code=413)(scope, receive, send)
+            return
+        seen = 0
+
+        async def counted() -> dict:
+            nonlocal seen
+            message = await receive()
+            if message["type"] == "http.request":
+                seen += len(message.get("body", b""))
+                if seen > limit:
+                    raise HTTPException(status_code=413, detail="Request too large")
+            return message
+
+        await self.app(scope, counted, send)

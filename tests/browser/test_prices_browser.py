@@ -70,7 +70,7 @@ def test_two_kpi_tiles_with_day_on_day_change(chrome, srv, artifacts):
         aria: e.querySelector('.pt-kpi__dod').getAttribute('aria-label'), vs: e.querySelector('.pt-kpi__vs').textContent}))""")
     assert [x["id"] for x in k] == ["gold24", "silver"]                                  # only these two
     assert k[0] == {"id": "gold24", "label": "24K Gold · per 10 g", "value": "₹1,41,630", "dod": "▲ ₹1,630 · +1.16%", "dir": "up",
-                    "aria": "Up ₹1,630, +1.16% from yesterday", "vs": "vs ₹1,40,000 on 26 Oct"}
+                    "aria": "Up ₹1,630, +1.16% from yesterday", "vs": "vs ₹1,40,000 yesterday (26 Oct)"}
     assert k[1]["label"] == "Silver · per kg" and k[1]["value"] == "₹1,94,417" and k[1]["dod"] == "▼ ₹583 · -0.30%" and k[1]["dir"] == "down"
     rows = p.js("[...document.querySelectorAll('#prices-tile .pt-kpi[data-id=gold24] .pt-purity li')].map(li => li.textContent)")
     assert rows == ["22K₹1,29,733▲ ₹1,493 (+1.16%)", "20K₹1,18,020▲ ₹1,358 (+1.16%)", "18K₹1,06,223▲ ₹1,223 (+1.16%)", "14K₹82,613▲ ₹951 (+1.16%)"]
@@ -103,6 +103,17 @@ def test_first_reading_and_stale(chrome, srv):
     assert "Day-on-day from tomorrow" in p.text("#prices-tile")
 
 
+def test_missed_day_shows_no_comparison(chrome, srv):
+    """Day-on-day is with yesterday only: after a missed day nothing is compared with an older day."""
+    v = view(first=True)
+    for i in v["items"]:
+        i["missed_day"] = "2026-10-26"
+    p = dashboard(chrome, srv, v)
+    p.js("document.querySelector('.view-tab[data-view=prices]').click()")
+    assert p.js("[...document.querySelectorAll('#prices-tile .pt-kpi__dod')].map(e => e.textContent)") == ["No reading on 26 Oct"] * 2
+    assert "Compares with yesterday again tomorrow" in p.text("#prices-tile") and "▲" not in p.text("#prices-tile")
+
+
 @pytest.mark.parametrize("w, h", [(1920, 1080), (1600, 900), (1366, 768), (1280, 720)])
 def test_tiles_fit_in_every_size(chrome, srv, w, h, artifacts):
     srv.api("PATCH", "/api/settings/views", {"views": [
@@ -119,3 +130,39 @@ def test_tiles_fit_in_every_size(chrome, srv, w, h, artifacts):
                   hscroll: document.documentElement.scrollWidth > innerWidth + 1}; })()""")
         assert g["n"] == {"a": 8, "b": 4, "prices": 8}[v] and g["clipped"] == [] and not g["hscroll"], (v, w, h, g)
         p.screenshot(str(artifacts / f"prices-{v}-{w}x{h}.png"))
+
+
+@pytest.mark.parametrize("w", [360, 390, 430])
+def test_phone_layout_never_widens_the_page(chrome, srv, w, artifacts):
+    """Seen live on 4 Nov: two big KPIs side by side with a large change (▲ ₹7,773 · +4.41%)
+    made the page 467 px wide on a 360 px phone. On phones the KPIs stack."""
+    v = view()
+    v["items"][1].update(price=184198, previous=176425, change=7773, change_pct=4.41)
+    p = chrome.new_page()
+    p.viewport(w, 800, mobile=True, scale=2)
+    p.fixture("/api/prices", v)
+    p.goto(f"{srv.url}/")
+    p.wait_for("document.getElementById('prices-tile').dataset.state !== 'loading'", timeout=15)
+    p.js("document.querySelector('.view-tab[data-view=prices]').click()")
+    p.wait_for("document.querySelectorAll('#prices-tile .pt-kpi').length === 2", timeout=5)
+    wide = "document.documentElement.scrollWidth <= document.documentElement.clientWidth"
+    inside = """[...document.querySelectorAll('#prices-tile .pt-kpi *')].every(e =>
+        e.getBoundingClientRect().right <= document.getElementById('prices-tile').getBoundingClientRect().right + 1)"""
+    assert p.js(wide) and p.js(inside)
+    p.screenshot(str(artifacts / f"prices-phone-{w}.png"))
+    p.js("document.querySelector('#prices-tile .tile-arrow').click()")
+    p.wait_for("document.getElementById('detail').open", timeout=5)
+    assert p.js(wide) and p.js("""[...document.querySelectorAll('#detail-body .pt-kpi *')].every(e =>
+        e.getBoundingClientRect().right <= document.getElementById('detail').getBoundingClientRect().right + 1)""")
+
+
+def test_large_tile_shows_a_trend_of_recorded_readings(chrome, srv):
+    """The large Price Tracker tile fills each card with a trend line of AURA's own readings
+    (low/high in words); with a single reading it says the line comes later, never drawing one."""
+    srv.api("PATCH", "/api/settings/views", {"views": [{"id": "p", "name": "Prices", "tiles": [{"id": "prices", "size": "l"}]}]})
+    p = dashboard(chrome, srv, view())
+    p.wait_for("document.querySelectorAll('#prices-tile .pt-spark__svg').length === 2", timeout=10)
+    assert "3 daily readings" in p.text("#prices-tile .pt-kpi[data-id=gold24] .pt-spark__note")
+    p2 = dashboard(chrome, srv, view(history=1, first=True))
+    p2.wait_for("document.querySelectorAll('#prices-tile .pt-spark--empty').length === 2", timeout=10)
+    assert p2.js("document.querySelectorAll('#prices-tile .pt-spark__svg').length") == 0

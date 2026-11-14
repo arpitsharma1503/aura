@@ -86,7 +86,8 @@ def test_weather_scene_for_each_condition(dash, artifacts, scene):
     })()""")
     assert inside
     # Text stays readable: temperature is opaque white-ish.
-    assert page.js("getComputedStyle(document.getElementById('weather-temp')).color").startswith("rgb(244, 246, 251")
+    rgb = [int(v) for v in re.findall(r"\d+", page.js("getComputedStyle(document.getElementById('weather-temp')).color"))[:3]]
+    assert min(rgb) >= 240, rgb
     counts = page.js("""(() => { const s = document.getElementById('wx-scene'); return {
         drops: s.querySelectorAll('.wxs-drop').length, flakes: s.querySelectorAll('.wxs-flake').length,
         stars: s.querySelectorAll('.wxs-star').length, clouds: s.querySelectorAll('.wxs-cloud').length,

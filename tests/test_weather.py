@@ -293,3 +293,18 @@ def test_api_live_weather_then_outage(tmp_path):
     stale = client.get("/api/weather").json()
     assert stale["status"] == "stale"
     assert stale["data"]["fetched_at"] == body["data"]["fetched_at"]
+
+
+def test_empty_current_aqi_falls_back_to_this_hours_value():
+    """Just after the hour Open-Meteo can send "current": {"us_aqi": null} while the hourly
+    list has the value (seen live on 3 Nov): the dashboard used "Not available" for 15 min."""
+    aq = aq_json(aqi=190)
+    aq["current"]["us_aqi"] = None
+    aq["current"]["pm2_5"] = None
+    snap = parse_forecast(forecast_json(), "Greater Noida", aq)
+    assert snap.air_quality is not None and snap.air_quality.us_aqi == 190 and snap.air_quality.category == "Unhealthy"
+    assert snap.air_quality.pm2_5 is None                                  # unknown stays unknown
+    empty = aq_json(aqi=190)
+    empty["current"]["us_aqi"] = None
+    empty["hourly"]["us_aqi"] = [None] * 30
+    assert parse_forecast(forecast_json(), "Greater Noida", empty).air_quality is None   # nothing invented

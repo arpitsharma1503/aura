@@ -75,6 +75,7 @@ class AuraServer:
             # never connect to the household's real Home Assistant (the token in .env)
             "AURA_HOMEASSISTANT_TOKEN": "", "AURA_HOMEASSISTANT_URL": "http://127.0.0.1:1",
             "AURA_METALS_DEV_API_KEY": "",           # never spend the household's metals.dev quota
+            "AURA_SPEEDTEST_MINUTES": "0",                # no real speed downloads from test servers
             "AURA_EDIT_ACCESS": "lan",
             "AURA_PUBLIC_URL": f"http://127.0.0.1:{self.port}",
             **(env or {}),

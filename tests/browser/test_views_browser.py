@@ -10,7 +10,8 @@ SIZES = [(1920, 1080), (1600, 900), (1366, 768), (1280, 720)]
 
 GEOMETRY = """(() => {
   const area = document.getElementById('tiles').getBoundingClientRect();
-  const tiles = [...document.querySelectorAll('#tiles [data-tile]:not([hidden])')].map(t => ({id: t.dataset.tile, r: t.getBoundingClientRect(),
+  // shown tiles only (the calm Home view leaves some widgets out with display: none)
+  const tiles = [...document.querySelectorAll('#tiles [data-tile]:not([hidden])')].filter(t => t.getClientRects().length).map(t => ({id: t.dataset.tile, r: t.getBoundingClientRect(),
      title: t.querySelector('.tile__title')?.getBoundingClientRect()}));
   const overlap = [];
   for (let i = 0; i < tiles.length; i++) for (let j = i + 1; j < tiles.length; j++) {
@@ -141,16 +142,15 @@ def test_reset_one_view_and_all_views(chrome, srv):
     p.wait_for("document.querySelectorAll('#view-editor .s-view').length === 5", timeout=10)
 
 
-def test_selection_lens_follows_the_selected_view(chrome, srv):
+def test_selected_view_stands_out(chrome, srv):
+    """Home style: the selected view is the white row/pill itself (the gliding lens is retired)."""
     p = page(chrome, srv, 1920, 1080)
-    lens = """(() => { const l = document.querySelector('.view-indicator').getBoundingClientRect();
-      const t = document.querySelector('.view-tab[aria-selected=true]').getBoundingClientRect();
-      return Math.abs(l.left - t.left) < 2 && Math.abs(l.width - t.width) < 2; })()"""
-    assert p.js(lens)
+    bg = "(v) => getComputedStyle(document.querySelector(`.view-tab[data-view=${v}]`)).backgroundColor"
+    sel = f"(({bg})('system').startsWith('rgba(255, 255, 255') && ({bg})('home') !== ({bg})('system'))"
     p.js("document.querySelector('.view-tab[data-view=system]').click()")
-    p.wait_for(lens, timeout=3)                                  # glides over, ends under the new tab
+    p.wait_for(sel, timeout=3)
     p.viewport(1280, 720)
-    p.wait_for(lens, timeout=3)                                  # and stays put when the screen size changes
+    p.wait_for(sel, timeout=3)
     # the decorative layers never take clicks
     assert p.js("getComputedStyle(document.querySelector('.view-indicator')).pointerEvents") == "none"
     assert p.js("getComputedStyle(document.querySelector('.tile'), '::before').pointerEvents") == "none"
@@ -179,11 +179,16 @@ def test_glass_can_see_the_background(chrome, srv, phase):
 
 @pytest.mark.parametrize("w, h", [(320, 568), (390, 844)])
 def test_many_views_never_widen_a_phone_page(chrome, srv, w, h):
-    """The tab bar scrolls sideways instead of making the page wider (phones would zoom out)."""
+    """On phones the views are a tab bar at the bottom: it fits or scrolls sideways, never making
+    the page wider (phones would zoom out)."""
     p = chrome.new_page()
     p.viewport(w, h, mobile=True)
     p.fixture("/api/weather", weather_payload(63, 12))
     p.goto(f"{srv.url}/")
     p.wait_for("document.querySelectorAll('.view-tab').length >= 5", timeout=15)
     assert p.js("[document.documentElement.scrollWidth, innerWidth]") == [w, w]
-    assert p.js("document.getElementById('views-tabs').scrollWidth > document.getElementById('views-tabs').clientWidth")
+    bar = "document.getElementById('views-tabs')"
+    assert p.js(f"getComputedStyle(document.getElementById('views')).position") == "fixed"
+    assert p.js(f"{bar}.getBoundingClientRect().bottom <= innerHeight && {bar}.getBoundingClientRect().right <= innerWidth")
+    assert p.js(f"{bar}.scrollWidth > {bar}.clientWidth || [...{bar}.querySelectorAll('.view-tab')].every(t =>"
+                f" t.getBoundingClientRect().right <= {bar}.getBoundingClientRect().right + 1)")

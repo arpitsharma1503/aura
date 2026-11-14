@@ -99,19 +99,21 @@ def test_unknown_saved_view_falls_back_to_the_default(chrome, srv):
 
 
 def test_status_capsules_come_from_real_data_and_open_details(chrome, srv, artifacts):
+    """Calm pills: only alerts not already shown by a tile, and the internet speed. The Home
+    tiles carry the same live facts (one each)."""
     srv.api("POST", "/api/groceries", {"name": "Milk"})
-    p = dashboard(chrome, srv)
-    p.wait_for("document.querySelectorAll('.status__btn').length >= 5")
-    caps = p.js("[...document.querySelectorAll('.status__btn')].map(b => [b.dataset.open, b.textContent.replace(/\\s+/g, ' ').trim()])")
-    by = dict(caps)
-    assert "29° Rain" in by["weather"]
-    assert "Leave 9:15 AM · 24 min" in by["commute"]
-    assert "Rohan's birthday" in by["calendar"]
-    assert "1 to buy" in by["groceries"]
-    assert "On for home network" in by["protection"]
-    p.js("document.querySelector('.status__btn[data-open=commute]').click()")
-    p.wait_for(f"{IS_OPEN} && {VIEW} === 'commute'")
-    p.screenshot(str(artifacts / "home-capsule-commute.png"))
+    stopped = {**DNS, "service": "stopped", "dns_ok": False, "problems": ["The Pi-hole service isn't running."]}
+    p = dashboard(chrome, srv, dns=stopped)
+    p.wait_for("[...document.querySelectorAll('.status__btn')].some(b => b.dataset.open === 'protection')")
+    caps = p.js("[...document.querySelectorAll('.status__btn')].map(b => [b.dataset.open, b.dataset.kind || ''])")
+    assert ["protection", "alert"] in caps                                  # ad blocking is off: an alert pill
+    assert all(kind == "alert" or opens == "system" for opens, kind in caps), caps
+    p.wait_for("document.querySelector('#commute .glance__big')?.textContent === 'Leave 9:15 AM'")
+    assert p.text("#commute .glance__line").startswith("24 min to ")
+    assert p.text("#grocery-tile .glance__big") == "1" and "Rohan's birthday" in p.text("#calendar-tile .glance__big")
+    p.js("document.querySelector('.status__btn[data-open=protection]').click()")
+    p.wait_for(f"{IS_OPEN} && {VIEW} === 'protection'")
+    p.screenshot(str(artifacts / "home-capsule-protection.png"))
 
 
 def test_no_capsule_without_data(chrome, srv):
@@ -176,3 +178,90 @@ def test_settings_refresh_keeps_keyboard_focus_on_the_tabs(chrome, srv):
     srv.api("PATCH", "/api/settings/display", {"clock_format": "24h"})     # screens re-read their settings
     p.wait_for("/^\\d{2}:\\d{2}/.test(document.getElementById('clock').textContent)", timeout=10)   # the refresh happened
     assert p.js("document.activeElement.dataset.view") == "daily"
+
+
+SPEED = {"status": "ok", "message": None, "down_mbps": 29.8, "ping_ms": 113, "measured_at": "2026-11-03T20:01:35+05:30",
+         "failed_at": None, "every_minutes": 10, "source": "Cloudflare speed test"}
+
+
+@pytest.mark.parametrize("speed, value, kind", [
+    (SPEED, "↓ 29.8 Mbps · 113 ms", None),
+    ({**SPEED, "down_mbps": 412.6}, "↓ 413 Mbps · 113 ms", None),
+    ({**SPEED, "status": "offline", "failed_at": "2026-11-03T20:11:35+05:30"}, "No internet", "alert"),
+    ({**SPEED, "status": "off", "down_mbps": None, "ping_ms": None, "measured_at": None}, None, None),
+])
+def test_internet_speed_capsule_comes_last(chrome, srv, artifacts, speed, value, kind):
+    p = chrome.new_page()
+    p.viewport(1920, 1080)
+    p.fixture("/api/system/speed", speed)
+    p.fixture("/api/system/dns-filter", DNS)
+    p.goto(f"{srv.url}/")
+    p.wait_for("document.getElementById('protection-tile').dataset.state !== 'loading'")
+    labels = "[...document.querySelectorAll('.status__btn')].map(b => b.getAttribute('aria-label'))"
+    if value is None:
+        p.wait_for("performance.getEntriesByName(location.origin + '/api/system/speed').length > 0")
+        assert not any(x.startswith("Internet") for x in p.js(labels))           # nothing invented
+        return
+    p.wait_for(f"{labels}.some(x => x.startsWith('Internet'))")
+    caps = p.js("[...document.querySelectorAll('.status__btn')].map(b => [b.dataset.open, b.getAttribute('aria-label'), b.dataset.kind || null])")
+    i = next(k for k, c in enumerate(caps) if c[1].startswith("Internet"))
+    assert caps[i] == ["system", f"Internet: {value}", kind]
+    assert i == len(caps) - 1                                                       # after any alerts
+    p.js("[...document.querySelectorAll('.status__btn')].find(b => b.textContent.includes('Internet')).click()")
+    p.wait_for(f"{IS_OPEN} && {VIEW} === 'system'")
+    if speed is SPEED:
+        p.screenshot(str(artifacts / "home-capsule-internet.png"))
+
+
+@pytest.mark.parametrize("w, h, mobile", [(1920, 1080, False), (390, 844, True)])
+def test_home_app_look(chrome, srv, w, h, mobile):
+    """The household asked for the look of Apple's Home app and its wall display: a large
+    home-name title (also on phones), the selected view in white glass (sidebar row on TVs,
+    tab bar on phones), big rounded glass tiles, an analog clock on TVs, and Inter (bundled)
+    where San Francisco isn't installed."""
+    p = chrome.new_page()
+    p.viewport(w, h, mobile=mobile, scale=2 if mobile else 1)
+    p.goto(f"{srv.url}/")
+    p.wait_for("document.querySelectorAll('.view-tab').length >= 1 && document.fonts.status === 'loaded'")
+    s = p.js("""(() => {
+      const cs = (q) => getComputedStyle(document.querySelector(q));
+      return { title: cs('.brand__home').display, titleSize: parseFloat(cs('.brand__home').fontSize),
+        tab: cs('.view-tab[aria-selected=true]').backgroundColor, tabInk: cs('.view-tab[aria-selected=true]').color,
+        other: cs('.view-tab[aria-selected=false]').backgroundColor, radius: parseFloat(cs('#weather').borderTopLeftRadius),
+        icon: cs('#weather .tile__icon').borderTopLeftRadius, inter: document.fonts.check('16px Inter'),
+        wide: document.documentElement.scrollWidth <= document.documentElement.clientWidth };
+    })()""")
+    assert s["title"] != "none" and s["titleSize"] >= 26
+    assert s["tab"].startswith(("rgba(255, 255, 255", "rgb(255, 255, 255")) and s["tab"] != s["other"]
+    assert s["radius"] >= 24 and s["inter"] and s["wide"]
+    # Home on a TV is the wall-display grid: a clock tile with an analog face; phones keep the clock on top
+    clock = p.js("getComputedStyle(document.getElementById('clock-tile')).display")
+    assert (clock != "none") == (not mobile)
+    if not mobile:
+        assert p.js("document.querySelector('#clock-tile .aclock__m').getAttribute('transform')").startswith("rotate(")
+        assert p.text("#ctile-time")[:1].isdigit()
+        order = p.js("""[...document.querySelectorAll('#tiles .tile')].filter(t => t.getClientRects().length)
+          .map(t => { const r = t.getBoundingClientRect(); return [t.dataset.tile || t.id, Math.round(r.left), Math.round(r.top)]; })""")
+        named = {n: (x, y) for n, x, y in order}
+        assert named["weather"][0] < named["clock-tile"][0] and named["clock-tile"][1] < named["calendar"][1]
+        assert {"advice", "assistant"}.isdisjoint(named)
+
+
+def test_calm_home_view_shows_one_fact_per_tile(chrome, srv):
+    """The household found Home too busy: in the Home view each tile shows one big fact and a
+    line (details are one tap away), and the pills show only alerts and the internet speed
+    (on every view). Other views keep every detail."""
+    srv.api("POST", "/api/groceries", {"name": "Milk"})
+    srv.api("POST", "/api/groceries", {"name": "Eggs"})
+    p = dashboard(chrome, srv)
+    p.wait_for("document.querySelector('#grocery-tile .glance__big')?.textContent === '2'")
+    vis = "(q) => { const e = document.querySelector(q); return !!e && getComputedStyle(e).display !== 'none' && e.getClientRects().length > 0; }"
+    assert p.js(f"({vis})('#grocery-tile .glance') && !({vis})('#grocery-list') && !({vis})('#weather .daily')")
+    assert p.text("#grocery-tile .glance__line") == "to buy"
+    caps = p.js("[...document.querySelectorAll('.status__btn')].map(b => [b.dataset.open, b.dataset.kind || ''])")
+    assert all(kind == "alert" or opens == "system" for opens, kind in caps)      # alerts and Internet only
+    assert "groceries" not in [o for o, _ in caps]
+    # Daily planning: the full tiles; the pills stay calm on every view
+    p.js("document.querySelector('.view-tab[data-view=daily]').click()")
+    p.wait_for(f"({vis})('#grocery-list') && !({vis})('#grocery-tile .glance')")
+    assert "groceries" not in p.js("[...document.querySelectorAll('.status__btn')].map(b => b.dataset.open)")

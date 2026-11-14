@@ -671,11 +671,19 @@
       );
       $("net-msg").textContent = n.message || "";
       state.network = n;
-      const adminNote = state.canAdmin ? "" : " Changes are only allowed on the entrance display itself (or after unlocking with the household PIN).";
+      const adminNote = state.canWifi ? "" : " Changes are only allowed on the entrance display itself (or after unlocking with the household PIN).";
       $("wifi-help").textContent = n.can_manage
-        ? `Scan to see nearby networks, then connect. ${n.interfaces.some((x) => x.type === "ethernet" && x.state === "connected") ? "Ethernet stays connected while Wi-Fi changes." : ""}${adminNote}`
+        ? `Find nearby networks, pick one and enter its password. ${n.interfaces.some((x) => x.type === "ethernet" && x.state === "connected") ? "Ethernet stays connected while Wi-Fi changes." : ""}${adminNote}`
         : (n.manage_reason || "Wi-Fi can't be managed from here.") + " Use one of the other ways below.";
-      $("wifi-scan").disabled = !n.can_manage || !state.canAdmin;
+      $("wifi-scan").disabled = !n.can_manage || !state.canWifi;
+      // On a phone: the household PIN unlocks Wi-Fi changes right here; without a PIN, say how to set one.
+      if (!state.canWifi) {
+        const s = await api("/api/session").catch(() => null);
+        $("wifi-unlock").hidden = !(s?.pin_configured && n.can_manage);
+        if (s && !s.pin_configured) $("wifi-help").textContent = "Wi-Fi can be changed on the entrance display. To change it from a phone too, set a household PIN (AURA_HOUSEHOLD_PIN in .env on the Pi) and restart AURA.";
+      } else {
+        $("wifi-unlock").hidden = true;
+      }
     } catch (err) {
       $("net-msg").textContent = `Couldn't read network status: ${err.message}`;
     }
@@ -686,10 +694,32 @@
     return el("span", { class: `s-bars s-bars--${n}`, "aria-hidden": "true" }, el("i"), el("i"), el("i"), el("i"));
   }
 
+  /** Find Wi-Fi: a popup with the nearby networks; tap one, enter its password, Connect. */
+  function openWifi() {
+    const n = state.network;
+    $("wifi-now").textContent = n?.wifi_connected ? `Connected to ${n.wifi_ssid || "Wi-Fi"}` : "Not connected to Wi-Fi";
+    wifiMsg("");
+    $("wifi-list").replaceChildren();
+    $("wifi-dialog").showModal();
+    scanWifi();
+  }
+
+  function closeWifi() {
+    $("wifi-form").hidden = true; $("wifi-pass").value = ""; parkForm();
+    $("wifi-dialog").close();
+  }
+
+  function wifiMsg(text, kind = "") {
+    $("wifi-msg").textContent = text;
+    if (kind) $("wifi-msg").dataset.kind = kind; else delete $("wifi-msg").dataset.kind;
+  }
+
   async function scanWifi() {
-    const btn = $("wifi-scan");
+    const btn = $("wifi-rescan");
     btn.disabled = true; btn.textContent = "Scanning…";
+    wifiMsg("Looking for networks…");
     $("wifi-form").hidden = true;
+    parkForm();
     try {
       const nets = await api("/api/system/wifi/scan", { method: "POST" });
       state.scan = nets;
@@ -697,19 +727,29 @@
         const b = el("button", { type: "button", class: "s-net", "aria-label": `${n.ssid}, ${n.signal}% signal, ${n.security ? "secured" : "open"}${n.in_use ? ", connected" : ""}` },
           bars(n.signal), el("span", { class: "s-net__name" }, n.ssid),
           el("span", { class: "s-net__meta" }, [n.band, n.security ? "🔒" : "open", n.in_use ? "connected" : n.saved ? "saved" : null].filter(Boolean).join(" · ")));
-        b.addEventListener("click", () => chooseNetwork(n));
-        return el("li", {}, b);
+        const li = el("li", {}, b);
+        b.addEventListener("click", () => chooseNetwork(n, li));
+        return li;
       }));
-      if (!nets.length) $("wifi-list").replaceChildren(el("li", { class: "s-help" }, "No Wi-Fi networks found."));
+      wifiMsg(nets.length ? "" : "No Wi-Fi networks found. Try Scan again.");
     } catch (err) {
-      $("net-msg").textContent = err.message;
+      wifiMsg(err.message, "error");
     } finally {
       btn.disabled = false; btn.textContent = "Scan again";
     }
   }
 
-  function chooseNetwork(n) {
+  /** Put the password form back in its place (below the list) and drop the row that held it. */
+  function parkForm() {
+    $("wifi-list").after($("wifi-form"));
+    document.querySelector(".s-net-form")?.remove();
+  }
+
+  function chooseNetwork(n, li) {
     state.target = n;
+    // the password form opens right under the network that was tapped
+    parkForm();
+    if (li) { const holder = el("li", { class: "s-net-form" }); holder.append($("wifi-form")); li.after(holder); }
     $("wifi-target").textContent = n.ssid;
     const needsPass = !!n.security && !n.saved;
     $("wifi-pass-row").hidden = !n.security;
@@ -741,23 +781,27 @@
   async function doConnect(n, password, allowDisconnect) {
     const btn = $("wifi-connect");
     btn.disabled = true; btn.textContent = "Connecting…";
-    $("net-msg").textContent = `Connecting to ${n.ssid}… this can take up to a minute.`;
+    wifiMsg(`Connecting to ${n.ssid}… this can take up to a minute.`);
     try {
       const r = await api("/api/system/wifi/connect", { method: "POST",
         body: { ssid: n.ssid, password, confirm: true, allow_disconnect: allowDisconnect } });
       if (r.code === "risky") {
         const go = await confirmDialog("Wi-Fi is the only connection", r.message, "Connect anyway");
         if (go) return doConnect(n, password, true);
-        $("net-msg").textContent = "Not changed.";
+        wifiMsg("Not changed.");
         return;
       }
-      $("net-msg").textContent = r.message + (r.ipv4 ? ` (address ${r.ipv4})` : "");
-      $("net-msg").dataset.kind = r.ok ? "ok" : "error";
-      if (r.ok) { $("wifi-form").hidden = true; loadNetwork(); }
-      else if (r.code === "wrong_password") { $("wifi-pass-err").textContent = r.message; $("wifi-pass").focus(); }
+      const text = r.message + (r.ipv4 ? ` (address ${r.ipv4})` : "");
+      if (r.ok) {                                   // done: close the popup, say so on the page
+        closeWifi();
+        await loadNetwork();
+        $("net-msg").textContent = text; $("net-msg").dataset.kind = "ok";
+      } else {
+        wifiMsg(text, "error");
+        if (r.code === "wrong_password") { $("wifi-pass-err").textContent = r.message; $("wifi-pass").focus(); }
+      }
     } catch (err) {
-      $("net-msg").textContent = err.message;
-      $("net-msg").dataset.kind = "error";
+      wifiMsg(err.message, "error");
     } finally {
       $("wifi-pass").value = "";            // never keep the password around
       btn.disabled = false; btn.textContent = "Connect";
@@ -793,6 +837,19 @@
     document.querySelectorAll("form[data-section] .s-save, form[data-section] .s-reset").forEach((b) => { b.disabled = true; });
   }
 
+  async function unlockWifi(e) {
+    e.preventDefault();
+    try {
+      const r = await api("/api/session", { method: "POST", body: { pin: $("wifi-pin").value.trim() } });
+      $("wifi-pin").value = "";
+      if (!(r.can_wifi ?? r.can_admin)) { $("net-msg").textContent = r.message || "This PIN doesn't allow Wi-Fi changes."; return; }
+      state.canWifi = true;
+      await loadNetwork();
+      $("net-msg").textContent = "Unlocked. Wi-Fi can be changed from this device for a while.";
+      $("net-msg").dataset.kind = "ok";
+    } catch (err) { $("net-msg").textContent = err.message; $("net-msg").dataset.kind = "error"; }
+  }
+
   async function unlock(e) {
     e.preventDefault();
     try {
@@ -824,9 +881,13 @@
     $("net-refresh").addEventListener("click", loadNetwork);
     $("dns-refresh").addEventListener("click", () => loadDnsFilter(true));
     $("sys-refresh").addEventListener("click", loadSystem);
-    $("wifi-scan").addEventListener("click", scanWifi);
+    $("wifi-scan").addEventListener("click", openWifi);
+    $("wifi-rescan").addEventListener("click", scanWifi);
+    $("wifi-close").addEventListener("click", closeWifi);
+    $("wifi-dialog").addEventListener("cancel", () => { $("wifi-form").hidden = true; $("wifi-pass").value = ""; parkForm(); });
+    $("wifi-unlock").addEventListener("submit", unlockWifi);
     $("wifi-form").addEventListener("submit", connectWifi);
-    $("wifi-cancel").addEventListener("click", () => { $("wifi-form").hidden = true; $("wifi-pass").value = ""; });
+    $("wifi-cancel").addEventListener("click", () => { $("wifi-form").hidden = true; $("wifi-pass").value = ""; parkForm(); });
     $("wifi-show").addEventListener("click", () => {
       const p = $("wifi-pass"); const show = p.type === "password";
       p.type = show ? "text" : "password";
@@ -850,6 +911,7 @@
       if ([...document.querySelectorAll("form[data-section]")].some(isDirty)) { e.preventDefault(); e.returnValue = ""; }
     });
     wirePlaceSearch();
+    wireNav();
 
     try {
       const [data, cfg] = await Promise.all([api("/api/settings"), api("/api/config")]);
@@ -859,10 +921,12 @@
       state.info = data.info;
       state.canEdit = data.can_edit;
       state.canAdmin = data.can_admin;
+      state.canWifi = data.can_wifi ?? data.can_admin;
       for (const form of document.querySelectorAll("form[data-section]")) fillForm(form);
       renderInfo();
       $("s-load").hidden = true;
       $("s-main").hidden = false;
+      dispatchEvent(new Event("scroll"));                       // mark the section on screen in the menu
       if (!data.can_edit) lock();
       if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
     } catch (err) {
@@ -873,6 +937,43 @@
     loadNetwork();
     loadDnsFilter();
     loadSystem();
+  }
+
+  // ---------- section menu: an icon per section, and the section on screen is marked ----------
+  const NAV_ICON = { views: ["sliders", "#5e5ce6"], home: ["home", "#ff9f0a"], meals: ["bowl", "#34c759"], locations: ["pin", "#ff3b30"],
+    weather: ["cloud", "#32ade6"], commute: ["car", "#30b0c7"], calendars: ["calendar", "#ff453a"], assistant: ["mic", "#bf5af2"],
+    protection: ["shield", "#30d158"], network: ["wifi", "#0a84ff"], display: ["sun", "#ffd60a"], groceries: ["cart", "#ff9f0a"],
+    system: ["chip", "#8e8e93"] };
+
+  function wireNav() {
+    const links = [...document.querySelectorAll(".s-nav a[href^='#']")];
+    for (const a of links) {
+      const [name, colour] = NAV_ICON[a.hash.slice(1)] || ["dot", "#8e8e93"];
+      const i = el("span", { class: "s-nav__icon", "aria-hidden": "true" });
+      i.innerHTML = window.AuraIcons.icon(name, 2);
+      i.style.setProperty("--c", colour);
+      a.prepend(i);
+    }
+    const mark = (id) => {
+      for (const a of links) {
+        const on = a.hash === `#${id}`;
+        if (on) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current");
+        if (on && matchMedia("(max-width: 999px)").matches) a.scrollIntoView({ block: "nearest", inline: "center" });
+      }
+    };
+    // "here" is the last section whose top has passed the upper third of the screen
+    const secs = links.map((a) => document.querySelector(a.hash)).filter(Boolean);
+    let queued = false;
+    const update = () => {
+      queued = false;
+      const line = innerHeight * 0.3;
+      const shown = secs.filter((x) => x.getClientRects().length);      // admin-only sections may be hidden
+      const here = shown.filter((x) => x.getBoundingClientRect().top <= line).at(-1) || shown[0];
+      if (here) mark(here.id);
+    };
+    addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(update); } }, { passive: true });
+    setTimeout(update, 0);
+    for (const a of links) a.addEventListener("click", () => mark(a.hash.slice(1)));
   }
 
   boot();

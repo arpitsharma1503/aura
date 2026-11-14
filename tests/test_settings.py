@@ -273,14 +273,21 @@ def test_pin_mode_protects_settings(tmp_path):
     assert patch(phone, "display", {"clock_format": "24h"}).status_code == 200
 
 
-def test_wifi_changes_need_admin_even_in_lan_mode(tmp_path):
-    phone = client_for(tmp_path, client_ip="192.168.1.50")                  # LAN mode: can edit settings...
-    assert patch(phone, "display", {"clock_format": "24h"}).status_code == 200
-    assert phone.post("/api/system/wifi/scan").status_code == 403          # ...but not Wi-Fi
-    assert phone.post("/api/system/wifi/connect", json={"ssid": "x", "confirm": True}).status_code == 403
-    assert "entrance display" in phone.post("/api/system/wifi/scan").json()["detail"]
-    assert phone.get("/api/system/network").status_code == 200             # status is read-only
-    assert phone.get("/api/settings").json()["can_admin"] is False
+def test_home_devices_can_change_wifi_in_lan_mode(tmp_path):
+    """The household asked for Wi-Fi like on a phone: in LAN mode any home device can list
+    networks and connect (with the network's own password); no PIN."""
+    phone = client_for(tmp_path, client_ip="192.168.1.50")
+    assert phone.get("/api/settings").json()["can_wifi"] is True
+    assert phone.get("/api/settings").json()["can_admin"] is False          # door unlocking stays strict
+    assert phone.post("/api/system/wifi/scan").status_code != 403
+    assert phone.post("/api/system/wifi/connect", json={"ssid": "x", "confirm": True}).status_code != 403
+
+
+def test_pin_mode_still_needs_the_pin_for_wifi(tmp_path):
+    phone = client_for(tmp_path, client_ip="192.168.1.50", edit_access="pin", household_pin="482916")
+    assert phone.post("/api/system/wifi/scan").status_code in (401, 403)
+    phone.post("/api/session", json={"pin": "482916"})
+    assert phone.post("/api/system/wifi/scan").status_code not in (401, 403)
 
 
 def test_cross_site_settings_change_blocked(tmp_path):
@@ -467,3 +474,10 @@ def test_no_nmcli_available():
     svc = NetworkService(nmcli="")
     st = run(svc.status())
     assert st.available is False and "isn't available" in st.message
+
+
+def test_wifi_from_home_devices_does_not_open_door_unlocking(tmp_path):
+    """Wi-Fi is open to home devices in LAN mode; unlocking a door is not."""
+    phone = client_for(tmp_path, client_ip="192.168.1.50")
+    r = phone.post("/api/smarthome/devices/lock.front_door/command", json={"action": "unlock", "confirm": True, "request_id": "test-unlock-01"})
+    assert r.status_code == 403

@@ -113,13 +113,14 @@ def test_dashboard_layout(chrome, seeded, artifacts, w, h, touch):
         return s.left >= c.left - 1 && s.right <= c.right + 1 && s.top >= c.top - 1 && s.bottom <= c.bottom + 1; })()""")
     if (w, h) in ENTRANCE:
         assert result["vscroll"] <= 0, f"entrance display needs scrolling ({result['vscroll']}px)"
-        # One screen: every overview tile is visible, none clips its content, the tiles get
-        # most of the screen in three rows, and the clock stays readable from a distance.
-        tiles = page.js("""(() => [...document.querySelectorAll('#tiles [data-tile]:not([hidden])')].map(t => {
+        # One screen: Home's wall-display grid (weather, clock, today's event, four small tiles)
+        # is all visible, nothing clips, the tiles get most of the screen in three rows, and the
+        # clock stays readable from a distance.
+        tiles = page.js("""(() => [...document.querySelectorAll('#tiles .tile:not([hidden])')].filter(t => t.getClientRects().length).map(t => {
             const r = t.getBoundingClientRect();
-            return {id: t.dataset.tile, top: Math.round(r.top), bottom: r.bottom, h: r.height / innerHeight,
+            return {id: t.dataset.tile || t.id, top: Math.round(r.top), bottom: r.bottom, h: r.height / innerHeight,
                     clipped: t.scrollHeight - t.clientHeight}; }))()""")
-        assert len(tiles) == 8, tiles
+        assert len(tiles) == 7, tiles
         assert all(t["bottom"] <= h + 1 for t in tiles), tiles
         assert all(t["clipped"] <= 2 for t in tiles), [t for t in tiles if t["clipped"] > 2]
         assert len({t["top"] for t in tiles}) == 3, tiles
@@ -127,7 +128,8 @@ def test_dashboard_layout(chrome, seeded, artifacts, w, h, touch):
         area = page.js("""(() => { const g = document.getElementById('tiles').getBoundingClientRect();
             return g.height / innerHeight; })()""")
         assert area >= 0.6, area
-        clock = page.js("document.getElementById('clock').getBoundingClientRect().height / innerHeight")
+        clock = page.js("""Math.max(...['clock', 'ctile-time'].map(id => document.getElementById(id))
+            .filter(e => e.getClientRects().length).map(e => e.getBoundingClientRect().height)) / innerHeight""")
         assert clock >= 0.06, clock
     # Location settings dialog fits on screen and is usable.
     page.click("#location-btn")

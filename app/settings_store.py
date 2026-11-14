@@ -387,7 +387,7 @@ def views_from_home(home: HomeSettings) -> list[View]:
 
 
 class ViewsSettings(_Strict):
-    """Dashboard views (the tabs under the clock). Stored apart from the widgets' own data."""
+    """Dashboard views (the icon rail, or the tab bar on phones). Stored apart from the widgets' own data."""
     version: int = 1
     views: list[View] = Field(default_factory=_preset_views, min_length=1, max_length=8)
     default_view: str = Field(default="home", pattern=VIEW_ID)

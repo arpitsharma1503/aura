@@ -4,10 +4,11 @@ Source: the IBJA benchmark (India Bullion and Jewellers Association), fetched fr
 (``/v1/metal/authority?authority=ibja&currency=INR&unit=g``) with the household's free API key
 (``AURA_METALS_DEV_API_KEY`` in ``.env``; never sent to browsers).
 
-* **Once a day at 12:00 India time** (the household's choice), and never more: no manual
-  refresh. Only if that one check fails does it try again (12:15, 12:30, 13:00); if the Pi was
-  off at noon it checks when it starts. About 30 of the free plan's 100 requests a month;
-  a monthly cap is a last safety net.
+* **Once a day at 12:00 India time** (the household's choice): no manual refresh. If that
+  check fails it tries again (12:15, 12:30, 13:00); if it returns yesterday's price unchanged
+  (IBJA's new rate often reaches metals.dev after 12:00) it checks again at 12:45 and 13:30,
+  then accepts it (holidays have no new rate). If the Pi was off at noon it checks once when
+  it starts. About 30-70 of the free plan's 100 requests a month; a monthly cap is a safety net.
 * Every successful reading is stored (``metal_price`` in ``data/aura.db``), one per day.
   Changes are against the previous stored day; charts show only these real readings,
   so history starts on the day the tracker was set up.
@@ -34,7 +35,9 @@ IST = ZoneInfo("Asia/Kolkata")
 URL = "https://api.metals.dev/v1/metal/authority"
 FETCH_AT = time(12, 0)
 RETRIES = (timedelta(minutes=15), timedelta(minutes=30), timedelta(minutes=60))
-MONTHLY_CAP = 40                       # of the free plan's 100; a daily check needs ~31
+RECHECKS = (time(12, 45), time(13, 30))   # when the noon price is still yesterday's
+SAME_PRICE = 0.0002                       # within 0.02%: the same IBJA rate
+MONTHLY_CAP = 90                       # of the free plan's 100; up to 3 checks a day
 ITEMS = [("gold24", "24K Gold", "10 g"), ("silver", "Silver", "kg")]
 # Lower purities are calculated from the 24K price (not fetched): 22K uses the 916 hallmark, 20K and 18K
 # the household's factors.
@@ -126,7 +129,8 @@ class PriceTracker:
             now = self.now()
             if self.requests_this_month() >= MONTHLY_CAP:
                 raise PriceError(f"This month's {MONTHLY_CAP} requests are used up; prices resume next month.")
-            if self._db.execute("SELECT 1 FROM metal_price WHERE day = ?", (now.date().isoformat(),)).fetchone():
+            if self._db.execute("SELECT 1 FROM metal_price WHERE day = ?", (now.date().isoformat(),)).fetchone() \
+                    and not self._recheck_due():
                 raise PriceError("Today's price is already in: one check a day.")
             self.last_attempt = now
             self._count_request()
@@ -150,12 +154,30 @@ class PriceTracker:
         self.on_change()
         return self.view()
 
+    def _next_recheck(self) -> datetime | None:
+        """When today's price is still yesterday's: the next recheck after it was read (or None)."""
+        now = self.now()
+        rows = self._db.execute("SELECT day, fetched_at, gold_g, silver_g FROM metal_price ORDER BY day DESC LIMIT 2").fetchall()
+        if len(rows) < 2 or rows[0][0] != now.date().isoformat():
+            return None
+        # "Unchanged" allows metals.dev's conversion jitter (seen: 13758.0178 then 13758.0192).
+        if any(abs(a - b) > b * SAME_PRICE for a, b in zip(rows[0][2:], rows[1][2:])):
+            return None
+        fetched = datetime.fromisoformat(rows[0][1])
+        return next((at for at in (datetime.combine(now.date(), t, IST) for t in RECHECKS) if at > fetched), None)
+
+    def _recheck_due(self) -> bool:
+        at = self._next_recheck()
+        return at is not None and self.now() >= at
+
     def due(self) -> bool:
-        """Today's noon reading is due (it's past 12:00 and there's none for today)."""
+        """Today's noon reading is due (past 12:00 and none for today), or a recheck is."""
         now = self.now()
         if now.time() < FETCH_AT:
             return False
-        return not self._db.execute("SELECT 1 FROM metal_price WHERE day = ?", (now.date().isoformat(),)).fetchone()
+        if self._db.execute("SELECT 1 FROM metal_price WHERE day = ?", (now.date().isoformat(),)).fetchone():
+            return self._recheck_due()
+        return True
 
     def next_run(self) -> datetime:
         now = self.now()
@@ -168,6 +190,8 @@ class PriceTracker:
                         return max(now, noon + gap)
                 return noon + timedelta(days=1)
             return now
+        if now >= noon and (at := self._next_recheck()):
+            return at
         return noon if now < noon else noon + timedelta(days=1)
 
     async def run(self) -> None:
@@ -210,15 +234,20 @@ class PriceTracker:
             noon_passed = now.time() >= (datetime.combine(now.date(), FETCH_AT) + RETRIES[-1]).time()
             status = "ok" if latest_day == now.date() or (latest_day == now.date() - timedelta(days=1) and not noon_passed) else "stale"
         items = []
+        missed = None
         if rows:
             cur = derive(rows[-1]["gold_g"], rows[-1]["silver_g"])
-            prev = derive(rows[-2]["gold_g"], rows[-2]["silver_g"]) if len(rows) > 1 else None
+            # Day-on-day means yesterday: after a missed day there is no comparison, never an older day.
+            yesterday = (date.fromisoformat(rows[-1]["day"]) - timedelta(days=1)).isoformat()
+            prev_row = rows[-2] if len(rows) > 1 and rows[-2]["day"] == yesterday else None
+            missed = yesterday if len(rows) > 1 and not prev_row else None
+            prev = derive(prev_row["gold_g"], prev_row["silver_g"]) if prev_row else None
             for pid, label, unit in ITEMS:
                 change = cur[pid] - prev[pid] if prev else None
                 items.append({"id": pid, "label": label, "unit": unit, "price": cur[pid],
                               "previous": prev[pid] if prev else None, "change": change,
                               "change_pct": round(change / prev[pid] * 100, 2) if prev and prev[pid] else None,
-                              "previous_day": rows[-2]["day"] if prev else None})
+                              "previous_day": yesterday if prev else None, "missed_day": missed})
         history = [{"day": r["day"], **derive(r["gold_g"], r["silver_g"])} for r in rows[-400:]]
         purity = []
         if rows:
@@ -228,7 +257,8 @@ class PriceTracker:
                 ch = cur_p[pid] - prev_p[pid] if prev_p else None
                 purity.append({"id": pid, "karat": karat, "factor": f, "unit": "10 g", "price": cur_p[pid],
                                "previous": prev_p[pid] if prev_p else None, "change": ch,
-                               "change_pct": round(ch / prev_p[pid] * 100, 2) if prev_p and prev_p[pid] else None})
+                               "change_pct": round(ch / prev_p[pid] * 100, 2) if prev_p and prev_p[pid] else None,
+                               "missed_day": missed})
         return {
             "status": status, "message": {"not_configured": "Add a metals.dev API key to show prices.",
                                           "unavailable": self.last_error or "No prices yet: the first one arrives at 12:00.",

@@ -56,6 +56,8 @@ class Settings(BaseSettings):
     weather_retry_seconds: int = Field(default=120, ge=10)
     weather_max_stale_hours: float = Field(default=6, gt=0)
     http_timeout_seconds: float = Field(default=8, gt=0, le=60)
+    # Internet speed pill: a small download from Cloudflare every N minutes (0 turns it off).
+    speedtest_minutes: int = Field(default=10, ge=0, le=1440)
 
     # Recommendations look at this many hours ahead ("while you're out").
     travel_window_hours: int = Field(default=6, ge=1, le=24)

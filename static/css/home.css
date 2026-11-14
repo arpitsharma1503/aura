@@ -1,0 +1,803 @@
+/* =====================================================================
+   AURA "Home" look, inspired by Apple's Home and its wall-display concept (the household's
+   choice; no Apple assets). Loaded after glass.css on the dashboard, Settings and Groceries.
+
+   Dashboard:
+   - A colourful wallpaper (static/img/wall-teal.svg, original art, or the household's photo)
+     seen through light, tinted glass tiles with big rounded corners and a bright rim.
+   - White type: big bold numbers, a bold name and a lighter tinted second line.
+   - Large white glyphs instead of coloured icon discs; an analog clock in the sidebar.
+   - A sidebar of views on large screens, a tab bar on phones (as in Home).
+   - Type: San Francisco where the device has it, else Inter (bundled, SIL OFL).
+   - Still no live blur on the Pi: photo wallpapers show through the pre-blurred layer
+     from glass.css (--wall-layer).
+   Settings and Groceries keep Home's dark grouped lists on black.
+   ===================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  src: url("/static/fonts/inter-latin-wght.woff2") format("woff2");
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, "Segoe UI", sans-serif;
+  --home-tile: rgba(28, 28, 30, 0.58);           /* Home's dark tile */
+  --home-tile-hover: rgba(44, 44, 46, 0.66);
+  --home-chip: rgba(36, 36, 38, 0.62);
+  --home-chip-hover: rgba(54, 54, 56, 0.7);
+  --home-on: rgba(255, 255, 255, 0.94);          /* an accessory that is on */
+  --home-ink-on: #1c1c1e;
+  --home-grey: rgba(235, 235, 245, 0.62);        /* iOS secondary label */
+  --home-grey-2: rgba(235, 235, 245, 0.42);
+  --home-hairline: rgba(255, 255, 255, 0.07);
+  --home-radius: 1.35rem;
+  --home-radius-sm: 0.95rem;
+}
+
+body.dash { font-family: var(--font); -webkit-font-smoothing: antialiased; letter-spacing: -0.008em;
+  /* light glass on colour */
+  --home-tile: rgba(255, 255, 255, 0.13);
+  --home-tile-hover: rgba(255, 255, 255, 0.18);
+  --home-chip: rgba(255, 255, 255, 0.14);
+  --home-chip-hover: rgba(255, 255, 255, 0.21);
+  --home-ink-on: #0e3b36;
+  --home-grey: rgba(214, 255, 246, 0.74);         /* the tinted second line ("Living Room") */
+  --home-grey-2: rgba(214, 255, 246, 0.5);
+  --home-rim: linear-gradient(155deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.14) 32%,
+              rgba(255, 255, 255, 0.05) 62%, rgba(255, 255, 255, 0.22));
+  --home-radius: 1.9rem;
+  --home-radius-sm: 1.15rem;
+  --ink: #fff; --ink-2: rgba(255, 255, 255, 0.84); --ink-3: rgba(214, 255, 246, 0.66); --ink-4: rgba(214, 255, 246, 0.45);
+  --on-glass-1: #fff; --on-glass-2: rgba(255, 255, 255, 0.84); --on-glass-3: rgba(214, 255, 246, 0.66);
+  background: #1d6c62 url("/static/img/wall-teal.svg") center / cover no-repeat fixed; }
+body.dash[data-wallpaper="aura"] .ambient { display: none; }
+
+/* ---------- header: the home name is the title ---------- */
+body.dash .brand__mark { width: 0.7rem; height: 0.7rem; }
+body.dash .brand__name { display: none; }
+body.dash .brand__home { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.025em; color: #fff;
+  border: 0; padding: 0; margin: 0; line-height: 1.1; }
+body.dash .brand__home::before { display: none; }
+body.dash .glass-cluster, body.dash[data-wallpaper="image"][data-wall-ready] .glass-cluster { background: none; box-shadow: none; padding: 0; gap: 0.6rem; }
+body.dash .glass-cluster::before { display: none; }
+body.dash .glass-cluster .topbar__mic, body.dash .glass-cluster .topbar__settings {
+  width: max(2.6rem, 44px); height: max(2.6rem, 44px); border-radius: 50%; background: var(--home-chip); color: #fff; }
+body.dash .glass-cluster .topbar__mic:hover, body.dash .glass-cluster .topbar__settings:hover { background: var(--home-chip-hover); }
+body.dash .glass-cluster .topbar__mic.is-live { background: var(--danger); }
+body.dash .pill { border: 0; background: var(--home-chip); font-weight: 600; letter-spacing: 0; text-transform: none; }
+body.dash .pill--wake { color: #c9b8ff; }
+
+/* ---------- hero ---------- */
+body.dash .hero__greeting { color: var(--home-grey); font-weight: 600; font-size: 1.1rem; }
+body.dash .time__clock { font-weight: 600; letter-spacing: -0.035em; text-shadow: none; }
+body.dash .time__date { color: var(--home-grey); font-weight: 500; }
+
+/* ---------- category buttons (status capsules) ---------- */
+body.dash .status__btn, body.dash[data-wallpaper="image"][data-wall-ready] .status__btn {
+  border-radius: var(--home-radius-sm); background: var(--home-chip); box-shadow: none;
+  padding: 0.55rem 1rem 0.55rem 0.75rem; gap: 0.6rem; }
+body.dash .status__btn:hover, body.dash[data-wallpaper="image"][data-wall-ready] .status__btn:hover { background: var(--home-chip-hover); }
+body.dash .status__btn::before { display: none; }
+body.dash .status__btn[data-kind="alert"], body.dash[data-wallpaper="image"][data-wall-ready] .status__btn[data-kind="alert"] {
+  background: var(--home-chip); box-shadow: inset 0 0 0 1px rgba(255, 179, 92, 0.35); }
+body.dash .status__icon { width: 1.6rem; height: 1.6rem; background: none; box-shadow: none; color: var(--tone); }
+body.dash .status__icon svg { width: 1.45rem; height: 1.45rem; stroke-width: 2; }
+body.dash .status__label { order: 1; font-size: 0.92rem; font-weight: 650; letter-spacing: -0.01em; color: #fff; text-transform: none; }
+body.dash .status__value { order: 2; font-size: 0.82rem; font-weight: 500; color: var(--home-grey); }
+body.dash .status__btn[data-kind="alert"] .status__value { color: #ffb35c; }
+
+/* ---------- views: separate pills, the selected one white ---------- */
+body.dash .views__tabs, body.dash[data-wallpaper="image"][data-wall-ready] .views__tabs {
+  background: none; box-shadow: none; padding: 0.15rem 0; gap: 0.5rem; }
+body.dash .views__tabs::before { display: none; }
+body.dash .view-indicator { display: none; }
+body.dash .view-tab { background: var(--home-chip) !important; color: #fff; font-weight: 600; min-height: 2.35rem; padding: 0 1.1rem;
+  transition: background 160ms ease, color 160ms ease; }
+body.dash .view-tab:hover { background: var(--home-chip-hover) !important; }
+body.dash .view-tab[aria-selected="true"] { background: var(--home-on) !important; color: var(--home-ink-on); }
+body.dash .view-tab:focus-visible { box-shadow: 0 0 0 2px #0a84ff; }
+body.dash .views__edit, body.dash[data-wallpaper="image"][data-wall-ready] .views__edit {
+  width: 2.35rem; height: 2.35rem; background: var(--home-chip); box-shadow: none; }
+body.dash .views__edit::before { display: none; }
+
+/* ---------- tiles: flat dark widgets ---------- */
+body.dash .tile { border-radius: var(--home-radius); background: var(--home-tile); box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6); }
+body.dash .tile::before { background: linear-gradient(var(--home-hairline), var(--home-hairline)); }
+body.dash .tile[data-open]:hover { background: var(--home-tile-hover); transform: none; box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6); }
+body.dash .tile[data-open]:hover::before { background: linear-gradient(var(--home-hairline), var(--home-hairline)); }
+body.dash .tile[data-open]:active { transform: scale(0.99); }
+body.dash[data-wallpaper="image"][data-wall-ready] .tile { background: linear-gradient(var(--home-tile), var(--home-tile)), var(--wall-layer); }
+body.dash[data-wallpaper="image"][data-wall-ready] .tile[data-open]:hover { background: linear-gradient(var(--home-tile-hover), var(--home-tile-hover)), var(--wall-layer); }
+body.dash .tile[data-state="alert"]::before, body.dash .tile[data-state="error"]::before {
+  background: linear-gradient(rgba(255, 179, 92, 0.4), rgba(255, 179, 92, 0.4)); }
+
+body.dash .tile__icon { border-radius: 50%; color: #fff; background: var(--tone); box-shadow: none; }
+body.dash .tile__icon svg { stroke-width: 2.1; }
+body.dash .tile__title { font-weight: 650; letter-spacing: -0.015em; color: #fff; }
+body.dash .tile__aside, body.dash .tile__sub { color: var(--home-grey); }
+body.dash .tile__empty { color: var(--home-grey); }
+body.dash .tile__value { font-weight: 650; letter-spacing: -0.025em; }
+/* Home's chevron instead of a round arrow button */
+body.dash .tile-arrow { background: none; box-shadow: none; color: var(--home-grey-2); }
+body.dash .tile-arrow::before { display: none; }
+body.dash .tile-arrow svg path { d: path("M9 5l7 7-7 7"); }
+body.dash .tile-arrow:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+
+/* inner chips and rows sit as slightly lighter grey, like Home's grouped cells */
+body.dash .wx-day, body.dash .panchang, body.dash .pt-kpi { background: rgba(255, 255, 255, 0.06); box-shadow: none; }
+body.dash .pt-kpi::before, body.dash .sh-card::before { display: none; }
+
+/* ---------- smart home: accessories that are on turn white ---------- */
+body.dash .sh-card { border-radius: var(--home-radius-sm); background: rgba(255, 255, 255, 0.07); border: 0; }
+body.dash .sh-card.is-on { background: var(--home-on); color: var(--home-ink-on); }
+body.dash .sh-card.is-on .sh-card__icon { background: var(--tone-amber); color: #1a1306; }
+body.dash .sh-card.is-on :is(.sh-card__name, .sh-card__state, b, span, small) { color: var(--home-ink-on); }
+
+/* ---------- detail sheets: Home's dark modal card ---------- */
+body.dash .detail { border-radius: 1.6rem; background: rgba(28, 28, 30, 0.88); }
+body.dash .detail::before { background: linear-gradient(var(--home-hairline), var(--home-hairline)); }
+body.dash .detail__head { background: none; border-bottom-color: var(--home-hairline); }
+
+/* ---------- layout: sidebar on large screens, tab bar on phones ----------
+   The page is <aside class="side"> (greeting, time, place, views) and <div class="main">
+   (title and buttons, category buttons, tiles). Below the sidebar breakpoint both wrappers
+   step aside (display: contents) and their parts flow in this order. */
+body.dash .side, body.dash .main { display: contents; }
+body.dash .topbar { order: 1; }
+body.dash .hero__main { order: 2; min-width: 0; }
+body.dash .status { order: 3; }
+body.dash .views { order: 4; }
+body.dash .tiles { order: 5; }
+body.dash .view-tab__icon { display: none; }
+
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .shell { display: grid; grid-template-columns: clamp(15rem, 16.5vw, 24rem) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr); column-gap: var(--pad); }
+  body.dash .side { display: flex; flex-direction: column; gap: calc(var(--u) * 1.6); min-height: 0; overflow-y: auto; scrollbar-width: none;
+    padding: calc(var(--u) * 1.5) calc(var(--u) * 1.1); border-radius: var(--home-radius); background: rgba(28, 28, 30, 0.42); }
+  body.dash[data-wallpaper="image"][data-wall-ready] .side { background: linear-gradient(rgba(28, 28, 30, 0.42), rgba(28, 28, 30, 0.42)), var(--wall-layer); }
+  body.dash .main { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; min-height: 0; }
+  body.dash .hero__main { padding: 0 calc(var(--u) * 0.3); }
+  body.dash .time__clock { font-size: calc(var(--u) * 3.7); }
+  body.dash .hero__time { flex-direction: column; align-items: flex-start; gap: 0.1rem; }
+  body.dash .time__date { font-size: calc(var(--u) * 1.15); }
+  body.dash .place { flex-wrap: wrap; row-gap: 0.4rem; font-size: calc(var(--u) * 0.95); }
+  body.dash .status { justify-content: flex-start; max-width: none; }
+  /* the views: Home's sidebar list */
+  body.dash .views { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+  body.dash .views::before { content: "Views"; padding: 0 calc(var(--u) * 0.6); font-size: 0.78rem; font-weight: 650; color: var(--home-grey-2); }
+  body.dash .views__tabs { flex-direction: column; overflow: visible; gap: 0.15rem; padding: 0; }
+  body.dash .view-tab { justify-content: flex-start; gap: 0.7rem; width: 100%; min-height: calc(var(--u) * 2.6); border-radius: 0.75rem;
+    padding: 0 calc(var(--u) * 0.6); background: transparent !important; color: #fff; font-size: 1rem; }
+  body.dash .view-tab:hover { background: rgba(255, 255, 255, 0.08) !important; }
+  body.dash .view-tab[aria-selected="true"] { background: rgba(255, 255, 255, 0.16) !important; color: #fff; }
+  body.dash .view-tab__icon { display: inline-grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; flex: none;
+    background: var(--home-chip-hover); color: #fff; }
+  body.dash .view-tab[aria-selected="true"] .view-tab__icon { background: #ff9f0a; }
+  body.dash .view-tab__icon svg { width: 1.1rem; height: 1.1rem; }
+  body.dash .views__edit { align-self: flex-start; margin: 0.3rem 0 0 calc(var(--u) * 0.6); }
+  /* the sidebar takes width from the tiles: the weather reading stacks a little tighter */
+  body.dash .weather__art { width: calc(var(--u) * 3.6); }
+  body.dash .weather__temp { font-size: calc(var(--u) * 2.9); }
+  body.dash .weather__range { display: block; margin-left: 0; white-space: nowrap; }
+  body.dash .weather__now { gap: calc(var(--u) * 0.6); }
+  body.dash .weather .daily { font-size: 0.86em; }
+}
+
+/* phones: the views are a tab bar at the bottom, as in Home on iPhone */
+@media (max-width: 760px) {
+  body.dash .shell { padding-bottom: calc(5.4rem + env(safe-area-inset-bottom)); }
+  body.dash .views { position: fixed; z-index: 30; left: 0.6rem; right: 0.6rem; bottom: max(0.6rem, env(safe-area-inset-bottom)); }
+  body.dash .views__tabs, body.dash[data-wallpaper="image"][data-wall-ready] .views__tabs {
+    flex: 1; justify-content: space-around; gap: 0; padding: 0.35rem; border-radius: 1.4rem;
+    background: rgba(28, 28, 30, 0.86); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%);
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.7); }
+  body.dash .view-tab { flex: 1 0 4.2rem; flex-direction: column; gap: 0.15rem; min-height: 3.2rem; padding: 0.2rem 0.3rem; max-width: 6rem;
+    background: transparent !important; color: var(--home-grey); font-size: 0.66rem; font-weight: 600; border-radius: 1rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center; }
+  body.dash .view-tab[aria-selected="true"] { background: rgba(255, 255, 255, 0.1) !important; color: #ff9f0a; }
+  body.dash .view-tab__icon { display: block; width: 1.45rem; height: 1.45rem; }
+  body.dash .view-tab__icon svg { width: 100%; height: 100%; }
+  body.dash .views__edit { display: none; }
+}
+
+/* the fixed-height TV grid: the meal prep note keeps to one line, so it never runs under the tile edge */
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .meals__prep { -webkit-line-clamp: 1; }
+}
+
+@media (max-width: 600px) {
+  body.dash .brand__home { display: block; font-size: 1.85rem; }
+  body.dash .status__btn { padding: 0.5rem 0.85rem 0.5rem 0.65rem; }
+}
+
+/* ---------- Settings and Groceries: Home's grouped lists on black ---------- */
+body.s-page, body.g-page { font-family: var(--font); -webkit-font-smoothing: antialiased; letter-spacing: -0.008em; background: #000; }
+body.s-page .ambient, body.g-page .ambient { display: none; }
+body.s-page .s-head h1, body.g-page .g-title h1 { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.025em; }
+body.s-page .s-back, body.g-page .g-home { background: none; border: 0; box-shadow: none; color: #ff9f0a; font-size: 1rem; font-weight: 500; padding-left: 0; }
+body.s-page .s-back::before { display: none; }
+body.s-page .s-back:hover, body.g-page .g-home:hover { background: none; color: #ffb340; }
+body.s-page .s-nav { background: rgba(0, 0, 0, 0.82); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); }
+body.s-page .s-nav a { background: rgba(118, 118, 128, 0.24); border: 0; box-shadow: none; color: #fff; font-weight: 600; }
+body.s-page .s-nav a::before { display: none; }
+body.s-page .s-nav a:hover { background: rgba(118, 118, 128, 0.36); }
+body.s-page .s-card { background: #1c1c1e; border: 0; border-radius: 1.1rem; box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+body.s-page .s-card::before { display: none; }
+body.s-page .s-card.is-dirty { box-shadow: inset 0 0 0 1px rgba(255, 159, 10, 0.55); }
+body.s-page .s-help, body.g-page .g-sub { color: var(--home-grey); }
+body.s-page .s-help a, body.s-page .s-details a { color: #ff9f0a; }
+:is(body.s-page, body.g-page) .btn { background: rgba(118, 118, 128, 0.24); border: 0; box-shadow: none; color: #fff; font-weight: 600;
+  -webkit-backdrop-filter: none; backdrop-filter: none; }
+:is(body.s-page, body.g-page) .btn::before { display: none; }
+:is(body.s-page, body.g-page) .btn:hover { background: rgba(118, 118, 128, 0.36); }
+:is(body.s-page, body.g-page) .btn--primary, :is(body.s-page, body.g-page) .btn--primary:hover { background: #ff9f0a; color: #1c1c1e; }
+:is(body.s-page, body.g-page) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+  background: rgba(118, 118, 128, 0.24); border-color: transparent; border-radius: 0.6rem; color: #fff; }
+
+body.g-page .g-filter { background: rgba(118, 118, 128, 0.24); border: 0; border-radius: 0.6rem; padding: 2px; gap: 2px; }
+body.g-page .g-filter__btn { min-height: 2.3rem; padding: 0.35rem; border-radius: 0.5rem; color: #fff; font-weight: 500; }
+body.g-page .g-filter__btn[aria-selected="true"] { background: #636366; font-weight: 600; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12); }
+body.g-page .g-group__title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; text-transform: none; color: #fff; margin: 0 0 0.5rem 0.2rem; }
+body.g-page .g-items { background: #1c1c1e; border: 0; border-radius: 1rem; }
+body.g-page .g-item { border-top-color: rgba(84, 84, 88, 0.6); }
+body.g-page .g-item.is-purchased .g-check__ring { background: #ff9f0a; border-color: #ff9f0a; }
+
+/* detail sheets: Home's orange "Back" and flat grouped cells */
+body.dash .detail__back { background: none; border: 0; box-shadow: none; color: #ff9f0a; font-weight: 500; padding-left: 0.2rem; }
+body.dash .detail__back::before { display: none; }
+body.dash .detail__back:hover { background: rgba(255, 159, 10, 0.1); }
+body.dash .detail__back:focus-visible { box-shadow: 0 0 0 2px rgba(255, 159, 10, 0.6); }
+body.dash .detail :is(.dmetric, .mp-meal, .sh-cand, .sh-scene) { background: rgba(255, 255, 255, 0.06); box-shadow: none; }
+body.dash .detail :is(.dmetric, .mp-meal, .sh-cand, .sh-scene)::before { display: none; }
+
+/* ---------- dashboard: light tinted glass (the wall-display look) ---------- */
+body.dash .tile, body.dash .side, body.dash .detail { box-shadow: 0 22px 44px -24px rgba(3, 28, 25, 0.6); }
+body.dash .tile::before, body.dash .tile[data-open]:hover::before, body.dash .side::before { background: var(--home-rim); }
+body.dash .side { position: relative; }
+body.dash .side::before { content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .side { background: var(--home-tile); }
+}
+body.dash .status__btn, body.dash .view-tab:not([aria-selected="true"]), body.dash .views__edit,
+body.dash .glass-cluster .topbar__mic, body.dash .glass-cluster .topbar__settings, body.dash .pill {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28); }
+body.dash .status__icon { color: #fff; }
+body.dash .status__btn[data-kind="alert"] .status__icon { color: #ffcf7a; }
+body.dash .status__btn[data-kind="alert"] .status__value { color: #ffd690; }
+/* big white glyphs, no coloured discs */
+body.dash .tile__icon { background: transparent; color: #fff; width: 1.9rem; height: 1.9rem; }
+body.dash .tile__icon svg { width: 100%; height: 100%; stroke-width: 1.9; }
+body.dash .tile__aside, body.dash .tile__sub, body.dash .tile__empty { color: var(--home-grey); }
+body.dash .weather__temp { font-weight: 600; letter-spacing: -0.04em; }
+body.dash .time__clock { letter-spacing: -0.04em; }
+body.dash :is(.wx-day, .daily li, .panchang, .pt-kpi, .sh-card) { background: rgba(255, 255, 255, 0.1); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18); }
+body.dash .tile-arrow { color: rgba(255, 255, 255, 0.6); }
+/* the selected view and an accessory that is on: white, as in Home */
+body.dash .view-tab[aria-selected="true"] .view-tab__icon { background: #fff; color: var(--home-ink-on); }
+/* detail sheets: deep teal glass */
+body.dash .detail { background: rgba(14, 58, 53, 0.9); }
+body.dash .detail :is(.dmetric, .mp-meal, .sh-cand, .sh-scene) { background: rgba(255, 255, 255, 0.09); }
+body.dash .detail__back { color: #fff; }
+body.dash .detail__back:hover { background: rgba(255, 255, 255, 0.12); }
+body.dash .detail__back:focus-visible { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.7); }
+@media (max-width: 760px) {
+  body.dash .views__tabs, body.dash[data-wallpaper="image"][data-wall-ready] .views__tabs { background: rgba(14, 60, 55, 0.78); }
+  body.dash .view-tab[aria-selected="true"] { color: #fff; background: rgba(255, 255, 255, 0.18) !important; }
+  body.dash .view-tab[aria-selected="true"] .view-tab__icon { background: none; color: #fff; }
+}
+
+/* the analog clock (sidebar only): white hands on a glass face */
+body.dash .aclock { display: none; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .aclock { display: block; width: min(100%, calc(var(--u) * 11)); margin: 0 auto calc(var(--u) * 0.9); overflow: visible; }
+  body.dash .aclock__face { fill: rgba(255, 255, 255, 0.1); stroke: rgba(255, 255, 255, 0.35); stroke-width: 0.6; }
+  body.dash .aclock__ticks line { stroke: #fff; stroke-width: 2; stroke-linecap: round; }
+  body.dash .aclock__h, body.dash .aclock__m { stroke: #fff; stroke-linecap: round; }
+  body.dash .aclock__h { stroke-width: 3.2; }
+  body.dash .aclock__m { stroke-width: 2.4; }
+  body.dash .aclock__s { stroke: #fff; stroke-width: 0.9; stroke-linecap: round; opacity: 0.85; }
+  body.dash .aclock__pin { fill: #fff; }
+}
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .view-tab, body.dash .view-tab:not([aria-selected="true"]) { box-shadow: none; }
+  body.dash .view-tab::before { display: none; }
+}
+@media (max-width: 760px) {
+  body.dash .view-tab, body.dash .view-tab:not([aria-selected="true"]) { box-shadow: none; }
+  body.dash .view-tab::before { display: none; }
+}
+body.dash .pill--wake { color: #fff; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .time__clock { font-size: calc(var(--u) * 4); }
+}
+/* narrower TVs and laptops: a slimmer sidebar and a tighter forecast so nothing overflows */
+@media (min-width: 1200px) and (max-width: 1599px) and (min-aspect-ratio: 4/3) {
+  body.dash .shell { grid-template-columns: 14.5rem minmax(0, 1fr); }
+  body.dash .weather .daily { font-size: 0.78em; gap: 0.25rem; }
+  body.dash .daily li { padding-inline: 0.1rem; min-width: 0; }
+  body.dash .daily__temps { display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+}
+
+/* ---------- the calm Home view: one fact per tile, details one tap away ----------
+   (app.js fills .glance; other views keep every detail) */
+.glance { display: none; }
+#tiles[data-view="home"] .tile { grid-column: span 1 !important; grid-row: span 1 !important; }
+#tiles[data-view="home"] .tile[data-tile="weather"] { grid-column: span 2 !important; grid-row: span 2 !important; }
+@media (max-width: 719px) { #tiles[data-view="home"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#tiles[data-view="home"] .tile:has(.glance) > :not(.tile__head, .glance, .tile-arrow, .wx-scene) { display: none !important; }
+#tiles[data-view="home"] .tile:has(.glance) .tile__aside { display: none; }
+#tiles[data-view="home"] .glance { display: flex; flex-direction: column; gap: 0.25rem; margin-top: auto; min-width: 0; }
+#tiles[data-view="home"] .glance__big { font-size: 1.7rem; font-weight: 650; letter-spacing: -0.025em; line-height: 1.12; color: #fff;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+#tiles[data-view="home"] .glance__line { font-size: 0.95rem; color: var(--home-grey); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tiles[data-view="home"] .tile[data-tile="groceries"] .glance__big { font-size: 2.6rem; }
+/* weather: the big reading only (forecast, hours and Sun & Moon are in its detail) */
+#tiles[data-view="home"] .weather :is(.daily, .weather__meta, .weather__stats, .hourly, .weather__sun) { display: none !important; }
+#tiles[data-view="home"] .weather .weather__content { display: flex !important; flex-direction: column; justify-content: center; flex: 1; }
+#tiles[data-view="home"] .weather .weather__now { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+#tiles[data-view="home"] .weather .weather__temp { font-size: 4.6rem; line-height: 1; }
+#tiles[data-view="home"] .weather .weather__desc { display: block; font-size: 1.3rem; font-weight: 600; }
+#tiles[data-view="home"] .weather .weather__range { display: block; margin: 0.2rem 0 0; font-size: 1rem; color: var(--home-grey); }
+/* the smart-home tile: its status line only */
+#tiles[data-view="home"] #smarthome-rooms { display: none; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  #tiles[data-view="home"] .glance__big { font-size: calc(var(--u) * 1.9); }
+  #tiles[data-view="home"] .tile[data-tile="groceries"] .glance__big { font-size: calc(var(--u) * 3); }
+  #tiles[data-view="home"] .weather .weather__temp { font-size: calc(var(--u) * 7.5); }
+  #tiles[data-view="home"] .weather .weather__art { width: calc(var(--u) * 6); }
+  #tiles[data-view="home"] .weather .weather__desc { font-size: calc(var(--u) * 1.6); }
+  /* sidebar: the clock and the date; the place and location button live in Settings → Locations */
+}
+/* the calm Home view on phones: two small tiles a row, so type and headers shrink to fit */
+@media (max-width: 719px) {
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) { padding: 0.95rem; gap: 0.5rem; min-height: 9.5rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__head { padding-right: 1.6rem; gap: 0.45rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__icon { width: 1.4rem; height: 1.4rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__title { font-size: 0.9rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile-arrow { right: 0.5rem; top: 0.6rem; }
+  #tiles[data-view="home"] .glance__big { font-size: 1.25rem; }
+  #tiles[data-view="home"] .tile[data-tile="groceries"] .glance__big { font-size: 2rem; }
+  #tiles[data-view="home"] .glance__line { font-size: 0.82rem; }
+  #tiles[data-view="home"] :is(.tile__value) { font-size: 1.25rem; }
+  #tiles[data-view="home"] :is(.tile__sub) { font-size: 0.82rem; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+}
+/* the place line and location button live in Settings → Locations on every screen */
+body.dash .place[data-status="configured"], body.dash .place[data-status="configured"] ~ .place__note,
+body.dash .place[data-status="loading"] { display: none; }   /* without a location the line stays, with its button */
+
+/* ---------- calm Home, round 2: every small tile has the same shape ----------
+   a big white glyph and the tile's name at the top, the fact at the bottom (as the
+   wall-display tiles: icon, then "Fan / Bedroom"); the grid has no holes */
+#tiles[data-view="home"] .tile[data-tile="calendar"] { grid-column: span 2 !important; }
+#tiles[data-view="home"] .tile:not([data-tile="weather"]) { justify-content: space-between; }
+#tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__head { flex-direction: column; align-items: flex-start; gap: 0.6rem; padding-right: 2rem; }
+#tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__icon { width: 2.6rem; height: 2.6rem; }
+#tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__title { font-size: 0.95rem; font-weight: 600; color: var(--home-grey); }
+#tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__aside { display: none; }
+#tiles[data-view="home"] .tile__value { margin-top: auto; font-size: 1.7rem; font-weight: 650; letter-spacing: -0.025em; }
+#tiles[data-view="home"] .tile__sub { -webkit-line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; color: var(--home-grey); }
+#tiles[data-view="home"] .glance { margin-top: auto; }
+/* weather: the reading sits low and left, like the thermostat's big number */
+#tiles[data-view="home"] .weather .weather__content { justify-content: flex-end; }
+#tiles[data-view="home"] .weather .weather__now { flex-direction: row; align-items: flex-end; gap: 1.2rem; }
+
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__icon { width: calc(var(--u) * 3); height: calc(var(--u) * 3); }
+  #tiles[data-view="home"] .tile__value { font-size: calc(var(--u) * 1.9); }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) { padding: calc(var(--u) * 1.4); }
+  /* the pills share the title row instead of taking a row of their own */
+  body.dash .main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto minmax(0, 1fr);
+    column-gap: calc(var(--u) * 1.6); row-gap: var(--gap); align-items: center; }
+  body.dash .main > .topbar { display: contents; }
+  body.dash .main .brand { grid-column: 1; grid-row: 1; }
+  body.dash .main .status { grid-column: 2; grid-row: 1; justify-content: flex-end; }
+  body.dash .main .topbar__right { grid-column: 3; grid-row: 1; }
+  body.dash .main .tiles { grid-column: 1 / -1; grid-row: 2; align-self: stretch; }
+  body.dash .aclock { width: min(100%, calc(var(--u) * 13)); }
+}
+@media (max-width: 719px) {
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__head { padding-right: 1.4rem; gap: 0.4rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__icon { width: 1.9rem; height: 1.9rem; }
+  #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__title { font-size: 0.82rem; }
+  #tiles[data-view="home"] .tile__value { font-size: 1.25rem; }
+  #tiles[data-view="home"] .weather .weather__now { gap: 0.8rem; }
+}
+#tiles[data-view="home"] .weather .weather__content { align-items: flex-start; }
+
+/* ---------- calm Home, round 3: the wall-display layout the household picked ----------
+   a big weather tile, a clock tile, today's event and four small icon tiles; the
+   advice and assistant tiles step out of Home (alerts still show as a pill, the mic
+   button stays in the header) */
+.clock-tile { display: none; }
+#tiles[data-view="home"] .tile:is([data-tile="advice"], [data-tile="assistant"]) { display: none !important; }
+#tiles[data-view="home"] [data-tile="weather"] { order: 0 !important; }
+#tiles[data-view="home"] .clock-tile { order: 1 !important; }
+#tiles[data-view="home"] [data-tile="calendar"] { order: 2 !important; }
+#tiles[data-view="home"] [data-tile="groceries"] { order: 3 !important; }
+#tiles[data-view="home"] [data-tile="meals"] { order: 4 !important; }
+#tiles[data-view="home"] [data-tile="commute"] { order: 5 !important; }
+#tiles[data-view="home"] [data-tile="smarthome"] { order: 6 !important; }
+
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  /* the views shrink to an icon rail on Home (names stay as the buttons' labels) */
+  body.dash[data-view="home"] .shell { grid-template-columns: 5.2rem minmax(0, 1fr); }
+  body.dash[data-view="home"] .side { padding: calc(var(--u) * 1.2) 0.5rem; align-items: center; }
+  body.dash[data-view="home"] .hero__main, body.dash[data-view="home"] .views::before { display: none; }
+  body.dash[data-view="home"] .views { align-items: center; margin-top: auto; margin-bottom: auto; }
+  body.dash[data-view="home"] .views__tabs { align-items: center; gap: 0.5rem; }
+  body.dash[data-view="home"] .view-tab { width: 3.4rem; min-height: 3.4rem; padding: 0; justify-content: center; font-size: 0; gap: 0; border-radius: 1.1rem; }
+  body.dash[data-view="home"] .view-tab__icon { width: 2.3rem; height: 2.3rem; }
+  body.dash[data-view="home"] .views__edit { margin: 0.6rem 0 0; align-self: center; }
+
+  /* the grid of the photo: weather 2x2, clock and event on the right, four small tiles below */
+  #tiles[data-view="home"] { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; grid-template-rows: repeat(3, minmax(0, 1fr)) !important; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="weather"] { grid-area: 1 / 1 / 3 / 3 !important; }
+  body.dash #tiles[data-view="home"] .tile.clock-tile { grid-area: 1 / 3 / 2 / 5 !important; display: flex; flex-direction: row; align-items: center;
+    gap: calc(var(--u) * 1.6); padding: calc(var(--u) * 1.2) calc(var(--u) * 1.8); }
+  body.dash #tiles[data-view="home"] .tile[data-tile="calendar"] { grid-area: 2 / 3 / 3 / 5 !important; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="groceries"] { grid-area: 3 / 1 / 4 / 2 !important; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="meals"] { grid-area: 3 / 2 / 4 / 3 !important; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="commute"] { grid-area: 3 / 3 / 4 / 4 !important; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="smarthome"] { grid-area: 3 / 4 / 4 / 5 !important; }
+  #tiles[data-view="home"] .clock-tile .aclock { display: block; height: 100%; width: auto; max-height: calc(var(--u) * 12); margin: 0; flex: none; }
+  .clock-tile__text { display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+  .clock-tile__time { font-size: calc(var(--u) * 4.2); font-weight: 650; letter-spacing: -0.04em; line-height: 1; color: #fff; white-space: nowrap; }
+  .clock-tile__date { font-size: calc(var(--u) * 1.3); font-weight: 500; color: var(--home-grey); }
+}
+/* phones and tablets keep the clock at the top; Home is weather, the event, then two small tiles a row */
+@media not ((min-width: 1200px) and (min-aspect-ratio: 4/3)) {
+  #tiles[data-view="home"] [data-tile="calendar"], #tiles[data-view="home"] [data-tile="weather"] { grid-column: 1 / -1 !important; }
+}
+@media (min-width: 720px) and (max-width: 1199px), (min-width: 720px) and (max-aspect-ratio: 4/3) {
+  #tiles[data-view="home"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  /* centred, as on the wall display: the big number, then each small tile's glyph, fact and line */
+  #tiles[data-view="home"] .weather .weather__content { align-items: center; justify-content: center; }
+  #tiles[data-view="home"] .weather .weather__now { flex-direction: column; align-items: center; text-align: center; gap: calc(var(--u) * 0.4); }
+  #tiles[data-view="home"] .weather .weather__art { width: calc(var(--u) * 4.4); }
+  #tiles[data-view="home"] .weather .weather__temp { font-size: calc(var(--u) * 9); }
+  #tiles[data-view="home"] .tile:is([data-tile="groceries"], [data-tile="meals"], [data-tile="commute"], [data-tile="smarthome"]) { align-items: center; text-align: center; }
+  #tiles[data-view="home"] .tile:is([data-tile="groceries"], [data-tile="meals"], [data-tile="commute"], [data-tile="smarthome"]) .tile__head {
+    align-items: center; padding-right: 0; padding-top: calc(var(--u) * 0.6); }
+  #tiles[data-view="home"] .tile:is([data-tile="groceries"], [data-tile="meals"], [data-tile="commute"], [data-tile="smarthome"]) :is(.glance, .tile__value, .tile__sub) { align-items: center; align-self: stretch; }
+  body.dash[data-view="home"] .view-tab__icon svg { width: 1.35rem; height: 1.35rem; }
+}
+#tiles[data-view="home"] :is(.glance__line, .glance__big) { max-width: 100%; align-self: stretch; }
+@media not ((min-width: 1200px) and (min-aspect-ratio: 4/3)) {
+  body.dash #tiles[data-view="home"] .tile:is([data-tile="weather"], [data-tile="calendar"]) { grid-column: 1 / -1 !important; grid-row: span 1 !important; }
+}
+
+/* ---------- the whole dashboard, round 4: every view uses the wall-display frame ----------
+   an icon rail for the views on TVs, the home's name with the view's name as the title,
+   the time in the header (the Home view has its clock tile) */
+.topbar__time { display: none; }
+body.dash .brand__view { margin-left: 0.55em; font-size: 2.1rem; font-weight: 600; letter-spacing: -0.025em; color: var(--home-grey); white-space: nowrap; }
+body.dash .brand__view:empty { display: none; }
+@media (max-width: 760px) { body.dash .brand__view { display: none; } }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .shell { grid-template-columns: 5.2rem minmax(0, 1fr); }
+  body.dash .side { padding: calc(var(--u) * 1.2) 0.5rem; align-items: center; }
+  body.dash .hero__main, body.dash .views::before { display: none; }
+  body.dash .views { align-items: center; margin-top: auto; margin-bottom: auto; }
+  body.dash .views__tabs { align-items: center; gap: 0.5rem; }
+  body.dash .view-tab { width: 3.4rem; min-height: 3.4rem; padding: 0; justify-content: center; font-size: 0; gap: 0; border-radius: 1.1rem; }
+  body.dash .view-tab__icon { width: 2.3rem; height: 2.3rem; }
+  body.dash .view-tab__icon svg { width: 1.35rem; height: 1.35rem; }
+  body.dash .views__edit { margin: 0.6rem 0 0; align-self: center; }
+  body.dash .brand__home, body.dash .brand__view { font-size: calc(var(--u) * 2.2); }
+  body.dash:not([data-view="home"]) .topbar__time { display: inline-block; padding: 0 0.4rem; font-size: calc(var(--u) * 1.9);
+    font-weight: 650; letter-spacing: -0.03em; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  body.dash .topbar__right { flex-wrap: nowrap; }
+}
+/* status tiles on every view: the wall-display shape (big glyph, name, then the state at the bottom, centred) */
+body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) {
+  justify-content: center; align-items: center; text-align: center; gap: 1.1rem; }
+body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__head {
+  flex-direction: column; align-items: center; gap: 0.6rem; padding: 0.4rem 0 0; }
+body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__icon { width: 3rem; height: 3rem; }
+body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__title { font-size: 0.95rem; color: var(--home-grey); }
+body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__value { margin-top: 0.4rem; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__icon { width: calc(var(--u) * 3.4); height: calc(var(--u) * 3.4); }
+  body.dash #tiles .tile:is([data-tile="assistant"], [data-tile="protection"], [data-tile="smarthome"]):not(:has(#smarthome-rooms:not([hidden]))) .tile__value { font-size: calc(var(--u) * 2.4); }
+}
+/* the Home view's small tiles keep fact-at-the-bottom (they're short); big tiles group in the middle */
+#tiles[data-view="home"] .tile:is([data-tile="smarthome"]) { justify-content: space-between !important; }
+#tiles[data-view="home"] .tile:is([data-tile="smarthome"]) .tile__value { margin-top: auto !important; }
+/* System: its four readings large, on a 2 x 2 */
+body.dash .sysgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem 1.4rem; margin-block: auto; }
+body.dash .sysgrid dt { color: var(--home-grey); letter-spacing: 0.04em; }
+body.dash .sysgrid dd { font-size: 1.6rem; font-weight: 650; letter-spacing: -0.02em; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .tile[data-size="l"] .sysgrid dd { font-size: calc(var(--u) * 2.6); }
+  body.dash .tile[data-size="s"] .sysgrid dd { font-size: calc(var(--u) * 1.3); }
+}
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .tile[data-tile="smarthome"] .tile__value { font-size: calc(var(--u) * 1.9); }
+  body.dash #tiles[data-view="home"] .tile[data-tile="smarthome"] { gap: 0.4rem; }
+  body.dash #tiles[data-view="home"] .tile[data-tile="smarthome"] .tile__icon { width: calc(var(--u) * 3); height: calc(var(--u) * 3); }
+}
+
+/* ---------- Settings and Groceries: the same teal glass as the dashboard ---------- */
+body.s-page, body.g-page {
+  --home-grey: rgba(214, 255, 246, 0.74);
+  --ink: #fff; --ink-2: rgba(255, 255, 255, 0.84); --ink-3: rgba(214, 255, 246, 0.66); --ink-4: rgba(214, 255, 246, 0.45);
+  --line: rgba(255, 255, 255, 0.16);
+  background: #1d6c62 url("/static/img/wall-teal.svg") center / cover no-repeat fixed; }
+body.s-page .s-card, body.g-page .g-items {
+  background: rgba(255, 255, 255, 0.13); border-radius: 1.6rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 22px 44px -24px rgba(3, 28, 25, 0.6); }
+body.s-page .s-nav { background: rgba(16, 70, 63, 0.7); }
+body.s-page .s-nav a, :is(body.s-page, body.g-page) .btn { background: rgba(255, 255, 255, 0.14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+body.s-page .s-nav a:hover, :is(body.s-page, body.g-page) .btn:hover { background: rgba(255, 255, 255, 0.22); }
+:is(body.s-page, body.g-page) .btn--primary, :is(body.s-page, body.g-page) .btn--primary:hover { background: #fff; color: #0e3b36; }
+body.s-page .s-back, body.g-page .g-home, body.s-page .s-help a, body.s-page .s-details a { color: #fff; }
+body.s-page .s-back:hover, body.g-page .g-home:hover { color: rgba(255, 255, 255, 0.8); }
+:is(body.s-page, body.g-page) :is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"]), select, textarea) {
+  background: rgba(8, 40, 36, 0.35); color: #fff; }
+:is(body.s-page, body.g-page) select option { background: #12463f; color: #fff; }
+body.s-page .s-card.is-dirty { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7), 0 22px 44px -24px rgba(3, 28, 25, 0.6); }
+body.g-page .g-filter { background: rgba(255, 255, 255, 0.14); }
+body.g-page .g-filter__btn[aria-selected="true"] { background: #fff; color: #0e3b36; }
+body.g-page .g-item { border-top-color: rgba(255, 255, 255, 0.12); }
+body.g-page .g-item.is-purchased .g-check__ring { background: #fff; border-color: #fff; }
+body.g-page .g-item.is-purchased .g-check__ring svg { color: #0e3b36; }
+body.g-page .g-composer { background: linear-gradient(180deg, rgba(14, 60, 55, 0) 0%, rgba(14, 60, 55, 0.88) 24%, rgba(12, 52, 48, 0.97) 60%); }
+body.g-page .g-chip { background: rgba(255, 255, 255, 0.14); border-color: transparent; color: #fff; }
+body.g-page .g-row input, body.g-page .g-qty, body.g-page .g-extra select { background: rgba(255, 255, 255, 0.14); border-color: transparent; }
+body.g-page .g-row input:focus { border-color: rgba(255, 255, 255, 0.6); }
+body.g-page .g-add { background: #fff; color: #0e3b36; }
+body.g-page .g-filter__btn[aria-selected="true"] .g-filter__n { color: rgba(14, 59, 54, 0.6); }
+@media (min-width: 1000px) { body.s-page .s-nav { background: none; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+
+/* ---------- audit fixes (contrast, tap size, cut-off labels) ----------
+   Measured against WCAG AA: grey second lines on the light glass were about 3.2:1 and
+   the price colours lower. The glass is now tinted deep teal (the wallpaper still shows
+   through), second lines are brighter, and text on the bare wallpaper gets a soft shadow. */
+body.dash {
+  --home-tile: rgba(6, 42, 38, 0.46);
+  --home-tile-hover: rgba(6, 42, 38, 0.54);
+  --home-chip: rgba(6, 42, 38, 0.5);
+  --home-chip-hover: rgba(6, 42, 38, 0.6);
+  --home-grey: rgba(226, 255, 249, 0.86);
+  --home-grey-2: rgba(226, 255, 249, 0.66);
+  --ink-3: rgba(226, 255, 249, 0.82); --ink-4: rgba(226, 255, 249, 0.64); --on-glass-3: rgba(226, 255, 249, 0.82);
+}
+body.dash .tile, body.dash[data-wallpaper="image"][data-wall-ready] .tile {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%); }
+body.dash[data-wallpaper="image"][data-wall-ready] .tile {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%), linear-gradient(var(--home-tile), var(--home-tile)), var(--wall-layer); }
+body.dash .hero__greeting, body.dash .time__date, body.dash .time__meridiem, body.dash .time__clock, body.dash .brand__home, body.dash .brand__view {
+  text-shadow: 0 1px 14px rgba(0, 30, 26, 0.45); }
+body.dash .hero__greeting, body.dash .time__date, body.dash .time__meridiem { color: rgba(255, 255, 255, 0.92); }
+body.dash .brand__view { color: rgba(255, 255, 255, 0.9); }
+/* prices: brighter gold and change colours on the deeper glass */
+body.dash .pt-kpi[data-id^="gold"] .pt-kpi__value, body.dash .pt-purity__price { color: #ffe3a3; }
+body.dash .pt-kpi__dod[data-dir="up"], body.dash .pt-purity__dod[data-dir="up"] { color: #8ff0b4; }
+body.dash .pt-kpi__dod[data-dir="down"], body.dash .pt-purity__dod[data-dir="down"] { color: #ffc4bd; }
+body.dash .pt-kpi__dod { background: rgba(0, 0, 0, 0.22); }
+body.dash .pt-kpi__label small, body.dash .pt-kpi__vs { color: var(--home-grey); }
+/* tap targets: at least 44 px */
+body.dash .views__edit, body.dash[data-wallpaper="image"][data-wall-ready] .views__edit { width: max(2.35rem, 44px); height: max(2.35rem, 44px); }
+/* phone tab bar: long view names wrap to two short lines instead of being cut */
+@media (max-width: 760px) {
+  body.dash .view-tab { white-space: normal; text-align: center; line-height: 1.05; font-size: 0.64rem; overflow: visible; }
+}
+/* Home's small tiles have room for a two-line state */
+#tiles[data-view="home"] .tile__sub { -webkit-line-clamp: 2; }
+/* Home's glance tiles hide their details from the first paint (no flash of the full tiles) */
+#tiles[data-view="home"] .tile:is([data-tile="commute"], [data-tile="meals"], [data-tile="calendar"], [data-tile="groceries"], [data-tile="smarthome"])
+  > :not(.tile__head, .glance, .tile-arrow, .wx-scene) { display: none !important; }
+/* other views: the view's name is the title (the home's name is on Home) */
+body.dash.has-view-title .brand__home { display: none; }
+body.dash .brand__view { margin-left: 0; color: #fff; }
+/* a tile's name never gives way to its side note */
+body.dash .tile__title { flex-shrink: 0; }
+
+/* audit fixes, Settings and Groceries: the deeper glass and brighter greys of the dashboard */
+body.s-page, body.g-page {
+  --home-grey: rgba(226, 255, 249, 0.86);
+  --ink-3: rgba(226, 255, 249, 0.82); --ink-4: rgba(226, 255, 249, 0.66); }
+body.s-page .s-card, body.g-page .g-items { background-color: rgba(6, 42, 38, 0.46); }
+body.s-page .s-help, body.g-page .g-sub, body.g-page .g-notes, body.g-page .g-filter__n, body.g-page .g-live-text { color: var(--home-grey); }
+body.g-page .g-qtytag { background: rgba(0, 0, 0, 0.25); color: #fff; }
+body.g-page .g-filter__btn[aria-selected="true"] .g-filter__n { color: rgba(14, 59, 54, 0.75); }
+
+/* every tap target at least 44 px tall (buttons, tabs, chips), on every page */
+:is(body.dash, body.s-page, body.g-page) :is(.btn, .mp-tab, .mp-seg__btn, .asst__chip, .g-chip, .g-filter__btn, .s-nav a, .s-back, .g-home, .s-move) {
+  min-height: 44px; box-sizing: border-box; }
+:is(body.dash, body.s-page, body.g-page) .s-move { min-width: 44px; }
+body.g-page .g-live[data-state="live"] { color: #a8f7cf; }
+body.g-page .g-filter__btn:not([aria-selected="true"]) .g-filter__n { color: rgba(255, 255, 255, 0.86); }
+:is(body.dash, body.s-page, body.g-page) .mp-check { min-height: 44px; box-sizing: border-box; }
+/* Settings on phones: a widget's size and move buttons go below its name (they overlapped it) */
+@media (max-width: 600px) {
+  body.s-page .s-view__tiles .s-row { flex-wrap: wrap; }
+  body.s-page .s-view__tiles .s-row__main { flex: 1 0 100%; }
+  body.s-page .s-view__tiles .s-row select { flex: 1; min-width: 0; }
+}
+/* phones: the view's name is the title too */
+@media (max-width: 760px) {
+  body.dash.has-view-title .brand__view { display: inline; font-size: 1.85rem; font-weight: 700; }
+}
+
+/* ---------- Price Tracker, large tile: two matching cards, top-aligned ----------
+   name, price, change and "vs yesterday" at the top; gold's purities as a 2 x 2; a trend
+   line of the recorded readings fills the bottom of both */
+body.dash .pt-kpis[data-size="l"] { align-items: stretch; }
+body.dash .pt-kpis[data-size="l"] .pt-kpi--big { justify-content: flex-start; gap: 0.5rem; padding: 1.6rem 1.8rem; }
+body.dash .pt-kpis[data-size="l"] .pt-purity { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; border-top: 0; padding-top: 0; margin-top: 0.8rem; }
+body.dash .pt-kpis[data-size="l"] .pt-purity li { grid-template-columns: auto 1fr; grid-template-rows: auto auto; row-gap: 0.15rem; column-gap: 0.6rem;
+  padding: 0.7rem 0.9rem; border-radius: 0.9rem; background: rgba(0, 0, 0, 0.18); }
+body.dash .pt-kpis[data-size="l"] .pt-purity li > b { grid-row: 1 / 3; align-self: center; font-size: 1.05em; }
+body.dash .pt-kpis[data-size="l"] .pt-purity__dod { font-size: 0.78em; }
+.pt-spark { margin-top: auto; padding-top: 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.pt-spark__svg { width: 100%; height: clamp(3rem, 9vh, 7rem); display: block; overflow: visible; }
+.pt-spark__line { fill: none; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke; stroke-linejoin: round; stroke-linecap: round; }
+.pt-kpi[data-id="gold24"] .pt-spark__line { stroke: #ffe3a3; }
+.pt-spark__area { fill: rgba(255, 255, 255, 0.08); }
+.pt-spark__note, .pt-spark--empty { font-size: 0.82rem; color: var(--home-grey); margin: 0; }
+.pt-spark--empty { margin-top: auto; padding-top: 1rem; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .pt-kpis[data-size="l"] .pt-kpi--big .pt-kpi__value { font-size: calc(var(--u) * 4.4); }
+  body.dash .pt-kpis[data-size="l"] .pt-kpi--big .pt-kpi__label { font-size: calc(var(--u) * 1.4); }
+  body.dash .pt-kpis[data-size="l"] .pt-purity { font-size: calc(var(--u) * 1.2); }
+}
+body.dash .pt-kpis[data-size="l"] .pt-spark { flex: 1 1 auto; min-height: 0; justify-content: flex-end; }
+body.dash .pt-kpis[data-size="l"] .pt-spark__svg { flex: 1 1 auto; height: auto; min-height: 3rem; max-height: 22rem; }
+body.dash .pt-kpis[data-size="l"] .pt-spark__svg { max-height: 12rem; }
+@media (max-width: 600px) {
+  body.dash .pt-kpis[data-size="l"] .pt-purity { grid-template-columns: minmax(0, 1fr); gap: 0.4rem; }
+  body.dash .pt-kpis[data-size="l"] .pt-purity li { grid-template-columns: 2.6rem auto 1fr; grid-template-rows: auto; padding: 0.55rem 0.8rem; align-items: baseline; }
+  body.dash .pt-kpis[data-size="l"] .pt-purity li > b { grid-row: auto; }
+  body.dash .pt-kpis[data-size="l"] .pt-purity__dod { text-align: right; white-space: nowrap; }
+}
+@media (max-width: 760px) {
+  body.dash .topbar__right { flex-wrap: nowrap; gap: 0.4rem; }
+  body.dash .brand { min-width: 0; }
+  body.dash .brand__home, body.dash.has-view-title .brand__view { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  body.dash.has-view-title .brand__view { font-size: 1.55rem; }
+  body.dash .pill--wake { padding-inline: 0.6rem; font-size: 0.75rem; }
+}
+/* the clock tile is one button (keyboard and touch open the time & date detail) */
+.clock-tile__hit { display: flex; align-items: center; gap: inherit; width: 100%; height: 100%; min-width: 0; color: inherit; text-align: left; border-radius: inherit; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  #tiles[data-view="home"] .clock-tile .clock-tile__hit { gap: calc(var(--u) * 1.6); }
+}
+body.g-page .g-title h1 { font-size: clamp(1.6rem, 8vw, 2.1rem); }
+
+/* ---------- Home's weather tile, round 2: the wall-display thermostat ----------
+   one sun (the scene's rays; the small sun icon steps out), a big number low on the left
+   with the sky and the day's range under it, and three facts along the bottom */
+/* (the small picture hides only on clear days, below; at night the moon stays) */
+#tiles[data-view="home"] .weather > .wx-scene::after {
+  background: linear-gradient(180deg, rgba(4, 24, 22, 0) 35%, rgba(4, 24, 22, 0.32) 100%); }
+body.dash #tiles[data-view="home"] .weather .weather__content {
+  display: flex !important; flex-direction: column; justify-content: flex-end; align-items: stretch; flex: 1; gap: 1rem; }
+body.dash #tiles[data-view="home"] .weather .weather__now { flex-direction: column; align-items: flex-start; text-align: left; gap: 0.3rem; }
+body.dash #tiles[data-view="home"] .weather .weather__desc { font-size: 1.5rem; font-weight: 650; }
+body.dash #tiles[data-view="home"] .weather .weather__range { font-size: 1.05rem; margin-top: 0; }
+body.dash #tiles[data-view="home"] .weather .weather__stats {
+  display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; margin: 0; }
+body.dash #tiles[data-view="home"] .weather .weather__stats > :not([data-k="feels-like"], [data-k="rain"], [data-k="aqi"]) { display: none; }
+body.dash #tiles[data-view="home"] .weather .weather__stats > div {
+  padding: 0.7rem 0.9rem; border-radius: 1rem; background: rgba(0, 0, 0, 0.2); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+body.dash #tiles[data-view="home"] .weather .weather__stats dt { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--home-grey); }
+body.dash #tiles[data-view="home"] .weather .weather__stats dd { margin: 0.15rem 0 0; font-size: 1.3rem; font-weight: 650; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .weather .weather__temp { font-size: calc(var(--u) * 10); line-height: 0.92; letter-spacing: -0.05em; }
+  body.dash #tiles[data-view="home"] .weather .weather__desc { font-size: calc(var(--u) * 1.8); }
+  body.dash #tiles[data-view="home"] .weather .weather__range { font-size: calc(var(--u) * 1.15); }
+  body.dash #tiles[data-view="home"] .weather .weather__stats dd { font-size: calc(var(--u) * 1.6); }
+  body.dash #tiles[data-view="home"] .weather .weather__stats dt { font-size: calc(var(--u) * 0.72); }
+}
+@media (max-width: 719px) {
+  body.dash #tiles[data-view="home"] .weather .weather__temp { font-size: 4.4rem; }
+}
+
+/* ---------- tile-by-tile pass ---------- */
+/* weather: on a clear day the scene's rays are the sun; the small sun icon would be a second one */
+.weather:has(> .wx-scene[data-scene="clear-day"]) .weather__art { display: none; }
+/* commute: on days without monitoring the message uses the whole tile, in the wall-display shape */
+body.dash .commute .commute__body:not(:has(.slots)) > .state { grid-column: 1 / -1; grid-row: 1 / -1; }
+body.dash .commute .commute__body:not(:has(.slots)) { display: flex !important; align-items: center; justify-content: center; flex: 1; }
+body.dash .commute .commute__body:not(:has(.slots)) > .state { flex-direction: column; align-items: center; text-align: center; gap: 0.6rem; }
+body.dash .commute .commute__body:not(:has(.slots)) > .state > svg { width: 2.6rem; height: 2.6rem; color: #fff; }
+body.dash .commute .commute__body:not(:has(.slots)) > .state span { font-size: 1.6rem; font-weight: 650; color: #fff; display: flex; flex-direction: column; gap: 0.35rem; align-items: center; }
+body.dash .commute .commute__body:not(:has(.slots)) > .state small { font-size: 1rem; font-weight: 450; color: var(--home-grey); max-width: 34ch; }
+/* smart home with no devices: an obvious next step */
+body.dash .sh-empty-cta { margin-top: 0.8rem; align-self: center; padding-inline: 1.4rem; background: #fff !important; color: #0e3b36 !important; font-weight: 650; }
+#tiles[data-view="home"] .sh-empty-cta { display: none; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  /* calendar, large: bigger rows that use the height (the Tithi stays at the bottom) */
+  body.dash .calendar[data-size="l"] .agenda { gap: calc(var(--u) * 0.9); }
+  body.dash .calendar[data-size="l"] .agenda__item { font-size: calc(var(--u) * 1.35); }
+  body.dash .calendar[data-size="l"] .agenda__icon { width: calc(var(--u) * 1.4); height: calc(var(--u) * 1.4); }
+  body.dash .calendar[data-size="l"] .agenda__day { font-size: calc(var(--u) * 0.85); margin-top: calc(var(--u) * 0.6); }
+  /* meals, wide: the three meals spread over the tile instead of bunching at the top */
+  body.dash .meals:not([data-size="s"]) .meals__list { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+  body.dash .meals:not([data-size="s"]) .meals__name { font-size: calc(var(--u) * 1.45); }
+  body.dash .meals:not([data-size="s"]) .meals__when { font-size: calc(var(--u) * 0.8); }
+}
+/* phones: the "Hey Aura" pill is about the Pi's own microphone; phones show the title instead */
+@media (max-width: 760px) { body.dash .pill--wake { display: none !important; } }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  /* before you go, wide: larger advice that reads from across the room */
+  body.dash .advice:not([data-size="s"]) .advice__title { font-size: calc(var(--u) * 1.35); }
+  body.dash .advice:not([data-size="s"]) .advice__detail { font-size: calc(var(--u) * 0.95); }
+  body.dash .advice:not([data-size="s"]) .advice__list { gap: calc(var(--u) * 1.1); }
+}
+
+/* ---------- Settings, round 2 (UI/UX pass) ----------
+   the section menu is one grouped list with coloured icon squares (as in Apple's Settings) and
+   marks the section on screen; a card with unsaved changes keeps its Save bar in view; "Reset to
+   defaults" sits apart from Save */
+body.s-page .s-nav a { display: inline-flex; align-items: center; gap: 0.6rem; }
+body.s-page .s-nav__icon { flex: none; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 0.5rem;
+  background: var(--c, #8e8e93); color: #fff; }
+body.s-page .s-nav__icon svg { width: 1.1rem; height: 1.1rem; }
+body.s-page .s-nav a[aria-current="true"] { background: #fff; color: #0e3b36; font-weight: 700; }
+@media (min-width: 1000px) {
+  body.s-page .s-app { grid-template-columns: 15rem minmax(0, 1fr); }
+  body.s-page .s-nav { gap: 0.15rem; padding: 0.5rem; border-radius: 1.4rem; background: rgba(6, 42, 38, 0.46);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 22px 44px -24px rgba(3, 28, 25, 0.6); }
+  body.s-page .s-nav a { background: transparent; box-shadow: none; border-radius: 0.8rem; padding: 0 0.6rem; min-height: 44px; width: 100%; box-sizing: border-box; }
+  body.s-page .s-nav a:hover { background: rgba(255, 255, 255, 0.1); }
+  body.s-page .s-nav a[aria-current="true"] { background: rgba(255, 255, 255, 0.92); }
+}
+/* the Save bar of a card with changes stays on screen (sticky inside its card) */
+body.s-page .s-card.is-dirty .s-foot { position: sticky; bottom: max(12px, env(safe-area-inset-bottom)); z-index: 4;
+  margin-inline: -0.6rem; padding: 0.7rem 0.8rem; border-radius: 1.1rem;
+  background: rgba(10, 56, 50, 0.94); box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+body.s-page .s-card.is-dirty .s-status { color: #ffe3a3; font-weight: 600; }
+/* Reset is a quiet text button on the left, away from Save */
+body.s-page .s-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+body.s-page .s-actions { flex: 1; }
+body.s-page .s-actions .s-reset { margin-right: auto; background: none; box-shadow: none; color: var(--home-grey); text-decoration: underline; text-underline-offset: 3px; padding-inline: 0.3rem; }
+body.s-page .s-actions .s-reset:hover { background: none; color: #fff; }
+/* card titles: bigger, like grouped-list headers */
+body.s-page .s-card__head h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+
+/* dropdowns: our own chevron with room on the right (the browser's arrow sat on the edge, e.g. Safari) */
+:is(body.dash, body.s-page, body.g-page) select:not([multiple]) {
+  -webkit-appearance: none; appearance: none;
+  padding-right: 2.6rem !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0.9rem center; background-size: 1.05rem;
+  text-overflow: ellipsis; }
+:is(body.dash, body.s-page, body.g-page) select:not([multiple])::-ms-expand { display: none; }
+
+/* Settings → Wi-Fi: networks as a grouped list; the password form opens under the tapped one */
+body.s-page .s-nets { list-style: none; margin: 0.6rem 0 0; padding: 0; border-radius: 1.1rem; overflow: hidden; background: rgba(0, 0, 0, 0.18); }
+body.s-page .s-nets:empty { display: none; }
+body.s-page .s-nets > li + li { border-top: 1px solid rgba(255, 255, 255, 0.08); }
+body.s-page .s-net { all: unset; box-sizing: border-box; cursor: pointer; display: flex; align-items: center; gap: 0.8rem; width: 100%;
+  min-height: 52px; padding: 0.6rem 1rem; color: #fff; }
+body.s-page .s-net:hover { background: rgba(255, 255, 255, 0.07); }
+body.s-page .s-net:focus-visible { box-shadow: inset 0 0 0 2px #fff; }
+body.s-page .s-net__name { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.s-page .s-net__meta { color: var(--home-grey); font-size: 0.85rem; white-space: nowrap; }
+body.s-page .s-net-form { padding: 0.8rem 1rem 1rem; background: rgba(255, 255, 255, 0.06); }
+body.s-page .s-net-form .s-connect { margin: 0; }
+body.s-page .s-wifi-unlock { display: flex; gap: 0.6rem; flex-wrap: wrap; margin: 0.6rem 0; }
+body.s-page .s-wifi-unlock[hidden] { display: none; }
+body.s-page .s-wifi-unlock input { flex: 1 1 10rem; min-height: 44px; }
+body.s-page .s-nets { gap: 0; display: block; }
+
+/* Settings → Find Wi-Fi popup (like a phone's Wi-Fi list) */
+body.s-page .s-wifi { width: min(34rem, calc(100vw - 24px)); max-height: min(86vh, 46rem); padding: 0; border: 0; border-radius: 1.6rem;
+  background: rgba(10, 52, 47, 0.97); color: #fff; box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+body.s-page .s-wifi::backdrop { background: rgba(2, 14, 12, 0.55); }
+body.s-page .s-wifi .sheet__inner { max-height: inherit; box-sizing: border-box; gap: 0.8rem; overflow: hidden; }
+body.s-page .s-wifi__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+body.s-page .s-wifi__head h2 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+body.s-page .s-wifi__now { margin: 0; color: var(--home-grey); }
+body.s-page .s-wifi #wifi-msg:empty { display: none; }
+body.s-page .s-wifi .s-nets { margin: 0; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }
+body.s-page .s-wifi__rescan { align-self: flex-start; }
+body.s-page .s-wifi .s-net-form .s-actions .btn { min-width: 6rem; }

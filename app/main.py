@@ -58,7 +58,8 @@ from .netinfo import ConnectResult, NetworkService, NetworkStatus, WifiNetwork
 from .network import mdns_url, share_url
 from .open_meteo import OpenMeteoProvider
 from .recommendations import Recommendation, build_recommendations
-from .security import LanOnlyMiddleware
+from .security import BodyLimitMiddleware, LanOnlyMiddleware
+from .speedtest import SpeedMonitor
 from .settings_store import SECTIONS, WIDGETS, SettingsError, SettingsStore
 from .voice import VoiceClient, VoiceError, VoiceSession
 from .astronomy import Astronomy, astronomy_for
@@ -145,6 +146,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     """``transport`` lets tests replace the network with ``httpx.MockTransport``."""
     settings = settings or get_settings()
     ZoneInfo(settings.default_timezone)  # fail fast on a bad timezone name
+    # The data folder holds the session key, tokens' state and the database: private to AURA's user.
+    settings.data_dir.mkdir(parents=True, exist_ok=True)
+    settings.data_dir.chmod(0o700)
 
     client = httpx.AsyncClient(
         timeout=settings.http_timeout_seconds,
@@ -271,6 +275,8 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     prices = PriceTracker(settings.data_dir / "aura.db",
                           settings.metals_dev_api_key.get_secret_value() if settings.metals_dev_api_key else None, client)
     prices.on_change = lambda: broker.publish("prices", {})
+    speed = SpeedMonitor(client, every_minutes=settings.speedtest_minutes)
+    speed.on_change = lambda: broker.publish("speed", {})
     smart = smarthome.SmartHome(ha_registry, ha_link, lambda: [r.model_dump() for r in prefs.home.rooms], ha_public_url)
     meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
     plan_groceries = nutrition.PlanGroceries(settings.data_dir / "aura.db", groceries)
@@ -408,12 +414,14 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
         spawn(wake_sync())
         ha_link.start()
         prices.start()
+        speed.start()
         yield
         broker.close()  # let open event streams finish so shutdown isn't blocked
         await commute.stop()
         await agenda.stop()
         await ha_link.stop()
         await prices.stop()
+        await speed.stop()
         commute_store.close()
         for t in list(background):
             t.cancel()
@@ -446,6 +454,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     app.state.meal_log = meal_log
     app.state.plan_groceries = plan_groceries
     app.state.smarthome = smart
+    # Bodies are capped before they are read (1 MB; pictures get their own limit plus room for the request).
+    app.add_middleware(BodyLimitMiddleware, max_bytes=1024 * 1024,
+                       per_path={"/api/display/background": BACKGROUND_MAX + 1024 * 1024})
     app.add_middleware(
         LanOnlyMiddleware, allowed_hosts=settings.allowed_hosts, lan_only=settings.lan_only
     )
@@ -502,8 +513,10 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
 
     @app.post("/api/session")
     async def login(body: PinLogin, request: Request, response: Response) -> dict:
-        if access.open_lan:
-            return {"can_edit": True, "method": "lan", "pin_configured": access.pin_configured}
+        # LAN mode without a PIN: nothing to unlock (home devices can edit and change Wi-Fi).
+        if access.open_lan and not access.pin_configured:
+            return {"can_edit": True, "method": "lan", "pin_configured": False, "can_admin": access.can_admin(request),
+                    "can_wifi": access.can_change_wifi(request)}
         if not access.pin_configured:
             raise HTTPException(
                 status_code=503,
@@ -524,7 +537,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             COOKIE_NAME, access.issue(), max_age=access.session_seconds,
             httponly=True, samesite="strict", path="/",
         )
-        return {"can_edit": True, "method": "pin", "pin_configured": True}
+        return {"can_edit": True, "method": "pin", "pin_configured": True, "can_admin": True, "can_wifi": True}
 
     @app.delete("/api/session", status_code=204)
     async def logout(response: Response) -> Response:
@@ -703,6 +716,9 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     def admin(request: Request) -> None:
         access.require_admin(request)
 
+    def wifi_access(request: Request) -> None:
+        access.require_wifi(request)
+
     def settings_info() -> dict:
         cs = commute.status()
         lst = groceries.load()
@@ -741,6 +757,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
             "customized": {name: prefs.customized(name) for name in SECTIONS},
             "can_edit": access.can_edit(request),
             "can_admin": access.can_admin(request),
+            "can_wifi": access.can_change_wifi(request),
             "info": {**settings_info(), "assistant": await voice_info()},
         }
 
@@ -819,16 +836,20 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     async def network_status() -> NetworkStatus:
         return await network.status()
 
+    @app.get("/api/system/speed")
+    async def internet_speed() -> dict:
+        return speed.view()
+
     @app.get("/api/system/dns-filter", response_model=DnsFilterStatus)
     async def dns_filter_status(refresh: bool = False) -> DnsFilterStatus:
         # Read-only; no Pi-hole credentials or controls are ever exposed to browsers.
         return await dns_filter.status(force=refresh)
 
-    @app.post("/api/system/wifi/scan", response_model=list[WifiNetwork], dependencies=[Depends(admin)])
+    @app.post("/api/system/wifi/scan", response_model=list[WifiNetwork], dependencies=[Depends(wifi_access)])
     async def wifi_scan() -> list[WifiNetwork]:
         return await network.scan()
 
-    @app.post("/api/system/wifi/connect", response_model=ConnectResult, dependencies=[Depends(admin)])
+    @app.post("/api/system/wifi/connect", response_model=ConnectResult, dependencies=[Depends(wifi_access)])
     async def wifi_connect(body: WifiConnect) -> ConnectResult:
         if not body.confirm:
             raise HTTPException(status_code=422, detail="Confirm the change first.")

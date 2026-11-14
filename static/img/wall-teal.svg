@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- AURA's default wallpaper: teal folds and leaves (original artwork). -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2b8a7c"/><stop offset="0.55" stop-color="#1d6c62"/><stop offset="1" stop-color="#155750"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3fa494"/><stop offset="1" stop-color="#22796d"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#103f3a" stop-opacity="0.55"/><stop offset="1" stop-color="#103f3a" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#g)"/>
+  <!-- diagonal folds -->
+  <g opacity="0.9">
+    <path d="M-100 620 L380 140 L520 280 L40 760 Z" fill="url(#fold)" opacity="0.55"/>
+    <path d="M300 1100 L900 500 L1040 640 L440 1240 Z" fill="url(#fold)" opacity="0.5"/>
+    <path d="M820 380 L1240 -40 L1380 100 L960 520 Z" fill="url(#fold)" opacity="0.45"/>
+    <path d="M1120 1000 L1560 560 L1700 700 L1260 1140 Z" fill="url(#fold)" opacity="0.5"/>
+    <path d="M520 280 L640 400 L160 880 L40 760 Z" fill="url(#shade)"/>
+    <path d="M1040 640 L1160 760 L560 1360 L440 1240 Z" fill="url(#shade)"/>
+    <path d="M1380 100 L1500 220 L1080 640 L960 520 Z" fill="url(#shade)"/>
+  </g>
+  <!-- chevrons -->
+  <g fill="none" stroke="#5cc0ae" stroke-opacity="0.18" stroke-width="46" stroke-linejoin="round">
+    <path d="M980 900 L1180 700 L1380 900"/>
+    <path d="M980 1010 L1180 810 L1380 1010"/>
+    <path d="M60 300 L260 100 L460 300"/>
+  </g>
+  <!-- a fan of leaves, upper left -->
+  <g transform="translate(250 230)" fill="#4fb3a2" fill-opacity="0.22">
+    <path d="M0 0 C 60 -170 190 -230 300 -220 C 230 -130 120 -40 0 0 Z"/>
+    <path d="M0 0 C 120 -110 260 -110 350 -40 C 240 -10 110 10 0 0 Z"/>
+    <path d="M0 0 C 130 20 250 90 300 190 C 190 160 80 100 0 0 Z"/>
+    <path d="M0 0 C 30 -180 -30 -300 -120 -360 C -120 -240 -70 -110 0 0 Z"/>
+    <path d="M0 0 C -150 -60 -280 -20 -350 60 C -230 70 -100 50 0 0 Z"/>
+  </g>
+  <!-- and a smaller one, lower right -->
+  <g transform="translate(1330 380) rotate(160) scale(0.7)" fill="#4fb3a2" fill-opacity="0.18">
+    <path d="M0 0 C 60 -170 190 -230 300 -220 C 230 -130 120 -40 0 0 Z"/>
+    <path d="M0 0 C 120 -110 260 -110 350 -40 C 240 -10 110 10 0 0 Z"/>
+    <path d="M0 0 C 130 20 250 90 300 190 C 190 160 80 100 0 0 Z"/>
+    <path d="M0 0 C 30 -180 -30 -300 -120 -360 C -120 -240 -70 -110 0 0 Z"/>
+  </g>
+  <rect width="1600" height="1000" fill="#0a2a27" opacity="0.12"/>
+</svg>
