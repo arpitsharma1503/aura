@@ -44,7 +44,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .storage import make_private
 
@@ -365,16 +365,17 @@ class CommuteStore:
             ).fetchall()
         return {r["slot"]: self._obs(r) for r in rows}
 
-    def typical(self, weekday: int, slot_time: time, before: date, weeks: int = 8) -> tuple[int, int] | None:
-        """(median seconds, samples) of this household's past live checks near a slot."""
+    def typical(self, weekday: int | None, slot_time: time, before: date, weeks: int = 8) -> tuple[int, int] | None:
+        """(median seconds, samples) of this household's past live checks near a slot, on the same
+        weekday, or on any weekday when ``weekday`` is None."""
         lo = (datetime.combine(date(2000, 1, 1), slot_time) - timedelta(minutes=8)).time()
         hi = (datetime.combine(date(2000, 1, 1), slot_time) + timedelta(minutes=8)).time()
         since = (before - timedelta(weeks=weeks)).isoformat()
         with self._lock:
             rows = self._db.execute(
                 """SELECT departure_at, duration_s FROM commute_observations
-                   WHERE weekday = ? AND basis = 'live' AND service_date >= ? AND service_date < ?""",
-                (weekday, since, before.isoformat()),
+                   WHERE (? IS NULL OR weekday = ?) AND basis = 'live' AND service_date >= ? AND service_date < ?""",
+                (weekday, weekday, since, before.isoformat()),
             ).fetchall()
         samples = [r["duration_s"] for r in rows if lo <= datetime.fromisoformat(r["departure_at"]).time() <= hi]
         if len(samples) < 3:
@@ -447,6 +448,7 @@ class SlotView(BaseModel):
     past: bool = False
     best: bool = False
     samples: int | None = None
+    duration_s: int | None = Field(default=None, exclude=True)   # exact, for ranking (not sent)
 
 
 class Recommendation(BaseModel):
@@ -741,6 +743,7 @@ class CommuteMonitor:
                 message=f"Today's window ({start_txt}–{end_txt}) has ended. Next check {nxt}.", **base)
 
         views = self._slot_views(st, now, observed, include_history=True)
+        self._weigh_with_history(views, st)
         live = None
         obs_now = observed.get("now")
         if st.status == "active" and obs_now and now - obs_now.observed_at <= self.LIVE_FRESH:
@@ -762,8 +765,9 @@ class CommuteMonitor:
                     arrival_note = f"Fastest option that arrives by {by}."
                 else:
                     arrival_note = f"No remaining departure arrives by {by}; this is the fastest."
-            # Shortest journey wins; ties go to the earliest departure.
-            best = min(pool, key=lambda v: (v.duration_min, v.departure_at))
+            # Shortest journey wins, on exact seconds (rounded minutes made 19.6 and 20.4 tie);
+            # ties go to the earliest departure.
+            best = min(pool, key=lambda v: (v.duration_s or v.duration_min * 60, v.departure_at))
             best.best = True
             rec = self._recommendation(best, live is best, st)
 
@@ -783,12 +787,34 @@ class CommuteMonitor:
     def _view(self, o: Observation, now: datetime, past: bool) -> SlotView:
         return SlotView(
             departure_at=o.departure_at, arrival_at=o.arrival_at, duration_min=round(o.duration_s / 60),
+            duration_s=o.duration_s,
             traffic_level=traffic_level(o.duration_s, o.no_traffic_s), basis=o.basis,
             delay_min=round(max(0, o.duration_s - o.no_traffic_s) / 60) if o.no_traffic_s else None,
             no_traffic_min=round(o.no_traffic_s / 60) if o.no_traffic_s else None,
             length_km=round(o.length_m / 1000, 1) if o.length_m else None,
             observed_at=o.observed_at, past=past,
         )
+
+    def _weigh_with_history(self, views: list[SlotView], st: ScheduleState) -> None:
+        """TomTom's forecast for later departures is often nearly flat (seen: 20-21 min all
+        morning while live checks rose to 25-29 after 9:00), which made the earliest slot always
+        "best". Each upcoming forecast is ranked by the higher of the forecast and the median of
+        this household's past live checks at that time (same weekday, else any; at least 3)."""
+        for v in views:
+            if v.past or v.basis != "forecast" or v.duration_min is None:
+                continue
+            t = v.departure_at.timetz().replace(tzinfo=None)
+            hist = self.store.typical(st.service_date.weekday(), t, st.service_date) \
+                or self.store.typical(None, t, st.service_date)
+            if not hist:
+                continue
+            secs, n = hist
+            if secs > (v.duration_s or v.duration_min * 60):
+                v.duration_min, v.samples, v.basis, v.duration_s = round(secs / 60), n, "historical", secs
+                v.arrival_at = v.departure_at + timedelta(seconds=secs)
+                if v.no_traffic_min:
+                    v.traffic_level = traffic_level(secs, v.no_traffic_min * 60)
+                    v.delay_min = max(0, round(secs / 60) - v.no_traffic_min)
 
     def _slot_views(self, st: ScheduleState, now: datetime, observed: dict[str, Observation],
                     include_history: bool, after: bool = False) -> list[SlotView]:
@@ -808,13 +834,14 @@ class CommuteMonitor:
                 if typ:
                     secs, n = typ
                     v.duration_min, v.samples, v.basis = round(secs / 60), n, "historical"
+                    v.duration_s = secs
                     v.arrival_at = s + timedelta(seconds=secs)
             out.append(v)
         return out
 
     def _recommendation(self, v: SlotView, leave_now: bool, st: ScheduleState) -> Recommendation:
         if v.basis == "historical":
-            label = f"Typical for {st.service_date.strftime('%A')}s · from {v.samples} of your past trips"
+            label = f"Typical at this time · from {v.samples} of your past trips"
         else:
             label = BASIS_LABELS[v.basis]
         delay = v.delay_min

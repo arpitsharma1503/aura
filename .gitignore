@@ -8,6 +8,7 @@ data/groceries.json
 .env.*.bak
 data/location.json
 data/weather_cache.json
+data/speed_history.json
 data/calendar_cache.json
 data/models/
 data/aura.db*

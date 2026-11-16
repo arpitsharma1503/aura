@@ -318,3 +318,22 @@ def test_detail_views_fit_every_viewport(chrome, srv, artifacts, w, h):
         p.js("window.AuraDetail.close()")
         p.wait_for(f"!{IS_OPEN}")
     assert p.errors == [], p.errors
+
+
+@pytest.mark.parametrize("w", [320, 390, 430])
+def test_commute_departure_options_do_not_overlap_on_phones(chrome, srv, w):
+    """Seen 16 Nov on an iPhone: "8:15 AM20 min" and "ModerateYour history" ran into each other."""
+    p = dashboard(chrome, srv, commute=commute_payload("active"))
+    p.viewport(w, 844, mobile=True, scale=3)
+    p.js("window.AuraDetail.open('commute')")
+    p.wait_for("document.querySelectorAll('.dtable--slots tbody tr').length > 3")
+    bad = p.js(r"""(() => { const bad = [];
+      for (const tr of document.querySelectorAll('.dtable--slots tbody tr')) {
+        const cells = [...tr.children].map(c => { const r = c.getBoundingClientRect();
+          return [c.dataset.label || 'Leave', r.left, r.right, r.top, r.bottom, c.scrollWidth > c.clientWidth + 1]; });
+        for (let i = 0; i < cells.length; i++) {
+          if (cells[i][5]) bad.push('cut ' + cells[i][0]);
+          for (let j = i + 1; j < cells.length; j++) { const a = cells[i], b = cells[j];
+            if (Math.min(a[2], b[2]) - Math.max(a[1], b[1]) > 1 && Math.min(a[4], b[4]) - Math.max(a[3], b[3]) > 1) bad.push(a[0] + '/' + b[0]); } } }
+      return [...new Set(bad)]; })()""")
+    assert bad == []

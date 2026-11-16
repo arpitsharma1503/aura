@@ -78,3 +78,50 @@ def test_speed_api(tmp_path):
     c = make_client(tmp_path)
     v = c.get("/api/system/speed").json()
     assert v["status"] in ("waiting", "off") and v["down_mbps"] is None
+
+
+def ok_handler(request):
+    return httpx.Response(200, content=b"\0" * int(request.url.params["bytes"]))
+
+
+def test_readings_are_kept_for_the_trend_line_with_plain_words():
+    m = monitor(ok_handler, [0, 0.040, 1, 1.012, 2, 2.020, 10, 10.1])
+    asyncio.run(m.measure())
+    v = m.view()
+    assert v["history"] == [{"at": IST_NOON.isoformat(), "down_mbps": 80.0, "ping_ms": 12}]
+    assert v["quality"]["level"] == "good" and v["checking"] is False
+
+
+def test_quality_words():
+    from app.speedtest import quality
+    assert quality(4.5, 91)["label"] == "Slow"
+    assert quality(12, 40)["label"] == "Okay"
+    assert quality(92.4, 18)["label"] == "Fast"
+
+
+def test_test_now_runs_one_check_and_not_back_to_back():
+    m = monitor(ok_handler, [0, 0.040, 1, 1.012, 2, 2.020, 10, 10.1])
+
+    async def go():
+        assert m.check_now() is True
+        assert m.check_now() is False          # one at a time
+        await m._manual
+        assert m.check_now() is False          # just ran (under 60 s ago)
+    asyncio.run(go())
+    assert m.view()["down_mbps"] == 80.0
+
+
+def test_test_now_route(tmp_path):
+    with make_client(tmp_path, speedtest_minutes=0) as c:
+        assert c.post("/api/system/speed/check").status_code == 409     # checks turned off
+
+
+def test_the_trend_line_survives_a_restart(tmp_path):
+    path = tmp_path / "speed_history.json"
+    client = httpx.AsyncClient(transport=httpx.MockTransport(ok_handler))
+    m = SpeedMonitor(client, sample_bytes=1_000_000, now=lambda: IST_NOON,
+                     timer=timer(0, 0.040, 1, 1.012, 2, 2.020, 10, 10.1), retry_seconds=0, history_path=path)
+    asyncio.run(m.measure())
+    again = SpeedMonitor(client, history_path=path)                     # the restart
+    assert again.view()["history"] == m.view()["history"]
+    assert again.view()["down_mbps"] == 80.0 and again.view()["status"] == "ok"

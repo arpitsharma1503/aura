@@ -271,8 +271,9 @@ def test_settings_layout(chrome, srv, artifacts, w, h):
     # Confirm dialog fits.
     p.click("#weather .s-reset")
     p.wait_for("document.getElementById('s-confirm').open")
-    assert p.js("""(() => { const r = document.getElementById('s-confirm').getBoundingClientRect();
-        return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight + 1; })()""")
+    # on phones it slides up from the bottom edge first; it has to fit once it has settled
+    p.wait_for("""(() => { const r = document.getElementById('s-confirm').getBoundingClientRect();
+        return r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight + 1; })()""", timeout=3)
     p.click("#sc-cancel")
     assert p.errors == [], p.errors
 

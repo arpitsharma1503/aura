@@ -598,6 +598,11 @@
       const cfg = await api("/api/config");
       state.filter = readFilter(cfg.groceries?.default_filter || "needed");
       document.body.classList.toggle("force-reduce", cfg.display?.reduced_motion === "reduce");
+      // the dashboard's wallpaper (your photo, or AURA's teal)
+      const d = cfg.display, photo = d?.background === "image" && d.background_version;
+      document.body.dataset.wallpaper = photo ? "image" : "aura";
+      document.querySelector(".ambient").style.backgroundImage = photo ? `url("/api/display/background?v=${encodeURIComponent(d.background_version)}")` : "";
+      document.body.style.setProperty("--wall-dim", String((d?.background_dim ?? 40) / 100));
     } catch { /* keep default */ }
     await load(true);
     loadSuggestions();

@@ -228,8 +228,12 @@ window.AuraDetail = (() => {
     pan.busy = false;
     refresh("calendar");
   }
+  const CHEV = { "‹": "m15 6-6 6 6 6", "›": "m9 6 6 6-6 6" };   // SF-style chevrons in a round button
   function pBtn(label, aria, fn) {                 // h() sets attributes only; handlers go on with addEventListener (CSP)
-    const b = h("button", { type: "button", class: "btn", "aria-label": aria }, label);
+    const b = CHEV[label]
+      ? h("button", { type: "button", class: "btn btn--icon", "aria-label": aria,
+          html: `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${CHEV[label]}"/></svg>` })
+      : h("button", { type: "button", class: "btn", "aria-label": aria }, label);
     b.addEventListener("click", fn);
     return b;
   }

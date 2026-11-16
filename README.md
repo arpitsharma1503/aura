@@ -217,6 +217,15 @@ buttons stay pinned to the bottom of the screen, and leaving the page asks first
 
 ### Wi-Fi management
 
+**Staying reachable on Wi-Fi** (`deploy/wifi-guard`, installed once with
+`sudo sh deploy/wifi-guard/install.sh`; undo with `uninstall.sh`). On 14 Nov 2026 the Pi
+twice stayed up but lost Wi-Fi for hours and never reconnected on its own. The installer:
+- turns Wi-Fi power saving off for every network (the Pi's Wi-Fi chip drops off with it on);
+- adds the Wi-Fi guard: every minute it pings the router; after 3 misses it restarts the
+  Wi-Fi radio, after 6 NetworkManager, after 9 the Wi-Fi driver. It never reboots the Pi.
+  See what it did: `journalctl -t aura-wifi-guard`;
+- keeps system logs across reboots (capped at 200 MB): `journalctl -b -1` shows the last boot.
+
 This Pi uses **NetworkManager**. AURA can join a Wi-Fi network for you without
 `sudo`, because Raspberry Pi OS lets a user in the `netdev`/`sudo` group with an
 active local desktop session (the automatic login) manage networks. If that
@@ -340,7 +349,7 @@ native rendering, and it uses no Apple assets.
   - Choose a photo (JPEG, PNG or WebP, up to 12 MB; phones convert HEIC photos to JPEG
     when uploading) and the glass frosts it.
   - **Dim** (0–80%) keeps text readable over bright pictures.
-  - Switching back to *AURA light* keeps the picture for later; **Remove picture** deletes it.
+  - Switching back to *AURA teal* keeps the picture for later; **Remove picture** deletes it.
   - The picture is checked from its own bytes (not its name), stored as
     `data/background.<ext>`, and only people with edit access can change it.
 - **Pi performance** (measured on the Pi's Chromium, which renders in software here; the

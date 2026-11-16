@@ -50,3 +50,19 @@ def test_data_folder_is_private(tmp_path):
     (tmp_path / "data").chmod(0o775)
     make_client(tmp_path / "data")
     assert stat.S_IMODE((tmp_path / "data").stat().st_mode) == 0o700
+
+
+def test_outgoing_connections_that_fail_to_open_are_tried_again(tmp_path, monkeypatch):
+    """Seen 15 Nov: short Wi-Fi stalls gave ConnectTimeouts to several services at once."""
+    import httpx
+    import app.main as main
+    from conftest import make_settings
+    seen = {}
+    real = httpx.AsyncHTTPTransport
+
+    def spy(**kw):
+        seen.update(kw)
+        return real(**kw)
+    monkeypatch.setattr(main.httpx, "AsyncHTTPTransport", spy)
+    main.create_app(make_settings(tmp_path))          # not started: nothing goes out
+    assert seen.get("retries") == main.CONNECT_RETRIES == 2

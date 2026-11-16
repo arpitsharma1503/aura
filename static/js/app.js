@@ -465,7 +465,15 @@
     for (const st of stats) st.dataset.k = st.querySelector("dt")?.textContent.toLowerCase().replace(/\s+/g, "-") ?? "";   // home.css picks three
     $("weather-stats").replaceChildren(...stats);
     const aqiEl = stats.at(-1);
-    if (w.air_quality) aqiEl.title = `US AQI · ${w.air_quality.category}`;
+    if (w.air_quality) {
+      aqiEl.title = `US AQI · ${w.air_quality.category}`;
+      // the level in words and colour (Good … Hazardous), not just a number
+      aqiEl.dataset.level = w.air_quality.category.toLowerCase().replace(/[^a-z]+/g, "-");
+      const cat = document.createElement("dd");
+      cat.className = "weather__aqi-cat";
+      cat.textContent = w.air_quality.category;
+      aqiEl.append(cat);
+    }
 
     const now = Date.now();
     const upcoming = w.hourly.filter((h) => new Date(h.time).getTime() > now).slice(0, 6);
@@ -981,6 +989,7 @@
     $("panchang-hi").textContent = `${t.paksha_hi} · ${t.name_hi}`;
     $("panchang-en").textContent = `${t.paksha_en.replace(" Paksha", "")} ${t.name_en} · until ${clockTime(new Date(t.end))}`;
     box.setAttribute("aria-label", `Tithi: ${t.paksha_en} ${t.name_en}, until ${clockTime(new Date(t.end))}. Open the Panchang`);
+    renderGlance();                                  // the calendar tile shows the Hindi tithi too
   }
 
   async function loadCalendar() {
@@ -1126,6 +1135,92 @@
       state.speed = await fetchJSON("/api/system/speed");
     } catch { /* keep the last reading */ }
     renderStatus();
+    if ($("net-dialog").open) renderNet();
+  }
+
+  // ---------- Internet sheet (tap the Internet pill): speed, ping, trend, Wi-Fi band, Test now ----------
+
+  const ago = (iso) => {
+    if (!iso) return "—";
+    const m = Math.round((Date.now() - new Date(iso)) / 60000);
+    return m < 1 ? "Just now" : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)} h ${m % 60} min ago`;
+  };
+
+  async function openNet() {
+    renderNet();
+    const dlg = $("net-dialog");
+    if (!dlg.open) dlg.showModal();
+    try { state.network = await fetchJSON("/api/system/network"); } catch { /* Wi-Fi line stays "—" */ }
+    renderNet();
+  }
+
+  function renderNet() {
+    const sp = state.speed || {}, net = state.network;
+    const ok = sp.status === "ok";
+    $("net-down").textContent = ok ? fmtMbps(sp.down_mbps) : sp.status === "offline" ? "0" : "—";
+    const q = sp.quality;
+    const badge = $("net-badge");
+    badge.dataset.level = sp.checking ? "checking" : sp.status === "offline" ? "slow" : q?.level || "";
+    badge.textContent = sp.checking ? "Checking…" : sp.status === "offline" ? "No internet" : q?.label || "Waiting";
+    $("net-detail").textContent = sp.status === "offline" ? "The last check couldn't reach the internet." : q?.detail || sp.message || "";
+    $("net-ping").textContent = ok ? `${sp.ping_ms} ms` : "—";
+    $("net-when").textContent = ago(sp.measured_at || sp.failed_at);
+    const band = net?.wifi_freq_mhz ? (net.wifi_freq_mhz >= 5000 ? "5 GHz" : "2.4 GHz") : null;
+    const wired = net?.default_interface && !String(net.default_interface).startsWith("wl");
+    $("net-wifi").textContent = wired ? "Cable" : net?.wifi_connected ? [band, net.wifi_signal != null ? `${net.wifi_signal}%` : null].filter(Boolean).join(" · ") : "—";
+    const tip = $("net-tip");
+    tip.hidden = !(band === "2.4 GHz" && !wired && q && q.level !== "good");
+    tip.textContent = "The Pi is on 2.4 GHz Wi-Fi, which is slower and busier. A 5 GHz network or a network cable makes AURA faster and steadier.";
+    drawSpark(sp.history || []);
+    const test = $("net-test");
+    test.disabled = !!sp.checking || sp.status === "off";
+    test.textContent = sp.checking ? "Testing…" : "Test now";
+    $("net-foot").textContent = sp.status === "off" ? "Speed checks are turned off."
+      : `Measured on the Pi every ${sp.every_minutes || 10} min (${sp.source || "Cloudflare speed test"}). On Wi-Fi, other devices may be faster.`;
+  }
+
+  function drawSpark(hist) {
+    const svg = $("net-spark");
+    const vals = hist.map((x) => x.down_mbps);
+    const good = vals.filter((v) => v != null);
+    $("net-range").textContent = good.length ? `${fmtMbps(Math.min(...good))}–${fmtMbps(Math.max(...good))} Mbps` : "";
+    if (good.length < 2) { svg.innerHTML = `<text x="150" y="40" text-anchor="middle" class="net-spark__empty">The line fills in as checks run</text>`; return; }
+    const max = Math.max(...good) * 1.15, n = vals.length, W = 300, H = 70, pad = 6;
+    const xy = (v, i) => [pad + (i * (W - 2 * pad)) / Math.max(1, n - 1), H - pad - (v / max) * (H - 2 * pad)];
+    let d = "", pen = false;
+    vals.forEach((v, i) => {
+      if (v == null) { pen = false; return; }
+      const [x, y] = xy(v, i); d += `${pen ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`; pen = true;
+    });
+    const last = vals.length - 1 - [...vals].reverse().findIndex((v) => v != null);
+    const [lx, ly] = xy(vals[last], last);
+    const miss = vals.map((v, i) => (v == null ? `<circle class="net-spark__miss" cx="${xy(0, i)[0].toFixed(1)}" cy="${H - pad}" r="3"/>` : "")).join("");
+    svg.innerHTML = `<path class="net-spark__line" d="${d}" vector-effect="non-scaling-stroke"/>${miss}<circle class="net-spark__dot" cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5"/>`;
+  }
+
+  async function testNow() {
+    const btn = $("net-test");
+    btn.disabled = true; btn.textContent = "Testing…";
+    try {
+      state.speed = await fetchJSON("/api/system/speed/check", { method: "POST" });
+      if (!state.speed.started && !state.speed.checking) $("net-foot").textContent = "A check just ran. Try again in a minute.";
+    } catch (e) { $("net-foot").textContent = `Couldn't start a check: ${e.message}`; }
+    renderStatus(); renderNet();
+    if (!state.speed?.started) return;
+    if (!state.speed.checking) { state.speed.checking = true; renderNet(); }   // the "speed" event brings the result
+  }
+
+  function wireNet() {
+    $("net-close").addEventListener("click", () => $("net-dialog").close());
+    $("net-dialog").addEventListener("click", (e) => { if (e.target === e.currentTarget) e.currentTarget.close(); });
+    $("net-test").addEventListener("click", testNow);
+    $("net-more").addEventListener("click", () => { $("net-dialog").close(); Detail.open("system"); });
+    $("status-row").addEventListener("click", (e) => {        // before the tiles' "open a detail" listener
+      const b = e.target.closest('[data-open="internet"]');
+      if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      openNet();
+    });
   }
 
   // ---------- network protection (read-only Pi-hole status) ----------
@@ -1219,7 +1314,7 @@
 
   function renderStatus() {
     const caps = [];
-    const cap = (iconName, label, value, open, tone, kind = "") => caps.push({ iconName, label, value, open, tone, kind });
+    const cap = (iconName, label, value, open, tone, kind = "", level = "") => caps.push({ iconName, label, value, open, tone, kind: kind || "", level: level || "" });
     const w = state.weather?.data;
     if (w) {
       cap("cloud", w.city || "Weather", `${fmtTemp(w.current.temperature_c)} ${w.current.description}`, "weather", "var(--tone-sky)");
@@ -1255,8 +1350,9 @@
       else cap("shield", "Ad blocking", ps.capsule, "protection", "var(--tone-teal)");
     }
     const sp = state.speed;     // measured on the Pi every few minutes (app/speedtest.py)
-    if (sp?.status === "ok") cap("gauge", "Internet", `↓ ${fmtMbps(sp.down_mbps)} Mbps · ${sp.ping_ms} ms`, "system", "var(--tone-sky)");
-    else if (sp?.status === "offline") cap("wifi", "Internet", "No internet", "system", "var(--tone-sky)", "alert");
+    if (sp?.checking) cap("gauge", "Internet", "Checking speed…", "internet", "var(--tone-sky)", null, "checking");
+    else if (sp?.status === "ok") cap("gauge", "Internet", `↓ ${fmtMbps(sp.down_mbps)} Mbps · ${sp.ping_ms} ms`, "internet", "var(--tone-sky)", null, sp.quality?.level);
+    else if (sp?.status === "offline") cap("wifi", "Internet", "No internet", "internet", "var(--tone-sky)", "alert", "slow");
     const onScreen = (open) => !!document.querySelector(`#tiles .tile[data-open="${open}"]:not([hidden])`);
     // Every view is calm: only alerts (not already on a tile) and the internet speed.
     const shown = caps.filter((x) => x.label === "Internet" || (x.kind === "alert" && !onScreen(x.open)));
@@ -1267,6 +1363,7 @@
       b.className = "status__btn";
       b.dataset.open = x.open;
       if (x.kind) b.dataset.kind = x.kind;
+      if (x.level) b.dataset.level = x.level;            // Internet pill: good / ok / slow / checking
       b.style.setProperty("--tone", x.tone);
       b.setAttribute("aria-label", `${x.label}: ${x.value}`);
       b.innerHTML = `<span class="status__icon" aria-hidden="true">${icon(x.iconName)}</span><span class="status__text"><span class="status__label"></span><span class="status__value"></span></span>`;
@@ -1310,6 +1407,9 @@
     } else if (cal) {
       facts.calendar = ["Nothing planned", "Calendar"];
     }
+    // Today's Hindi paksha and tithi under the calendar fact (from the Panchang, once the location is set)
+    const tithi = state.panchang?.now?.tithi;
+    if (facts.calendar && tithi) facts.calendar[2] = `${tithi.paksha_hi} · ${tithi.name_hi}`;
     const open = (state.groceries?.items || []).filter((i) => !i.purchased).length;
     if (state.groceries) facts.groceries = [open ? String(open) : "All done", open ? "to buy" : "Nothing to buy"];
     const sh = state.smarthome;
@@ -1331,18 +1431,21 @@
     for (const id of GLANCE_TILES) facts[id] ??= document.querySelector(`#tiles [data-tile="${id}"] .glance`) ? undefined : ["—", "Loading…"];
     for (const [id, fact] of Object.entries(facts)) {
       if (!fact) continue;
-      const [big, line] = fact;
+      const [big, line, hi] = fact;
       const tile = document.querySelector(`#tiles [data-tile="${id}"]`);
       if (!tile) continue;
       let g = tile.querySelector(".glance");
       if (!g) {
         g = document.createElement("div");
         g.className = "glance";
-        g.innerHTML = `<b class="glance__big"></b><span class="glance__line"></span>`;
+        g.innerHTML = `<b class="glance__big"></b><span class="glance__line"></span><span class="glance__hi" lang="hi" hidden></span>`;
         tile.append(g);
       }
       g.querySelector(".glance__big").textContent = big;
       g.querySelector(".glance__line").textContent = line;
+      const hiEl = g.querySelector(".glance__hi");
+      hiEl.textContent = hi || "";
+      hiEl.hidden = !hi;
     }
   }
 
@@ -1621,7 +1724,8 @@
     const ctx = c.getContext("2d");
     const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight) * 1.08;   // cover, with bleed for the blur edge
     const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
-    ctx.filter = `blur(${Math.round(18 * W / innerWidth * 1.6)}px) saturate(160%)`;
+    // a light blur: the photo stays recognisable through the glass (the old 18 px turned it to mush)
+    ctx.filter = `blur(${Math.round(7 * W / innerWidth * 1.6)}px) saturate(140%)`;
     ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
     ctx.filter = "none";
     ctx.fillStyle = `rgba(4, 6, 12, ${state.wallDim ?? 0.4})`;
@@ -1658,6 +1762,7 @@
   wireViews();
   startClock();
   wireDialog();
+  wireNet();
   Detail.init({
     config: () => state.config,
     weather: () => state.weatherPayload,

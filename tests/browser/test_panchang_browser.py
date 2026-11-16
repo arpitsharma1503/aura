@@ -59,6 +59,23 @@ def test_no_location_leaves_the_calendar_as_it_was(chrome, srv):
     assert "Panchang unavailable" in p.text("#dsec-panchang") and "home location" in p.text("#dsec-panchang")
 
 
+def test_home_calendar_tile_shows_hindi_paksha_and_tithi(chrome, srv):
+    p = dashboard(chrome, srv, fixtures={"/api/panchang": TODAY})
+    p.wait_for("document.getElementById('tiles').dataset.view === 'home'")
+    p.wait_for("!document.querySelector('#tiles [data-tile=calendar] .glance__hi')?.hidden", timeout=10)
+    hi = "#tiles [data-tile=calendar] .glance__hi"
+    assert p.text(hi) == "शुक्ल पक्ष · चतुर्दशी"
+    assert p.js(f"document.querySelector('{hi}').lang") == "hi"
+    assert p.js(f"document.querySelector('{hi}').getBoundingClientRect().height") > 10   # visible, not clipped away
+
+
+def test_home_calendar_tile_without_location_has_no_hindi_line(chrome, srv):
+    p = dashboard(chrome, srv)
+    p.wait_for("window.performance.getEntriesByType('resource').some(r => r.name.includes('/api/panchang'))", timeout=10)
+    p.wait_for("!!document.querySelector('#tiles [data-tile=calendar] .glance')", timeout=10)
+    assert p.js("document.querySelector('#tiles [data-tile=calendar] .glance__hi').hidden") is True
+
+
 def test_tithi_in_the_tile_and_the_panchang_panel(chrome, srv, artifacts):
     other = payload(date(2026, 10, 26), NOW)
     p = dashboard(chrome, srv, fixtures={"/api/panchang?date=2026-10-26": other, "/api/panchang": TODAY})

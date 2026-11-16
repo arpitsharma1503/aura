@@ -124,3 +124,16 @@ def test_readme_documents_operations():
                 "systemctl --user start aura", "journalctl --user-unit aura", "deploy/install.sh",
                 "deploy/uninstall.sh", "aura-kiosk.log", "power"):
         assert cmd in text, cmd
+
+
+def test_wifi_guard_scripts_are_valid_and_never_reboot():
+    """deploy/wifi-guard: keeps the Pi reachable on Wi-Fi (seen dropping for hours on 14 Nov).
+    It may restart Wi-Fi, NetworkManager or the driver, but must never reboot the Pi."""
+    import subprocess
+    d = ROOT / "deploy" / "wifi-guard"
+    for name in ("aura-wifi-guard.sh", "install.sh", "uninstall.sh"):
+        assert subprocess.run(["sh", "-n", str(d / name)]).returncode == 0, name
+    guard = (d / "aura-wifi-guard.sh").read_text()
+    assert "reboot" not in guard.replace("never reboots", "").lower() and "shutdown" not in guard
+    install = (d / "install.sh").read_text()
+    assert "wifi.powersave = 2" in install and "Storage=persistent" in install and "OnUnitActiveSec=1min" in install

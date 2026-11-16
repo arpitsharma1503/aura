@@ -801,3 +801,353 @@ body.s-page .s-wifi #wifi-msg:empty { display: none; }
 body.s-page .s-wifi .s-nets { margin: 0; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }
 body.s-page .s-wifi__rescan { align-self: flex-start; }
 body.s-page .s-wifi .s-net-form .s-actions .btn { min-width: 6rem; }
+
+/* ---------- your own photo as the wallpaper ----------
+   the deep-teal tint is for the teal wallpaper; over a photo the glass is clear and neutral so
+   the picture shows through (text contrast comes from "Dim the picture" in Settings → Display) */
+body.dash[data-wallpaper="image"] {
+  --home-tile: rgba(255, 255, 255, 0.07);
+  --home-tile-hover: rgba(255, 255, 255, 0.12);
+  --home-chip: rgba(0, 0, 0, 0.28);
+  --home-chip-hover: rgba(0, 0, 0, 0.38);
+  background: #0b0f14; }
+body.dash[data-wallpaper="image"] .tile, body.dash[data-wallpaper="image"] .side { text-shadow: 0 1px 10px rgba(0, 0, 0, 0.35); }
+
+/* ---------- Settings and Groceries: on the dashboard's theme ----------
+   white accents (the amber was the old look), and the same wallpaper as the dashboard: AURA's
+   teal, or the household's photo (dimmed as set in Display) behind neutral glass */
+body.s-page, body.g-page { --accent: #ffffff; accent-color: #ffffff; }
+:is(body.s-page, body.g-page) input[type="checkbox"], :is(body.s-page, body.g-page) input[type="radio"],
+:is(body.s-page, body.g-page) input[type="range"] { accent-color: #ffffff; }
+body.s-page[data-wallpaper="image"], body.g-page[data-wallpaper="image"] { background: #0b0f14; }
+body.s-page[data-wallpaper="image"] .ambient, body.g-page[data-wallpaper="image"] .ambient { display: block; }
+body.s-page[data-wallpaper="image"] :is(.s-card, .s-nav), body.g-page[data-wallpaper="image"] .g-items {
+  background-color: rgba(10, 12, 16, 0.5); }
+/* the amber leftovers, in white */
+:is(body.s-page, body.g-page) .s-choice label:has(input:checked), :is(body.s-page, body.g-page) .s-days label:has(input:checked) {
+  border-color: rgba(255, 255, 255, 0.75); background: rgba(255, 255, 255, 0.16); }
+body.s-page .s-switch input:checked { background: #fff; }
+body.s-page .s-switch input:checked::after { background: #0e3b36; }
+body.s-page .s-net:hover, body.s-page .s-net:focus-visible { border-color: transparent; }
+body.s-page .s-connect { border-color: rgba(255, 255, 255, 0.3); }
+body.s-page .s-banner { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.25); }
+body.s-page .s-card.is-dirty::before { background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.25) 40%, rgba(255, 255, 255, 0.35)); }
+:is(body.s-page, body.g-page) :focus-visible { outline-color: #fff; }
+:is(body.s-page, body.g-page) input[type="range"] { accent-color: #fff; }
+body.s-page .s-wall__dim, body.s-page input[type="range"] { filter: none; }
+
+/* ---------- popups and sheets: one look per wallpaper (regression pass) ----------
+   deep teal glass on AURA's teal; neutral dark glass over the household's photo. Applies to the
+   dashboard's detail sheet and location dialog, Settings' Wi-Fi and confirm, Groceries' sheets. */
+:is(body.dash, body.s-page, body.g-page) { --sheet-bg: rgba(10, 52, 47, 0.97); --sheet-line: rgba(255, 255, 255, 0.1); }
+:is(body.dash, body.s-page, body.g-page)[data-wallpaper="image"] { --sheet-bg: rgba(20, 22, 26, 0.96); }
+:is(body.dash, body.s-page, body.g-page) :is(.sheet, .detail) {
+  background: var(--sheet-bg) !important; color: #fff; border: 0; border-radius: 1.6rem;
+  box-shadow: 0 30px 70px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.22); }
+:is(body.dash, body.s-page, body.g-page) :is(.sheet, .detail)::before { display: none; }
+:is(body.dash, body.s-page, body.g-page) :is(.sheet, .detail)::backdrop { background: rgba(2, 10, 9, 0.55); }
+:is(body.dash, body.s-page, body.g-page) .sheet :is(h2, .sheet__title, #loc-title, #g-edit-title) { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+:is(body.dash, body.s-page, body.g-page) .sheet .sheet__label, :is(body.dash, body.s-page, body.g-page) .sheet .sheet__meta { color: var(--home-grey); }
+:is(body.dash, body.s-page, body.g-page) .sheet :is(input:not([type="checkbox"], [type="radio"], [type="range"]), select, textarea) {
+  background: rgba(0, 0, 0, 0.28); border: 1px solid transparent; border-radius: 0.8rem; color: #fff; }
+:is(body.dash, body.s-page, body.g-page) .sheet :is(input, select, textarea):focus { border-color: rgba(255, 255, 255, 0.7); outline: none; }
+:is(body.dash, body.s-page, body.g-page) .sheet .btn { background: rgba(255, 255, 255, 0.14); color: #fff; border: 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+:is(body.dash, body.s-page, body.g-page) .sheet .btn::before { display: none; }
+:is(body.dash, body.s-page, body.g-page) .sheet .btn--primary { background: #fff; color: #0e3b36; }
+:is(body.dash, body.s-page, body.g-page) .sheet .sheet__close { color: #fff; background: rgba(255, 255, 255, 0.12); border-radius: 50%; }
+@media (max-width: 699px) { body.g-page .g-sheet { border-radius: 1.6rem 1.6rem 0 0; } }
+body.dash[data-wallpaper="image"] .detail :is(.dmetric, .mp-meal, .sh-cand, .sh-scene) { background: rgba(255, 255, 255, 0.07); }
+
+/* the last amber on the dashboard, in the white of the theme */
+body.dash { --accent: #ffffff; }
+body.dash .asst__orb { background: #fff; color: #0e3b36; box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.25); }
+body.dash .mp-hindi { color: var(--home-grey); }
+body.dash .mp-seg__btn[aria-checked="true"] { background: #fff !important; color: #0e3b36 !important; }
+body.dash .btn--primary { background: #fff; color: #0e3b36; box-shadow: none; }
+
+/* ---------- Home's weather tile, round 3: more to read at a glance ----------
+   the next hours down the right, four facts along the bottom (feels like, rain, humidity, AQI),
+   and the AQI with its level in words and colour */
+body.dash #tiles[data-view="home"] .weather .weather__content {
+  display: grid !important; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr auto;
+  align-items: end; column-gap: 1.6rem; row-gap: 1rem; }
+body.dash #tiles[data-view="home"] .weather .weather__now { grid-column: 1; grid-row: 1; align-self: end; }
+body.dash #tiles[data-view="home"] .weather .hourly {
+  display: grid !important; grid-column: 2; grid-row: 1; align-self: center;
+  grid-template-columns: auto auto auto; grid-auto-rows: auto; column-gap: 0.9rem; row-gap: 0.15rem; align-items: center;
+  padding: 0.6rem 1rem; border-radius: 1.1rem; background: rgba(0, 0, 0, 0.18); }
+body.dash #tiles[data-view="home"] .weather .hourly li { display: contents; }
+body.dash #tiles[data-view="home"] .weather .hourly li:nth-child(n+6) { display: none; }
+body.dash #tiles[data-view="home"] .weather .hourly__time { color: var(--home-grey); font-size: 0.95rem; text-align: left; }
+body.dash #tiles[data-view="home"] .weather .hourly__icon { width: 1.8rem; height: 1.8rem; }
+body.dash #tiles[data-view="home"] .weather .hourly__temp { font-size: 1.15rem; font-weight: 650; text-align: right; }
+body.dash #tiles[data-view="home"] .weather .hourly__rain { display: none; }
+body.dash #tiles[data-view="home"] .weather .weather__stats { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+body.dash #tiles[data-view="home"] .weather .weather__stats > :not([data-k="feels-like"], [data-k="rain"], [data-k="humidity"], [data-k="aqi"]) { display: none; }
+body.dash #tiles[data-view="home"] .weather .weather__stats > [data-k="humidity"] { display: block; }
+.weather__aqi-cat { display: none; }
+body.dash #tiles[data-view="home"] .weather .weather__aqi-cat { display: block; margin: 0.1rem 0 0; font-size: 0.8rem; font-weight: 600; }
+/* AQI colours (US EPA bands), as a dot and the level's text */
+body.dash .weather__stats [data-k="aqi"] dd:first-of-type::before { content: ""; display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%;
+  margin-right: 0.35em; vertical-align: 0.15em; background: var(--aqi, #9aa); }
+body.dash .weather__stats [data-level="good"] { --aqi: #4cd964; }
+body.dash .weather__stats [data-level="moderate"] { --aqi: #ffd60a; }
+body.dash .weather__stats [data-level="unhealthy-for-sensitive-groups"] { --aqi: #ff9f0a; }
+body.dash .weather__stats [data-level="unhealthy"] { --aqi: #ff6b5e; }
+body.dash .weather__stats [data-level="very-unhealthy"] { --aqi: #c084fc; }
+body.dash .weather__stats [data-level="hazardous"] { --aqi: #d9466b; }
+body.dash .weather__stats [data-level] .weather__aqi-cat { color: var(--aqi); }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .weather .hourly__time { font-size: calc(var(--u) * 1); }
+  body.dash #tiles[data-view="home"] .weather .hourly__temp { font-size: calc(var(--u) * 1.25); }
+  body.dash #tiles[data-view="home"] .weather .hourly__icon { width: calc(var(--u) * 2); height: calc(var(--u) * 2); }
+  body.dash #tiles[data-view="home"] .weather .hourly { row-gap: calc(var(--u) * 0.25); }
+  body.dash #tiles[data-view="home"] .weather .weather__aqi-cat { font-size: calc(var(--u) * 0.75); }
+}
+/* phones: the next hours as a row between the reading and the facts */
+@media not ((min-width: 1200px) and (min-aspect-ratio: 4/3)) {
+  body.dash #tiles[data-view="home"] .weather .weather__content { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; }
+  body.dash #tiles[data-view="home"] .weather .hourly { grid-column: 1; grid-row: 2; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-auto-flow: row; padding: 0.5rem; }
+  body.dash #tiles[data-view="home"] .weather .hourly li { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+  body.dash #tiles[data-view="home"] .weather .hourly__time, body.dash #tiles[data-view="home"] .weather .hourly__temp { text-align: center; font-size: 0.85rem; }
+  body.dash #tiles[data-view="home"] .weather .weather__stats { grid-row: 3; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+body.dash #tiles[data-view="home"] .weather .weather__stats dd.weather__aqi-cat { font-size: 0.82rem; font-weight: 650; letter-spacing: 0; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .weather .weather__stats dd.weather__aqi-cat { font-size: calc(var(--u) * 0.8); }
+}
+
+/* ---------- Home: one type scale for every tile ----------
+   name 1.0u/600 grey · fact 1.9u/650 white · line 1.0u/400 grey · icon 3u; the two heroes
+   (weather, clock) keep their big numbers with a 1.15u line under them. Defined last and with
+   !important because earlier per-tile rules (e.g. the status-tile glyph) were winning. */
+body.dash #tiles[data-view="home"] { --t-name: 0.95rem; --t-fact: 1.45rem; --t-line: 0.85rem; --t-icon: 1.9rem; --t-hero-line: 0.95rem; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] { --t-name: calc(var(--u) * 1); --t-fact: calc(var(--u) * 1.9); --t-line: calc(var(--u) * 1);
+    --t-icon: calc(var(--u) * 3); --t-hero-line: calc(var(--u) * 1.15); }
+}
+body.dash #tiles[data-view="home"] .tile .tile__title { font-size: var(--t-name) !important; font-weight: 600 !important; color: var(--home-grey) !important; letter-spacing: -0.01em; }
+body.dash #tiles[data-view="home"] .tile:not([data-tile="weather"]) .tile__icon { width: var(--t-icon) !important; height: var(--t-icon) !important; }
+body.dash #tiles[data-view="home"] .tile :is(.glance__big, .tile__value) { font-size: var(--t-fact) !important; font-weight: 650 !important; letter-spacing: -0.02em; line-height: 1.15; }
+body.dash #tiles[data-view="home"] .tile :is(.glance__line, .tile__sub) { font-size: var(--t-line) !important; font-weight: 400 !important; color: var(--home-grey) !important; }
+body.dash #tiles[data-view="home"] .weather .weather__range, body.dash #tiles[data-view="home"] .clock-tile__date {
+  font-size: var(--t-hero-line) !important; font-weight: 500 !important; color: var(--home-grey) !important; }
+body.dash #tiles[data-view="home"] .tile:is([data-tile="groceries"], [data-tile="meals"], [data-tile="commute"], [data-tile="smarthome"]) .tile__head { gap: 0.6rem !important; }
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .tile.tile[data-tile="smarthome"] { gap: calc(var(--u) * 0.6) !important; }
+}
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash #tiles[data-view="home"] .tile:is([data-tile="groceries"], [data-tile="meals"], [data-tile="commute"], [data-tile="smarthome"]) .tile__head { padding-top: calc(var(--u) * 0.6) !important; }
+}
+
+/* =====================================================================
+   AURA type and spacing scale (one for the whole app)
+   Sizes are rem, so they follow each page's base size (the dashboard's grows with the TV).
+     xs  0.72rem  caps labels (FEELS LIKE, BREAKFAST, section titles)   600, tracked
+     sm  0.85rem  details, meta, second lines                          400, grey
+     md  1rem     body text, tile names, buttons                       400/600
+     lg  1.2rem   list items in tiles (events, meals, advice, groceries) 550
+     xl  1.8rem   the one big fact of a tile                           650
+     2xl 1.35rem  sheet and card titles                                700
+   Hero numbers (temperature, clock, prices) keep their own sizes.
+   Spacing: tiles 1.1rem padding, 0.6rem gap; sheets 1.6rem; cards 1.6rem.
+   ===================================================================== */
+:root { --fs-xs: 0.72rem; --fs-sm: 0.85rem; --fs-md: 1rem; --fs-lg: 1.2rem; --fs-xl: 1.8rem; --fs-2xl: 1.35rem;
+        --sp-tile: 1.1rem; --sp-gap: 0.6rem; --sp-sheet: 1.6rem; }
+
+/* --- tiles (every view) --- */
+body.dash .tile { padding: var(--sp-tile) calc(var(--sp-tile) * 1.1) !important; gap: var(--sp-gap); }
+body.dash .tile .tile__title { font-size: var(--fs-md) !important; font-weight: 600 !important; }
+body.dash .tile .tile__aside { font-size: var(--fs-sm) !important; font-weight: 500 !important; }
+body.dash .tile :is(.agenda__title, .meals__name, .advice__title, .grocery__name) { font-size: var(--fs-lg) !important; font-weight: 550 !important; }
+body.dash .tile :is(.advice__detail, .meals__prep, .tile__sub, .grocery__qty, .grocery__more, .agenda__time, .agenda__more,
+  .panchang__en, .weather__meta, .commute__facts, .basis, .pt-kpi__vs, .pt-foot, .pt-spark__note) { font-size: var(--fs-sm) !important; }
+body.dash .tile :is(.meals__when, .agenda__day, .grocery__qr-label, .sysgrid dt, .weather__stats dt, .daily__day, .hourly__time, .commute__label) {
+  font-size: var(--fs-xs) !important; font-weight: 600 !important; letter-spacing: 0.06em; text-transform: uppercase; }
+body.dash .tile :is(.tile__value, .glance__big, .sysgrid dd, .weather__stats dd:first-of-type) { font-weight: 650 !important; }
+body.dash .tile :is(.tile__value, .glance__big) { font-size: var(--fs-xl) !important; line-height: 1.15; }
+body.dash .tile .sysgrid dd, body.dash .tile .weather__stats dd:first-of-type { font-size: var(--fs-lg) !important; }
+body.dash .tile .panchang__hi { font-size: var(--fs-md) !important; }
+/* Home keeps its calm grid on the same scale */
+body.dash #tiles[data-view="home"] { --t-name: var(--fs-md); --t-fact: var(--fs-xl); --t-line: var(--fs-sm); --t-hero-line: var(--fs-md); }
+
+/* --- detail sheets --- */
+body.dash .detail .detail__body { padding: var(--sp-sheet) !important; }
+body.dash .detail :is(h2, #detail-title) { font-size: var(--fs-2xl) !important; font-weight: 700 !important; }
+body.dash .detail .detail__sub, body.dash .detail :is(.dnote, small, .dday__extra) { font-size: var(--fs-sm) !important; }
+body.dash .detail :is(.dsec__title, dt, .dprio, .dsky__title, thead th) { font-size: var(--fs-xs) !important; font-weight: 600 !important; letter-spacing: 0.06em; text-transform: uppercase; }
+body.dash .detail :is(dd, .dadvice__title, .dday__name, .dday__temps, .dsky__phase) { font-size: var(--fs-lg) !important; font-weight: 600 !important; }
+body.dash .detail :is(td, tbody th, .dadvice__detail, .dday__desc, .dsky__status, .dhero__sub) { font-size: var(--fs-md) !important; }
+
+/* --- Settings and Groceries --- */
+body.s-page .s-card { padding: var(--sp-sheet) !important; gap: 1rem; }
+body.s-page .s-card__head h2, body.g-page .g-group__title { font-size: var(--fs-2xl) !important; font-weight: 700 !important; }
+body.s-page .s-sub h3 { font-size: var(--fs-md) !important; font-weight: 600 !important; }
+body.s-page :is(.s-help, .s-msg, .s-status, small, .s-preview__note), body.g-page :is(.g-sub, .g-notes) { font-size: var(--fs-sm) !important; }
+body.s-page :is(.s-grid dt, .s-preview__tile), body.g-page .g-qtytag { font-size: var(--fs-xs) !important; }
+body.s-page :is(.s-grid dd, label, legend, .s-row__main, .btn) , body.g-page :is(.g-name, .g-item__name, .btn) { font-size: var(--fs-md) !important; }
+body.g-page .g-item :is(.g-body b, .g-name) { font-size: var(--fs-lg) !important; font-weight: 500 !important; }
+body.dash #tiles .tile.tile { gap: var(--sp-gap) !important; }
+
+/* ---------- Apple shapes (audit 15 Nov) ----------
+   Icon-only buttons: 44pt circles. Text buttons and pills: capsules.
+   Fields beside a round button: capsules of the same height. Bars over a list: frosted, not see-through. */
+.btn.btn--icon { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 50%;
+  display: inline-grid; place-items: center; flex: none; }
+.btn.btn--icon svg { width: 20px; height: 20px; }
+.pan-nav { gap: 0.6rem; }
+.pan-nav .btn { min-width: 0; }
+.pan-nav__date { padding: 0 0.3rem; min-width: 0; }
+
+body.dash .status__btn, body.dash[data-wallpaper="image"][data-wall-ready] .status__btn { border-radius: 999px; }
+
+/* icon rail (TV): every item the same circle, picked or not */
+@media (min-width: 1200px) and (min-aspect-ratio: 4/3) {
+  body.dash .view-tab, body.dash .view-tab[aria-selected="true"] { border-radius: 50% !important; }
+}
+/* phone tab bar: picked item is a capsule inside the capsule bar */
+@media (max-width: 760px) {
+  body.dash .view-tab, body.dash .view-tab[aria-selected="true"] { border-radius: 999px !important; }
+}
+
+/* tap size never under 44pt, whatever the root font size */
+@media (pointer: coarse) { .tile-arrow, .s-chip__x { min-width: 44px; min-height: 44px; } }
+
+/* list rows in tiles: plain rounded rows, not half-pills */
+body.dash .tile li > button { border-radius: 10px; }
+
+/* Groceries composer: frosted bar like an iOS toolbar */
+body.g-page .g-composer {
+  background: rgba(12, 52, 48, 0.9);
+  -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.10);
+  padding-top: 0.75rem;
+}
+body.g-page[data-wallpaper="image"] .g-composer { background: rgba(18, 20, 24, 0.9); }
+body.g-page .g-row { align-items: center; }
+body.g-page .g-row input { border-radius: 999px; height: 3.2rem; padding: 0 1.2rem; box-sizing: border-box; }
+body.g-page .g-add { width: 3.2rem; height: 3.2rem; border-radius: 50%; }
+body.g-page .g-home { min-width: 44px; min-height: 44px; }
+
+/* Calendar tile: today's paksha and tithi in Hindi, under the event */
+#tiles .glance__hi { display: none; }
+#tiles[data-view="home"] .glance__hi:not([hidden]) {
+  display: block; margin-top: 0.35rem; font-size: calc(var(--t-line, 0.95rem) * 1.15); font-weight: 600; line-height: 1.35;
+  color: #f3dfb0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; align-self: stretch; }
+
+/* Floating bars follow the wallpaper too: teal glass on AURA teal, neutral dark glass over a photo
+   (phone tab bar, Settings' Save bar, the Wi-Fi popup) */
+:is(body.dash, body.s-page, body.g-page) { --bar-bg: rgba(14, 60, 55, 0.78); }
+:is(body.dash, body.s-page, body.g-page)[data-wallpaper="image"] { --bar-bg: rgba(24, 26, 30, 0.86); }
+@media (max-width: 760px) {
+  body.dash .views__tabs, body.dash[data-wallpaper="image"][data-wall-ready] .views__tabs { background: var(--bar-bg); }
+}
+body.s-page[data-wallpaper="image"] .s-card.is-dirty .s-foot { background: rgba(24, 26, 30, 0.94); }
+body.s-page .s-wifi { background: var(--sheet-bg); }
+
+/* ---------- Internet pill + sheet ---------- */
+/* pill: a quality dot by the gauge, and a gentle pulse while a check runs */
+body.dash .status__btn[data-level] .status__icon { position: relative; }
+body.dash .status__btn[data-level] .status__icon::after { content: ""; position: absolute; right: -2px; bottom: -1px; width: 9px; height: 9px;
+  border-radius: 50%; box-shadow: 0 0 0 2px rgba(10, 40, 37, 0.9); background: var(--net-dot, #8e8e93); }
+body.dash .status__btn[data-level="good"] { --net-dot: #30d158; }
+body.dash .status__btn[data-level="ok"] { --net-dot: #ffd60a; }
+body.dash .status__btn[data-level="slow"] { --net-dot: #ff6b5e; }
+body.dash .status__btn[data-level="checking"] { --net-dot: #64d2ff; }
+body.dash .status__btn[data-level="checking"] .status__icon svg { animation: net-spin 1.2s linear infinite; }
+@keyframes net-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { body.dash .status__btn[data-level="checking"] .status__icon svg { animation: none; } }
+
+/* sheet */
+.net-sheet { width: min(30rem, calc(100vw - 24px)); }
+.net-sheet .sheet__inner { display: flex; flex-direction: column; gap: 1.1rem; }
+.net-hero { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.net-hero__num { display: flex; align-items: baseline; gap: 0.4rem; }
+.net-hero__num b { font-size: 3.6rem; font-weight: 700; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+.net-hero__num span { font-size: 1.1rem; color: var(--home-grey, #a1a1a6); font-weight: 600; }
+.net-hero__side { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; max-width: 15rem; text-align: right; }
+.net-badge { font-size: 0.85rem; font-weight: 700; padding: 0.3rem 0.75rem; border-radius: 999px; background: rgba(255, 255, 255, 0.12); }
+.net-badge[data-level="good"] { background: rgba(48, 209, 88, 0.2); color: #6ee68f; }
+.net-badge[data-level="ok"] { background: rgba(255, 214, 10, 0.18); color: #ffe066; }
+.net-badge[data-level="slow"] { background: rgba(255, 107, 94, 0.2); color: #ff9b91; }
+.net-badge[data-level="checking"] { background: rgba(100, 210, 255, 0.18); color: #8fdcff; }
+.net-detail { margin: 0; font-size: 0.85rem; color: var(--home-grey, #a1a1a6); }
+.net-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 0; }
+.net-stats > div { background: rgba(255, 255, 255, 0.07); border-radius: 0.9rem; padding: 0.65rem 0.8rem; min-width: 0; }
+.net-stats dt { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--home-grey, #a1a1a6); }
+.net-stats dd { margin: 0.2rem 0 0; font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.net-trend { margin: 0; background: rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 0.75rem 0.85rem 0.55rem; }
+.net-trend figcaption { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--home-grey, #a1a1a6); margin-bottom: 0.3rem; }
+#net-spark { display: block; width: 100%; height: 4.4rem; overflow: visible; }
+.net-spark__line { fill: none; stroke: #64d2ff; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.net-spark__dot { fill: #fff; stroke: #64d2ff; stroke-width: 2; }
+.net-spark__miss { fill: #ff6b5e; }
+.net-spark__empty { fill: var(--home-grey, #a1a1a6); font-size: 11px; }
+.net-tip { margin: 0; font-size: 0.85rem; line-height: 1.4; padding: 0.7rem 0.85rem; border-radius: 0.9rem; background: rgba(255, 214, 10, 0.1); color: #ffe9a6; }
+.net-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+.net-actions .btn { flex: 1; min-width: 9rem; justify-content: center; }
+.net-foot { margin: 0; font-size: 0.75rem; color: var(--home-grey, #a1a1a6); }
+@media (max-width: 520px) {
+  .net-hero__side { align-items: flex-start; text-align: left; max-width: none; width: 100%; }
+  .net-stats dd { white-space: normal; font-size: 0.95rem; }
+}
+
+/* Commute → Departure options on phones: each slot is a two-line card that can't overlap.
+   Line 1: leave time (bold) ......... 20 min → 8:20 AM
+   Line 2: ● Moderate · Forecast ..... checked 7:45 AM */
+@media (max-width: 600px) {
+  body .detail .dtable--slots tr {
+    display: grid !important; gap: 0.25rem 0.6rem; padding: 0.65rem 0.85rem; align-items: baseline;
+    grid-template-columns: minmax(0, 1fr) max-content max-content;
+    grid-template-areas: "leave journey arrive" "traffic source checked";
+  }
+  body .detail .dtable--slots th[scope="row"] { grid-area: leave; font-weight: 600; display: flex; align-items: center; gap: 0.4rem; }
+  body .detail .dtable--slots td[data-label="Journey"] { grid-area: journey; justify-self: end; }
+  body .detail .dtable--slots td[data-label="Arrive"] { grid-area: arrive; justify-self: end; }
+  body .detail .dtable--slots td[data-label="Traffic"] { grid-area: traffic; }
+  body .detail .dtable--slots td[data-label="Source"] { grid-area: source; justify-self: end; }
+  body .detail .dtable--slots td[data-label="Checked"] { grid-area: checked; justify-self: end; }
+  body .detail .dtable--slots :is(th, td) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; }
+  body.dash .detail .dtable--slots :is(td[data-label="Traffic"], td[data-label="Source"], td[data-label="Checked"]) {
+    font-size: var(--fs-xs, 0.78rem) !important; color: var(--home-grey, #a1a1a6); }
+  body.dash .detail .dtable--slots td[data-label="Traffic"] .traffic { font-size: inherit; }
+  body .detail .dtable--slots td[data-label="Checked"]::before { content: "checked "; }
+}
+@media (max-width: 360px) {
+  body .detail .dtable--slots td[data-label="Checked"]::before { content: ""; }   /* tiny phones: just the time */
+  body.dash .detail .dtable--slots :is(th[scope="row"], td[data-label="Journey"], td[data-label="Arrive"]) { font-size: var(--fs-sm, 0.85rem) !important; }
+  body .detail .dtable--slots tr { gap: 0.25rem 0.45rem; padding: 0.6rem 0.7rem; }
+}
+
+/* ---------- Popups on phones: iPhone-style bottom sheets ----------
+   Seen 16 Nov: on a phone the popup filled the screen and then floated up 18 px while growing
+   (the desktop "zoom in" effect), which felt like a jump. Now a popup slides up from the bottom
+   edge once, sits under the status bar with the page dimmed behind it, and the page doesn't move. */
+@media (max-width: 768px), (max-height: 520px) {
+  :is(body.dash, body.s-page, body.g-page) :is(dialog.detail, dialog.sheet, dialog.s-wifi) {
+    position: fixed; inset: auto 0 0 0; margin: 0; width: 100%; max-width: 100%;
+    max-height: calc(100% - max(12px, env(safe-area-inset-top)) - 8px);
+    border-radius: 1.6rem 1.6rem 0 0 !important; border: 0;
+    animation: aura-sheet-up 380ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  /* the full views (weather, commute, calendar...) take the whole height under the status bar */
+  :is(body.dash, body.s-page, body.g-page) dialog.detail {
+    top: calc(max(12px, env(safe-area-inset-top)) + 8px); bottom: 0; height: auto; max-height: none;
+  }
+  :is(body.dash, body.s-page, body.g-page) dialog.detail .detail__inner { height: 100%; max-height: 100%; }
+  :is(body.dash, body.s-page, body.g-page) dialog.detail .detail__head { padding-top: 14px; }
+  :is(body.dash, body.s-page, body.g-page) :is(dialog.detail, dialog.sheet, dialog.s-wifi)::backdrop { animation: aura-fade-in 300ms ease both; }
+  /* a small grab handle, like iOS sheets */
+  :is(body.dash, body.s-page, body.g-page) :is(dialog.detail, dialog.sheet, dialog.s-wifi)::after {
+    content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 5px; margin-left: -18px;
+    border-radius: 3px; background: rgba(255, 255, 255, 0.28); pointer-events: none; }
+  :is(dialog.sheet, dialog.s-wifi) { padding-bottom: env(safe-area-inset-bottom); }
+}
+@keyframes aura-sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes aura-fade-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  :is(dialog.detail, dialog.sheet, dialog.s-wifi), :is(dialog.detail, dialog.sheet, dialog.s-wifi)::backdrop { animation: none !important; }
+}
+/* the page behind an open popup stays where it is (no scrolling or bouncing underneath) */
+html:has(dialog[open]), html:has(dialog[open]) body { overflow: hidden; overscroll-behavior: none; }
+dialog .detail__body, dialog.sheet .sheet__inner, dialog.s-wifi { overscroll-behavior: contain; }

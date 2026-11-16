@@ -489,8 +489,8 @@
   }
 
   // ---------- wallpaper (Display) ----------
-  // The picture is uploaded as soon as it's chosen; choosing "AURA light" or changing the dim
-  // is an ordinary setting saved with Save. Removing the picture switches back to AURA light.
+  // The picture is uploaded as soon as it's chosen; choosing "AURA teal" or changing the dim
+  // is an ordinary setting saved with Save. Removing the picture switches back to AURA teal.
   function renderWallpaper() {
     const d = state.settings?.display || {};
     const has = !!d.background_version;
@@ -526,7 +526,7 @@
     } finally { $("wall-file").value = ""; }
   }
   async function removeWallpaper() {
-    if (!(await confirmDialog("Remove your picture?", "The dashboard goes back to AURA light. You can upload a picture again any time.", "Remove"))) return;
+    if (!(await confirmDialog("Remove your picture?", "The dashboard goes back to AURA teal. You can upload a picture again any time.", "Remove"))) return;
     try {
       const res = await api("/api/display/background", { method: "DELETE" });
       state.settings.display = res.display;
@@ -927,6 +927,7 @@
       $("s-load").hidden = true;
       $("s-main").hidden = false;
       dispatchEvent(new Event("scroll"));                       // mark the section on screen in the menu
+      applyPageWallpaper(cfg.display);                           // same wallpaper as the dashboard
       if (!data.can_edit) lock();
       if (location.hash) document.querySelector(location.hash)?.scrollIntoView();
     } catch (err) {
@@ -937,6 +938,14 @@
     loadNetwork();
     loadDnsFilter();
     loadSystem();
+  }
+
+  // ---------- wallpaper: Settings shows the dashboard's (your photo, or AURA's teal) ----------
+  function applyPageWallpaper(d) {
+    const on = d?.background === "image" && d.background_version;
+    document.body.dataset.wallpaper = on ? "image" : "aura";
+    document.querySelector(".ambient").style.backgroundImage = on ? `url("/api/display/background?v=${encodeURIComponent(d.background_version)}")` : "";
+    document.body.style.setProperty("--wall-dim", String((d?.background_dim ?? 40) / 100));
   }
 
   // ---------- section menu: an icon per section, and the section on screen is marked ----------

@@ -32,6 +32,7 @@ log = logging.getLogger(__name__)
 
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+AQ_RETRY_DELAY = 1.5  # seconds before the one retry of a failed air-quality call
 ATTRIBUTION = "Weather data by Open-Meteo.com (CC BY 4.0)"
 
 CURRENT_VARS = (
@@ -235,6 +236,13 @@ class OpenMeteoProvider:
             if isinstance(forecast, (httpx.HTTPError, ValueError)):
                 raise WeatherProviderError("Weather service unavailable") from forecast
             raise forecast
+        if isinstance(aq, (httpx.TransportError, httpx.HTTPStatusError)):
+            # one quick second try: a dropped connection or a slow DNS answer is often gone a moment later
+            await asyncio.sleep(AQ_RETRY_DELAY)
+            try:
+                aq = await self._get(AIR_QUALITY_URL, aq_params)
+            except Exception as exc:  # noqa: BLE001 - air quality is optional
+                aq = exc
         if isinstance(aq, BaseException):
             # Air quality is optional; weather still works without it.
             log.warning("Air quality unavailable: %r", aq)

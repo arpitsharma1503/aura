@@ -342,8 +342,8 @@ FAKE_NMCLI = textwrap.dedent(r'''
         out(f"eth0:ethernet:{{st.get('eth', 'connected')}}:wired\nwlan0:wifi:{{st.get('wlan', 'disconnected')}}:{{st.get('wlan_con', '')}}\n")
     if a[:1] == ["-f"] and a[1] == "IP4.ADDRESS":
         out("IP4.ADDRESS[1]:192.168.1.20/24\n")
-    if a[:1] == ["-f"] and a[1] == "IN-USE,SSID,SIGNAL":
-        out(f"*:{{st.get('wlan_ssid', '')}}:70\n" if st.get("wlan") == "connected" else "")
+    if a[:1] == ["-f"] and a[1] == "IN-USE,SSID,SIGNAL,FREQ,RATE":
+        out(f"*:{{st.get('wlan_ssid', '')}}:70:2437 MHz:130 Mbit/s\n" if st.get("wlan") == "connected" else "")
     if a[:1] == ["-f"] and a[1] == "IN-USE,SSID,SIGNAL,SECURITY,FREQ":
         out(" :Cafe\\:Guest:40::2412 MHz\n :Home Net:90:WPA2:5180 MHz\n :Home Net:60:WPA2:2437 MHz\n :Office:55:WPA2 802.1X:2412 MHz\n :Old:30:WEP:2412 MHz\n")
     if a[:1] == ["-f"] and a[1] == "NAME,TYPE":
@@ -481,3 +481,12 @@ def test_wifi_from_home_devices_does_not_open_door_unlocking(tmp_path):
     phone = client_for(tmp_path, client_ip="192.168.1.50")
     r = phone.post("/api/smarthome/devices/lock.front_door/command", json={"action": "unlock", "confirm": True, "request_id": "test-unlock-01"})
     assert r.status_code == 403
+
+
+def test_status_reports_the_wifi_band_and_link_rate(nm):
+    """The Internet sheet says whether the Pi is on 2.4 GHz or 5 GHz (a slow 2.4 GHz link was the cause of drops)."""
+    svc, set_state, _ = nm
+    set_state(eth="disconnected", wlan="connected", wlan_ssid="Home Net", wlan_con="home")
+    st = run(svc.status())
+    assert st.wifi_ssid == "Home Net" and st.wifi_signal == 70
+    assert st.wifi_freq_mhz == 2437 and st.wifi_rate_mbps == 130

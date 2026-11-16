@@ -140,6 +140,9 @@ def build_provider(name: str, client: httpx.AsyncClient) -> WeatherProvider | No
     return None
 
 
+CONNECT_RETRIES = 2  # extra tries for a connection that fails to open (never for a sent request)
+
+
 def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None,
                voice_transport: httpx.AsyncBaseTransport | None = None,
                dnsfilter: DnsFilterMonitor | None = None) -> FastAPI:
@@ -150,10 +153,14 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.data_dir.chmod(0o700)
 
+    # The Pi's Wi-Fi sometimes stalls for a few seconds (seen 15 Nov: connect timeouts to the weather,
+    # air-quality, calendar and speed-test servers within minutes of each other, everything fine a moment
+    # later). A connect that fails is tried again (up to 2 more times); a request that got through is never
+    # repeated, so nothing is sent twice.
     client = httpx.AsyncClient(
-        timeout=settings.http_timeout_seconds,
+        timeout=httpx.Timeout(settings.http_timeout_seconds, connect=min(5.0, settings.http_timeout_seconds)),
         headers={"User-Agent": USER_AGENT, "Accept": "application/json"},
-        transport=transport,
+        transport=transport or httpx.AsyncHTTPTransport(retries=CONNECT_RETRIES),
     )
     location = LocationService(
         settings.data_dir / "location.json",
@@ -275,7 +282,7 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     prices = PriceTracker(settings.data_dir / "aura.db",
                           settings.metals_dev_api_key.get_secret_value() if settings.metals_dev_api_key else None, client)
     prices.on_change = lambda: broker.publish("prices", {})
-    speed = SpeedMonitor(client, every_minutes=settings.speedtest_minutes)
+    speed = SpeedMonitor(client, every_minutes=settings.speedtest_minutes, history_path=settings.data_dir / "speed_history.json")
     speed.on_change = lambda: broker.publish("speed", {})
     smart = smarthome.SmartHome(ha_registry, ha_link, lambda: [r.model_dump() for r in prefs.home.rooms], ha_public_url)
     meal_log = nutrition.NutritionLog(settings.data_dir / "aura.db")
@@ -839,6 +846,13 @@ def create_app(settings: Settings | None = None, transport: httpx.AsyncBaseTrans
     @app.get("/api/system/speed")
     async def internet_speed() -> dict:
         return speed.view()
+
+    @app.post("/api/system/speed/check")
+    async def internet_speed_now() -> dict:
+        """ "Test now" in the Internet sheet. Rate-limited in SpeedMonitor (one check at a time, 60 s apart)."""
+        if not speed.every_minutes:
+            raise HTTPException(409, "Speed checks are turned off.")
+        return {"started": speed.check_now(), **speed.view()}
 
     @app.get("/api/system/dns-filter", response_model=DnsFilterStatus)
     async def dns_filter_status(refresh: bool = False) -> DnsFilterStatus:

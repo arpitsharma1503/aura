@@ -99,6 +99,8 @@ class NetworkStatus(BaseModel):
     wifi_connected: bool = False
     wifi_ssid: str | None = None
     wifi_signal: int | None = None
+    wifi_freq_mhz: int | None = None       # 2400s = 2.4 GHz, 5000s = 5 GHz
+    wifi_rate_mbps: int | None = None      # the link rate the router offers
     default_interface: str | None = None
     interfaces: list[InterfaceInfo] = []
     saved_wifi: list[str] = []
@@ -179,10 +181,13 @@ class NetworkService:
         wifi = next((i for i in st.interfaces if i.type == "wifi"), None)
         if wifi and wifi.state == "connected":
             st.wifi_connected = True
-            for f in await self._terse("-f", "IN-USE,SSID,SIGNAL", "device", "wifi", "list",
+            for f in await self._terse("-f", "IN-USE,SSID,SIGNAL,FREQ,RATE", "device", "wifi", "list",
                                        "ifname", wifi.device, "--rescan", "no"):
                 if len(f) >= 3 and f[0] == "*":
                     st.wifi_ssid, st.wifi_signal = f[1], int(f[2]) if f[2].isdigit() else None
+                    num = lambda v: int(m.group()) if (m := re.search(r"\d+", v or "")) else None  # "2437 MHz", "130 Mbit/s"
+                    st.wifi_freq_mhz = num(f[3]) if len(f) > 3 else None
+                    st.wifi_rate_mbps = num(f[4]) if len(f) > 4 else None
                     break
         st.saved_wifi = [f[0] for f in await self._terse("-f", "NAME,TYPE", "connection", "show")
                          if len(f) >= 2 and f[1] == "802-11-wireless"]

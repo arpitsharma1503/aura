@@ -411,3 +411,39 @@ def test_settings_reject_bad_coordinates(tmp_path):
         make_client(tmp_path, commute_home="13.0,200")
     with pytest.raises(ValueError):
         make_client(tmp_path, commute_window_start="7am")
+
+
+def test_flat_forecast_does_not_beat_real_traffic_history(tmp_path):
+    """Seen live: TomTom's forecast for later departures is nearly flat (20-21 min all morning)
+    while AURA's own live checks rise to 25-29 min after 9:00, so "best" was always the earliest
+    slot. A slot is ranked by the higher of its forecast and the median of past live checks
+    (any weekday, at least 3), so a too-rosy forecast can't win."""
+    from app.commute import RouteEstimate
+    clock = Clock(at(MONDAY, 6, 45))
+    flat = {f"{h:02d}:{m:02d}": 20 for h in range(7, 12) for m in (0, 15, 30, 45)}
+    m = monitor(tmp_path, tomtom(flat, clock=clock), clock)
+    for days_ago in (1, 3, 4):                                    # past weekdays' live checks (Fri, Thu, Wed)
+        d = MONDAY - timedelta(days=days_ago)
+        for hh, mm, minutes in ((7, 0, 30), (7, 15, 29), (7, 30, 19)):
+            dep = at(d, hh, mm)
+            m.store.record(RouteEstimate(departure_at=dep, arrival_at=dep + timedelta(minutes=minutes),
+                                         duration_s=minutes * 60, basis="live", provider="tomtom"),
+                           "now", d, dep)
+    run(m.tick())
+    st = m.status()
+    by = {s.departure_at.strftime("%H:%M"): s for s in st.slots}
+    assert by["07:00"].duration_min == 30 and by["07:00"].basis == "historical"   # history overrides the flat 20
+    assert by["07:30"].duration_min == 20                                         # forecast higher than history: kept
+    assert st.recommendation.departure_at == at(MONDAY, 7, 30)                    # not the earliest (07:00)
+
+
+def test_best_is_ranked_on_seconds_not_rounded_minutes(tmp_path):
+    """20.4 min and 19.6 min both show as "20": the faster one must still win (rounding
+    made the earliest slot win every tie)."""
+    clock = Clock(at(MONDAY, 6, 45))
+    times = {f"{h:02d}:{m:02d}": 25 for h in range(7, 12) for m in (0, 15, 30, 45)}
+    times.update({"07:00": 20.4, "08:30": 19.6})
+    m = monitor(tmp_path, tomtom(times, clock=clock), clock)
+    run(m.tick())
+    rec = m.status().recommendation
+    assert rec.departure_at == at(MONDAY, 8, 30) and rec.duration_min == 20

@@ -14,6 +14,12 @@ from app.weather import (
     WeatherService,
 )
 from conftest import FakeNetwork, make_client, save_location
+import app.open_meteo as open_meteo_mod
+
+
+@pytest.fixture(autouse=True)
+def _no_wait_before_aq_retry(monkeypatch):
+    monkeypatch.setattr(open_meteo_mod, "AQ_RETRY_DELAY", 0)
 
 TZ = "Asia/Kolkata"
 HOME = SimpleNamespace(city="Pune", latitude=18.52, longitude=73.86, timezone=TZ)
@@ -84,12 +90,13 @@ class CountingProvider:
     def __init__(self) -> None:
         self.calls = 0
         self.fail = False
+        self.no_aq = False
 
     async def fetch(self, location, timezone):
         self.calls += 1
         if self.fail:
             raise WeatherProviderError("Weather service unavailable")
-        return parse_forecast(forecast_json(), location.city, aq_json())
+        return parse_forecast(forecast_json(), location.city, None if self.no_aq else aq_json())
 
 
 class Clock:
@@ -308,3 +315,74 @@ def test_empty_current_aqi_falls_back_to_this_hours_value():
     empty["current"]["us_aqi"] = None
     empty["hourly"]["us_aqi"] = [None] * 30
     assert parse_forecast(forecast_json(), "Greater Noida", empty).air_quality is None   # nothing invented
+
+
+def test_a_missed_air_quality_reading_keeps_the_last_one_for_three_hours(tmp_path):
+    """Seen live: one refresh came back without air quality and the AQI vanished from the
+    dashboard for 15 minutes (or longer after a restart, from the saved cache). A recent
+    reading stays; an old one doesn't."""
+    p, clock = CountingProvider(), Clock()
+    svc = service(tmp_path, p, clock)
+    assert run(svc.get(HOME, TZ)).data.air_quality.us_aqi == 57
+    p.no_aq = True
+    clock.t += 1000
+    assert run(svc.get(HOME, TZ)).data.air_quality.us_aqi == 57          # kept (17 min old)
+    clock.t += 10000
+    assert run(svc.get(HOME, TZ)).data.air_quality is None               # over 3 h: not shown
+
+
+def test_a_timed_out_air_quality_call_is_tried_once_more():
+    """Seen live 15 Nov: ConnectTimeout on the air-quality call while the forecast worked."""
+    tries = []
+    def aq(request):
+        tries.append(request)
+        if len(tries) == 1:
+            raise httpx.ConnectTimeout("slow", request=request)
+        return httpx.Response(200, json=aq_json())
+    snap = run(provider_for(open_meteo_network(aq=aq)).fetch(HOME, TZ))
+    assert len(tries) == 2
+    assert snap.air_quality is not None
+
+
+def test_after_a_missed_air_quality_reading_it_asks_again_in_two_minutes(tmp_path):
+    """Seen live: no refresh for over 2 h, then one miss, so the AQI went blank for the next 15 min."""
+    p, clock = CountingProvider(), Clock()
+    svc = service(tmp_path, p, clock)
+    run(svc.get(HOME, TZ))
+    p.no_aq = True
+    clock.t += 4 * 3600                                                   # too old to keep
+    assert run(svc.get(HOME, TZ)).data.air_quality is None
+    calls = p.calls
+    clock.t += 60
+    run(svc.get(HOME, TZ))
+    assert p.calls == calls                                               # not before retry_seconds
+    p.no_aq = False
+    clock.t += 70
+    assert run(svc.get(HOME, TZ)).data.air_quality.us_aqi == 57           # back after 2 min, not 15
+    assert p.calls == calls + 1
+    clock.t += 300
+    run(svc.get(HOME, TZ))
+    assert p.calls == calls + 1                                           # normal 15 min refresh again
+
+
+def test_air_quality_that_never_comes_stops_the_quick_retries(tmp_path):
+    p, clock = CountingProvider(), Clock()
+    p.no_aq = True
+    svc = service(tmp_path, p, clock)
+    for _ in range(12):
+        run(svc.get(HOME, TZ))
+        clock.t += 130
+    assert p.calls <= 8                                                   # 1 + 5 quick retries, then every 15 min
+
+
+def test_a_saved_cache_without_air_quality_asks_again_soon_after_a_restart(tmp_path):
+    p, clock = CountingProvider(), Clock()
+    p.no_aq = True
+    run(service(tmp_path, p, clock).get(HOME, TZ))
+    path = tmp_path / "weather_cache.json"
+    import json as _json
+    raw = _json.loads(path.read_text()); raw.pop("aq_misses", None); path.write_text(_json.dumps(raw))   # older file format
+    p.no_aq = False
+    svc = service(tmp_path, p, clock)                                     # the restart
+    clock.t += 130
+    assert run(svc.get(HOME, TZ)).data.air_quality.us_aqi == 57

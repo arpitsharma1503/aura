@@ -249,6 +249,39 @@
     </div>
   </dialog>
 
+  <dialog class="sheet net-sheet" id="net-dialog" aria-labelledby="net-title">
+    <div class="sheet__inner">
+      <header class="sheet__head">
+        <h2 id="net-title">Internet</h2>
+        <button type="button" class="sheet__close" id="net-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </header>
+      <section class="net-hero" aria-live="polite">
+        <div class="net-hero__num"><b id="net-down">—</b><span>Mbps</span></div>
+        <div class="net-hero__side">
+          <span class="net-badge" id="net-badge" data-level="">—</span>
+          <p class="net-detail" id="net-detail"></p>
+        </div>
+      </section>
+      <dl class="net-stats">
+        <div><dt>Ping</dt><dd id="net-ping">—</dd></div>
+        <div><dt>Checked</dt><dd id="net-when">—</dd></div>
+        <div><dt>Wi-Fi</dt><dd id="net-wifi">—</dd></div>
+      </dl>
+      <figure class="net-trend">
+        <figcaption><span>Download, recent checks</span><span id="net-range"></span></figcaption>
+        <svg id="net-spark" viewBox="0 0 300 70" preserveAspectRatio="none" role="img" aria-label="Download speed over recent checks"></svg>
+      </figure>
+      <p class="net-tip" id="net-tip" hidden></p>
+      <div class="net-actions">
+        <button type="button" class="btn btn--primary" id="net-test">Test now</button>
+        <button type="button" class="btn" id="net-more">More in System</button>
+      </div>
+      <p class="net-foot" id="net-foot"></p>
+    </div>
+  </dialog>
+
   <dialog class="sheet" id="location-dialog" aria-labelledby="loc-title">
     <div class="sheet__inner">
       <header class="sheet__head">

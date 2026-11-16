@@ -205,12 +205,43 @@ def test_internet_speed_capsule_comes_last(chrome, srv, artifacts, speed, value,
     p.wait_for(f"{labels}.some(x => x.startsWith('Internet'))")
     caps = p.js("[...document.querySelectorAll('.status__btn')].map(b => [b.dataset.open, b.getAttribute('aria-label'), b.dataset.kind || null])")
     i = next(k for k, c in enumerate(caps) if c[1].startswith("Internet"))
-    assert caps[i] == ["system", f"Internet: {value}", kind]
+    assert caps[i] == ["internet", f"Internet: {value}", kind]
     assert i == len(caps) - 1                                                       # after any alerts
     p.js("[...document.querySelectorAll('.status__btn')].find(b => b.textContent.includes('Internet')).click()")
-    p.wait_for(f"{IS_OPEN} && {VIEW} === 'system'")
+    p.wait_for("document.getElementById('net-dialog').open")                       # the Internet sheet, not a detail
+    assert not p.js(IS_OPEN)
     if speed is SPEED:
         p.screenshot(str(artifacts / "home-capsule-internet.png"))
+    p.click("#net-more")                                                            # still one tap to System
+    p.wait_for(f"{IS_OPEN} && {VIEW} === 'system'")
+
+
+def test_internet_sheet_shows_quality_trend_and_runs_a_test(chrome, srv):
+    hist = [{"at": f"2026-11-03T19:{m:02d}:00+05:30", "down_mbps": v, "ping_ms": 90 if v else None}
+            for m, v in [(1, 12.0), (11, None), (21, 4.5), (31, 8.2)]]
+    speed = {**SPEED, "down_mbps": 4.5, "ping_ms": 91, "checking": False, "history": hist,
+             "quality": {"level": "slow", "label": "Slow", "detail": "Pages and video may load slowly."}}
+    p = chrome.new_page()
+    p.viewport(390, 844, mobile=True, scale=2)
+    p.fixture("/api/system/speed/check", {**speed, "started": True, "checking": True})   # first: "/speed" would match it too
+    p.fixture("/api/system/speed", speed)
+    p.fixture("/api/system/network", {"available": True, "hostname": "aura", "lan_ip": "192.168.1.5", "wifi_connected": True,
+                                      "wifi_ssid": "Home", "wifi_signal": 74, "wifi_freq_mhz": 2437, "wifi_rate_mbps": 130,
+                                      "default_interface": "wlan0"})
+    p.goto(f"{srv.url}/")
+    p.wait_for("!!document.querySelector('.status__btn[data-open=internet]')")
+    assert p.js("document.querySelector('.status__btn[data-open=internet]').dataset.level") == "slow"   # red dot
+    p.click(".status__btn[data-open=internet]")
+    p.wait_for("document.getElementById('net-dialog').open && document.getElementById('net-wifi').textContent.includes('GHz')")
+    assert p.text("#net-down") == "4.5" and p.text("#net-badge") == "Slow" and p.text("#net-ping") == "91 ms"
+    assert p.text("#net-wifi") == "2.4 GHz · 74%"
+    assert p.js("!document.getElementById('net-tip').hidden")                     # 2.4 GHz and slow: the tip shows
+    assert p.js("document.querySelectorAll('#net-spark .net-spark__miss').length") == 1   # the failed check
+    assert p.js("!!document.querySelector('#net-spark .net-spark__line')")
+    p.click("#net-test")
+    p.wait_for("document.getElementById('net-test').disabled && document.getElementById('net-test').textContent === 'Testing…'")
+    p.wait_for("document.getElementById('net-badge').textContent === 'Checking…'", timeout=5)
+    assert p.js("document.querySelector('.status__btn[data-open=internet]').dataset.level") == "checking"
 
 
 @pytest.mark.parametrize("w, h, mobile", [(1920, 1080, False), (390, 844, True)])
@@ -265,3 +296,19 @@ def test_calm_home_view_shows_one_fact_per_tile(chrome, srv):
     p.js("document.querySelector('.view-tab[data-view=daily]').click()")
     p.wait_for(f"({vis})('#grocery-list') && !({vis})('#grocery-tile .glance')")
     assert "groceries" not in p.js("[...document.querySelectorAll('.status__btn')].map(b => b.dataset.open)")
+
+
+def test_popups_on_phones_are_bottom_sheets_and_the_page_stays_put(chrome, srv):
+    """Seen 16 Nov: on a phone the popup filled the screen and floated up while growing."""
+    p = dashboard(chrome, srv)
+    p.viewport(390, 844, mobile=True, scale=3)
+    p.js("document.scrollingElement.scrollTop = 300")
+    before = p.js("document.scrollingElement.scrollTop")
+    p.js("window.AuraDetail.open('weather')")
+    p.wait_for(f"{IS_OPEN} && getComputedStyle(document.getElementById('detail')).transform === 'none'"
+               " || getComputedStyle(document.getElementById('detail')).transform === 'matrix(1, 0, 0, 1, 0, 0)'", timeout=3)
+    r = p.js("(() => { const r = document.getElementById('detail').getBoundingClientRect(); return [r.top, r.bottom, innerHeight]; })()")
+    assert 0 < r[0] < 60 and abs(r[1] - r[2]) <= 1                 # under the status bar, down to the bottom edge
+    cs = p.js("(() => { const cs = getComputedStyle(document.getElementById('detail')); return [cs.position, cs.borderBottomLeftRadius, cs.animationName]; })()")
+    assert cs == ["fixed", "0px", "aura-sheet-up"]                    # slides up from the bottom, no zoom
+    assert p.js("document.scrollingElement.scrollTop") == before       # the page behind didn't move

@@ -337,6 +337,12 @@ class CacheEntry(BaseModel):
     key: str
     fetched_ts: float  # unix seconds
     snapshot: WeatherSnapshot
+    aq_ts: float | None = None  # when the air quality in the snapshot was actually read
+    aq_misses: int = 0          # refreshes in a row that came back without air quality
+
+
+AQ_KEEP_SECONDS = 3 * 3600  # a missed air-quality reading shows the last one for this long
+AQ_FAST_RETRIES = 5         # after a miss, refresh again after retry_seconds (not 15 min), this many times
 
 
 class WeatherService:
@@ -364,7 +370,10 @@ class WeatherService:
         if not self.cache_path or not self.cache_path.exists():
             return None
         try:
-            return CacheEntry.model_validate_json(self.cache_path.read_text(encoding="utf-8"))
+            entry = CacheEntry.model_validate_json(self.cache_path.read_text(encoding="utf-8"))
+            if entry.snapshot.air_quality is None and not entry.aq_misses:
+                entry.aq_misses = 1              # saved without air quality: ask again soon after a restart
+            return entry
         except (OSError, ValidationError, ValueError):
             log.warning("Ignoring unreadable weather cache %s", self.cache_path)
             return None
@@ -419,7 +428,9 @@ class WeatherService:
             entry = self._entry if self._entry and self._entry.key == key else None
             age = now - entry.fetched_ts if entry else None
 
-            if entry and age < self.refresh_seconds:
+            # air quality missed last time: ask again soon instead of waiting the full refresh
+            fresh_for = self.retry_seconds if entry and 0 < entry.aq_misses <= AQ_FAST_RETRIES else self.refresh_seconds
+            if entry and age < fresh_for:
                 return self._ok(entry)
 
             if self._failure and self._failure[0] == key and now - self._failure[1] < self.retry_seconds:
@@ -433,7 +444,17 @@ class WeatherService:
                 return self._fallback(entry, age, str(exc))
 
             self._failure = None
-            self._entry = CacheEntry(key=key, fetched_ts=now, snapshot=snap)
+            aq_ts = now if snap.air_quality else None
+            aq_misses = 0 if snap.air_quality else (entry.aq_misses if entry else 0) + 1
+            if not snap.air_quality:
+                log.info("Air quality missing (miss %d); asking again in %d s", aq_misses,
+                         self.retry_seconds if aq_misses <= AQ_FAST_RETRIES else self.refresh_seconds)
+            if snap.air_quality is None and entry and entry.snapshot.air_quality and entry.aq_ts \
+                    and now - entry.aq_ts < AQ_KEEP_SECONDS:
+                # one refresh without air quality (a timeout, an empty answer): keep the recent one
+                snap = snap.model_copy(update={"air_quality": entry.snapshot.air_quality})
+                aq_ts = entry.aq_ts
+            self._entry = CacheEntry(key=key, fetched_ts=now, snapshot=snap, aq_ts=aq_ts, aq_misses=aq_misses)
             self._persist(self._entry)
             return self._ok(self._entry)
 
